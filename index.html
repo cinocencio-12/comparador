@@ -8,13 +8,15 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="theme-color" content="#0F6B5C">
+<meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
 :root{
   --bg:#F3F5F1; --surface:#FFFFFF; --line:#DDE3DA; --fg:#1A2420; --muted:#5E6B64;
   --accent:#0F6B5C; --accent-fg:#FFFFFF; --accent-soft:#E2F0EC;
-  --tag:#F2B632; --tag-fg:#2B2000; --danger:#B3361F; --danger-soft:#FBE7E2;
+  --tag:#F2B632; --tag-fg:#2B2000; --var:#E4E1F7; --var-fg:#2E2766;
+  --danger:#B3361F; --danger-soft:#FBE7E2;
   --f-display:"Familjen Grotesk",system-ui,sans-serif;
   --f-body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -23,6 +25,7 @@
 @media (prefers-color-scheme:dark){:root{
   --bg:#111816; --surface:#19221F; --line:#2B3833; --fg:#E7EEEA; --muted:#97A59E;
   --accent:#4FC2A8; --accent-fg:#06211B; --accent-soft:#163029;
+  --var:#2C2850; --var-fg:#D9D4FF;
   --danger:#F08A73; --danger-soft:#3A1F19; color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -43,6 +46,7 @@ h1{font-family:var(--f-display);font-weight:700;font-size:1.6rem;letter-spacing:
 .btn.small{padding:5px 9px;font-size:.8rem}
 .btn.danger{color:var(--danger)}
 .btn.danger.armed{background:var(--danger-soft);border-color:var(--danger)}
+.btn:disabled{opacity:.5}
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .status{background:var(--accent-soft);border-radius:8px;padding:10px 12px;font-weight:600;display:flex;justify-content:space-between;gap:10px;align-items:center}
 .status.done{font-weight:400}
@@ -53,24 +57,30 @@ h1{font-family:var(--f-display);font-weight:700;font-size:1.6rem;letter-spacing:
 .offer{padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;border-top:1px solid var(--line)}
 .offer:first-of-type{border-top:0}
 .offer.best{background:var(--accent-soft)}
-.store{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.store{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0}
 .store a,.store span.n{color:var(--fg);font-weight:600;overflow-wrap:anywhere}
 .chip{font:600 .68rem var(--f-body);text-transform:uppercase;letter-spacing:.05em;padding:2px 7px;border-radius:999px;background:var(--tag);color:var(--tag-fg)}
 .chip.code{background:transparent;border:1px dashed var(--muted);color:var(--fg);text-transform:none;letter-spacing:0;font-family:var(--f-mono)}
+.chip.var{background:var(--var);color:var(--var-fg);text-transform:none;letter-spacing:0;font-size:.75rem}
 .chip.warn{background:var(--danger-soft);color:var(--fg)}
+.pname{grid-column:1/-1;font-size:.88rem;overflow-wrap:anywhere}
+.refs{grid-column:1/-1;font-family:var(--f-mono);font-size:.74rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
 .total{font:600 1.15rem var(--f-mono);text-align:right}
 .break{grid-column:1/-1;font-family:var(--f-mono);font-size:.8rem;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
 .notes{grid-column:1/-1;font-size:.85rem;color:var(--muted);overflow-wrap:anywhere}
+details.desc{grid-column:1/-1;font-size:.88rem}
+details.desc summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.82rem}
+details.desc p{margin:6px 0 0;white-space:pre-line;overflow-wrap:anywhere}
 .row-actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
-.diff{font-size:.78rem;color:var(--muted);font-family:var(--f-mono)}
+.diff{font-size:.78rem;color:var(--muted);font-family:var(--f-mono);text-align:right}
 .list{display:flex;flex-direction:column;gap:10px}
-.gallery{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto}
-.gallery img{flex:none;width:72px;height:72px;object-fit:cover;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:zoom-in}
+.gallery{grid-column:1/-1;display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.gallery img{flex:none;width:88px;height:88px;object-fit:cover;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:zoom-in}
 .buyrow{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center}
 .buyrow .name{font-weight:600;overflow-wrap:anywhere}
 .buyrow .meta{font-size:.84rem;color:var(--muted)}
 .buyrow .who{display:flex;gap:10px;align-items:center;min-width:0}
-.buyrow .pic{width:52px;height:52px;border-radius:8px;object-fit:cover;border:1px solid var(--line);flex:none;cursor:zoom-in}
+.buyrow .pic{width:56px;height:56px;border-radius:8px;object-fit:cover;border:1px solid var(--line);flex:none;cursor:zoom-in;background:#fff}
 .grand{display:flex;justify-content:space-between;align-items:baseline;padding:12px 14px;border:2px solid var(--accent);border-radius:10px;background:var(--surface)}
 .grand b{font:600 1.35rem var(--f-mono)}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:20px;text-align:center;color:var(--muted)}
@@ -79,11 +89,19 @@ form.add,.settings{background:var(--surface);border:1px solid var(--line);border
 form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-display)}
 .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.f input,.f select{font:400 .95rem var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
-.c6{grid-column:span 6}.c3{grid-column:span 3}
+.f input,.f select,.f textarea{font:400 .95rem var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);width:100%;min-width:0}
+.f textarea{min-height:110px;resize:vertical}
+.c6{grid-column:span 6}.c3{grid-column:span 3}.c2{grid-column:span 2}
 .disc{display:flex;gap:6px}.disc select{width:70px;flex:none}
-.lb{position:fixed;inset:0;background:rgba(8,12,10,.92);display:flex;align-items:center;justify-content:center;z-index:50;padding:56px 12px 64px}
-.lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}
+.full{grid-column:1/-1}
+.imgedit{display:flex;gap:8px;flex-wrap:wrap}
+.th{position:relative;width:84px;height:84px;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:#fff;flex:none}
+.th img{width:100%;height:100%;object-fit:cover;display:block}
+.th button{position:absolute;top:3px;right:3px;width:26px;height:26px;border-radius:50%;border:0;background:rgba(0,0,0,.65);color:#fff;font-size:15px;line-height:1;cursor:pointer}
+.th .first{position:absolute;left:3px;bottom:3px;font:600 .6rem var(--f-body);background:rgba(0,0,0,.65);color:#fff;padding:1px 5px;border-radius:4px}
+.addimg{width:84px;height:84px;border:1px dashed var(--muted);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;cursor:pointer;font-weight:600;font-size:.8rem;color:var(--fg);padding:4px}
+.lb{position:fixed;inset:0;background:rgba(8,12,10,.94);display:flex;align-items:center;justify-content:center;z-index:50;padding:56px 12px 64px}
+.lb img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px;background:#fff}
 .lb .bar{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:10px;align-items:center;color:#fff;font-family:var(--f-mono)}
 .lb button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 .95rem var(--f-body);cursor:pointer}
 .lb .close{position:absolute;top:14px;right:12px}
@@ -94,7 +112,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 <div class="wrap">
   <div>
     <h1>Comparador de Compras</h1>
-    <p class="sub">En la tienda: Compartir → Comparador. Captura o enlace, se guarda solo.</p>
+    <p class="sub">En la tienda: Compartir → Comparador. Se guardan fotos, descripción, referencias y precio.</p>
   </div>
 
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
@@ -108,38 +126,49 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   <div class="actions">
     <label class="btn primary" for="fShot">Añadir capturas</label>
     <input id="fShot" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
-    <button class="btn" id="openForm" type="button">A mano</button>
+    <button class="btn" id="openForm" type="button">A mano / enlace</button>
     <button class="btn" id="openSettings" type="button">Ajustes</button>
   </div>
 
   <div class="settings" id="settings" hidden>
     <h2>Ajustes</h2>
     <div class="f c6"><label for="apiKey">Clave de API de Anthropic</label><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"></div>
-    <div class="f c6"><label for="model">Modelo para leer capturas</label>
+    <div class="f c6"><label for="model">Modelo</label>
       <select id="model">
         <option value="claude-haiku-4-5-20251001">Haiku 4.5 (rápido y barato)</option>
-        <option value="claude-sonnet-5-5">Sonnet 5.5 (más preciso)</option>
+        <option value="claude-sonnet-5-5">Sonnet 5.5 (más preciso con variantes)</option>
       </select></div>
-    <div class="actions c6" style="grid-column:1/-1">
+    <div class="actions full">
       <button class="btn primary" id="saveSettings" type="button">Guardar</button>
-      <button class="btn" id="exportBtn" type="button">Copiar copia de seguridad</button>
-      <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json" hidden>
+      <button class="btn" id="exportBtn" type="button">Copia de seguridad</button>
+      <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
-    <p class="hint" style="grid-column:1/-1;margin:0">La clave se guarda solo en este móvil. La lista también vive en este móvil; usa la copia de seguridad si cambias de teléfono.</p>
+    <p class="hint full" style="margin:0">La clave y la lista se guardan solo en este móvil.</p>
   </div>
 
   <form class="add" id="form" hidden autocomplete="off">
-    <h2 id="formTitle">Nuevo enlace</h2>
-    <div class="f c6"><label for="fUrl">Enlace</label><input id="fUrl" type="url" inputmode="url" placeholder="https://…"></div>
-    <div class="f c6"><label for="fProduct">Producto</label><input id="fProduct" list="productList" required><datalist id="productList"></datalist></div>
+    <h2 id="formTitle">Nuevo</h2>
+    <div class="f c6"><label for="fUrl">Enlace de la tienda</label><input id="fUrl" type="url" inputmode="url" placeholder="https://…"></div>
+    <div class="actions full"><button class="btn small" type="button" id="readWeb">Leer datos y fotos de la web</button><span class="hint" id="readHint"></span></div>
+    <div class="f c6"><label for="fProduct">Producto</label><input id="fProduct" required></div>
+    <div class="f c3"><label for="fVariant">Variante / versión</label><input id="fVariant" placeholder="Full, Lite, Junior, 128 GB…"></div>
+    <div class="f c3"><label for="fBrand">Marca</label><input id="fBrand"></div>
+    <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
+    <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
+    <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
+    <div class="f c2"><label for="fEan">EAN</label><input id="fEan" inputmode="numeric"></div>
     <div class="f c3"><label for="fStore">Tienda</label><input id="fStore"></div>
-    <div class="f c3"><label for="fPrice">Precio €</label><input id="fPrice" type="number" step="0.01" min="0" inputmode="decimal" required></div>
-    <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
+    <div class="f c3"><label for="fPrice">Precio €</label><input id="fPrice" inputmode="decimal" required></div>
+    <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
-    <div class="f c3"><label for="fShip">Envío €</label><input id="fShip" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></div>
-    <div class="f c3"><label for="fFree">Envío gratis desde €</label><input id="fFree" type="number" step="0.01" min="0" inputmode="decimal"></div>
+    <div class="f c3"><label for="fShip">Envío €</label><input id="fShip" inputmode="decimal" placeholder="0"></div>
+    <div class="f c3"><label for="fFree">Envío gratis desde €</label><input id="fFree" inputmode="decimal"></div>
+    <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
     <div class="f c6"><label for="fNotes">Notas</label><input id="fNotes"></div>
-    <div class="actions" style="grid-column:1/-1">
+    <div class="f c6"><label>Imágenes (la primera es la principal)</label>
+      <div class="imgedit" id="imgEdit"><label class="addimg" for="fImgs">+ Fotos</label><input id="fImgs" type="file" accept="image/*" multiple hidden></div>
+    </div>
+    <div class="actions full">
       <button class="btn primary" type="submit">Guardar</button>
       <button class="btn" type="button" id="cancelBtn">Cancelar</button>
     </div>
@@ -155,7 +184,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
 <div class="lb" id="lb" hidden role="dialog">
   <button class="close" id="lbClose" type="button">Cerrar</button>
-  <img id="lbImg" alt="">
+  <img id="lbImg" alt="" referrerpolicy="no-referrer">
   <div class="bar"><button id="lbPrev" type="button">‹</button><span id="lbCount"></span><button id="lbNext" type="button">›</button></div>
 </div>
 
@@ -163,29 +192,58 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 (function(){
   const $=s=>document.querySelector(s);
   const eur=n=>(Math.round(n*100)/100).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
-  const num=v=>{const n=parseFloat(String(v??'').replace(',','.'));return isFinite(n)?n:0;};
+  function num(v){
+    if(typeof v==='number')return isFinite(v)?v:0;
+    let s=String(v??'').replace(/[^\d.,-]/g,'');if(!s)return 0;
+    const c=s.lastIndexOf(','),d=s.lastIndexOf('.');
+    if(c>-1&&d>-1){s=c>d?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');}
+    else if(c>-1)s=s.replace(',','.');
+    const n=parseFloat(s);return isFinite(n)?n:0;
+  }
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  const clean=v=>String(v??'').trim();
   function hostOf(u){try{const h=new URL(u).hostname.replace(/^www\./,'');const p=h.split('.');const n=p.length>2&&p[p.length-2].length<=3?p[p.length-3]:p[p.length-2];return n?n.charAt(0).toUpperCase()+n.slice(1):h;}catch(e){return '';}}
 
   // ---------- IndexedDB ----------
   function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open('comparador',1);
     r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('items'))db.createObjectStore('items',{keyPath:'id'});if(!db.objectStoreNames.contains('inbox'))db.createObjectStore('inbox',{keyPath:'id'});};
     r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
-  async function tx(store,mode,fn){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(store,mode);const s=t.objectStore(store);const out=fn(s);t.oncomplete=()=>res(out&&out.result!==undefined?out.result:out);t.onerror=()=>rej(t.error);});}
-  const getAll=store=>tx(store,'readonly',s=>s.getAll());
-  const put=(store,v)=>tx(store,'readwrite',s=>s.put(v));
-  const del=(store,k)=>tx(store,'readwrite',s=>s.delete(k));
+  async function tx(store,mode,fn){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(store,mode);const req=fn(t.objectStore(store));t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error);});}
+  const getAll=s=>tx(s,'readonly',o=>o.getAll());
+  const put=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+  const del=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
 
-  let items=[], tab='compare', editingId=null;
-  const urlCache=new Map();
-  function imgSrc(it,i){const k=it.id+':'+i;if(!urlCache.has(k))urlCache.set(k,URL.createObjectURL(it.images[i]));return urlCache.get(k);}
+  let items=[],tab='compare',editingId=null;
 
-  // ---------- cálculo ----------
+  // ---------- imágenes (Blob guardado o URL de la tienda) ----------
+  const blobUrls=new WeakMap();
+  function src(v){if(typeof v==='string')return v;if(!blobUrls.has(v))blobUrls.set(v,URL.createObjectURL(v));return blobUrls.get(v);}
+  const imgTag=(v,attrs)=>`<img src="${esc(src(v))}" alt="" loading="lazy" referrerpolicy="no-referrer" ${attrs||''}>`;
+  async function grabImage(u){
+    try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
+      const r=await fetch(u,{mode:'cors',signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
+      if(r.ok){const b=await r.blob();if(/^image\//.test(b.type)&&b.size>1500)return b;}}catch(e){}
+    return u; // la tienda no deja copiarla: se muestra desde su web
+  }
+  async function grabImages(urls){
+    const list=[...new Set((urls||[]).map(u=>clean(u).replace(/&amp;/g,'&')).filter(u=>/^https?:\/\//i.test(u)))].slice(0,8);
+    return Promise.all(list.map(grabImage));
+  }
+
+  // ---------- cálculo y agrupación ----------
   function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=num(it.freeFrom);const ship=(free>0&&after>=free)?0:num(it.shipping);return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,total:after+ship};}
-  const key=p=>(p||'').trim().toLowerCase();
-  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status).forEach(i=>{const k=key(i.product);if(!map.has(k))map.set(k,{name:i.product.trim(),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>g.offers.sort((a,b)=>calc(a).total-calc(b).total));arr.sort((a,b)=>a.name.localeCompare(b.name,'es'));return arr;}
+  const fullName=it=>[clean(it.product),clean(it.variant)].filter(Boolean).join(' · ');
+  const groupName=it=>clean(it.group)||fullName(it)||'Sin nombre';
+  const key=s=>clean(s).toLowerCase().replace(/\s+/g,' ');
+  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>g.offers.sort((a,b)=>calc(a).total-calc(b).total));arr.sort((a,b)=>a.name.localeCompare(b.name,'es'));return arr;}
+  // Busca con qué producto ya guardado comparar: mismo EAN o misma ref. de fabricante; si no, mismo nombre + variante.
+  function autoGroup(doc){
+    const ean=clean(doc.ean),mpn=key(doc.mpn);
+    const m=items.find(i=>(ean&&clean(i.ean)===ean)||(mpn&&key(i.mpn)===mpn&&key(i.variant)===key(doc.variant)));
+    return m?groupName(m):fullName(doc);
+  }
 
   // ---------- render ----------
   function render(){
@@ -193,28 +251,34 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>s+calc(g.offers[0]).total,0));
-    $('#productList').innerHTML=[...new Set(items.map(i=>i.product.trim()))].map(p=>`<option value="${esc(p)}">`).join('');
+    $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','buy','done'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
-    if(tab==='compare')v.innerHTML=renderCompare(pend);else if(tab==='buy')v.innerHTML=renderBuy(pend);else v.innerHTML=renderDone();
+    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='buy'?renderBuy(pend):renderDone();
   }
-  function thumb(it){return (it.images||[]).length?`<img class="pic" src="${imgSrc(it,0)}" alt="" data-lb="${it.id}" data-i="0">`:'';}
-  function offerRow(it,best,bestTotal){
+  const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
+  function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
+  function offerRow(it,best,bestTotal,showName){
     const c=calc(it);const url=safeUrl(it.url);const store=esc(it.store||hostOf(it.url)||'Tienda');
     const discTxt=c.disc>0?`−${eur(c.disc)}${it.discountType==='pct'?` (${num(it.discount)}%)`:''}`:'sin dto.';
     const shipTxt=c.shipWaived?'envío gratis':(c.ship>0?`+${eur(c.ship)} envío`:'envío 0');
-    const gal=(it.images||[]).length?`<div class="gallery">${it.images.map((b,i)=>`<img src="${imgSrc(it,i)}" alt="" data-lb="${it.id}" data-i="${i}">`).join('')}</div>`:'';
+    const gal=(it.images||[]).length?`<div class="gallery">${it.images.map((b,i)=>imgTag(b,`data-lb="${it.id}" data-i="${i}"`)).join('')}</div>`:'';
     return `<div class="offer ${best?'best':''}">
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
-        ${best?'<span class="chip">Más barato</span>':''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
+        ${best?'<span class="chip">Más barato</span>':''}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
       <div><div class="total">${eur(c.total)}</div>${!best?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
+      ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
+      ${refsLine(it)}
       <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span></div>
-      ${gal}${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
+      ${gal}
+      ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
+      ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
-    if(!gs.length)return `<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b> (una captura o el enlace). También puedes pulsar <b>Añadir capturas</b> aquí.</div>`;
-    return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;return `<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt)).join('')}</article>`;}).join('')}</div>`;
+    if(!gs.length)return `<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
+    return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
+      return `<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt,names.size>1)).join('')}</article>`;}).join('')}</div>`;
   }
   function renderBuy(gs){
     if(!gs.length)return `<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
@@ -229,107 +293,168 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const done=items.filter(i=>i.status==='bought').sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
     if(!done.length)return `<div class="empty">Lo que marques como comprado aparecerá aquí.</div>`;
     const sum=done.reduce((s,i)=>s+calc(i).total,0);
-    return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(i.product)}</div><div class="meta">${esc(i.store||'')}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
-      <div class="row-actions"><button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
+    return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(i.store||'')}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
+      <div class="row-actions"><button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
   // ---------- estado ----------
-  let statusTimer=null;
   function setStatus(txt,kind){const s=$('#status');s.hidden=!txt;$('#statusTxt').textContent=txt||'';s.classList.toggle('done',kind!=='busy');s.classList.toggle('err',kind==='err');$('#statusClose').hidden=kind==='busy';}
   $('#statusClose').addEventListener('click',()=>setStatus(''));
 
   // ---------- ajustes ----------
-  const cfg={get key(){try{return localStorage.getItem('apiKey')||''}catch(e){return ''}},get model(){try{return localStorage.getItem('model')||'claude-haiku-4-5-20251001'}catch(e){return 'claude-haiku-4-5-20251001'}}};
+  const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+  const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')}};
   $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;});
-  $('#saveSettings').addEventListener('click',()=>{try{localStorage.setItem('apiKey',$('#apiKey').value.trim());localStorage.setItem('model',$('#model').value);}catch(e){}$('#settings').hidden=true;setStatus('Ajustes guardados.');});
+  $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);$('#settings').hidden=true;setStatus('Ajustes guardados.');});
 
   // ---------- Claude ----------
-  const PROMPT=`Esto es una página de producto de una tienda online (normalmente en España, precios en euros): capturas de pantalla del móvil o el contenido de la página.
-Extrae los datos de compra. Responde SOLO con un objeto JSON, sin texto alrededor, con estas claves:
-{"product": nombre corto y claro del producto (marca + modelo, sin textos de marketing),
+  const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con estas claves:
+{"product": nombre del producto SIN la variante (marca + modelo),
+ "variant": versión o variante concreta de ESTA oferta (p. ej. Full, Lite, Junior, Pro, talla, color, capacidad, nº de unidades). Fíjate bien en la seleccionada; "" si no hay,
+ "brand": marca,
+ "sku": referencia de la tienda (Referencia, SKU, Ref., código de artículo), "" si no hay,
+ "mpn": referencia o modelo del fabricante si aparece aparte, "" si no,
+ "ean": código EAN/GTIN/código de barras si aparece, "" si no,
  "store": nombre de la tienda,
- "url": la URL de la página si se ve o se conoce (con https://), si no "",
- "price": precio actual de venta antes de cupones, número,
- "discount": descuento adicional sobre ese precio (cupón, código, % extra en cesta), número o 0. NO cuentes la rebaja ya aplicada en el precio actual,
- "discountType": "pct" si es porcentaje, "eur" si son euros,
+ "url": URL de la página del producto,
+ "price": precio actual de venta con IVA antes de cupones, número,
+ "discount": SOLO un descuento extra que aún no está aplicado en "price" (un cupón o código, o un % extra que se aplica en la cesta). Si el precio ya aparece rebajado (precio tachado), eso NO es descuento: pon 0,
+ "discountType": "pct" o "eur",
  "code": código de cupón si aparece, si no "",
- "shipping": coste de envío estándar en euros si aparece, 0 si es gratis, null si no se ve,
+ "shipping": coste de envío estándar en euros, 0 si es gratis, null si no aparece,
  "freeFrom": importe mínimo para envío gratis si aparece, si no 0,
- "notes": una frase con datos útiles visibles: precio anterior tachado, fin de la oferta, plazo de entrega, variante o color. "" si nada}
-Usa punto decimal. Si un dato no se ve, no lo inventes.`;
+ "description": descripción del producto en español, fiel a la tienda, con las características y especificaciones clave (máx. 900 caracteres, puedes usar saltos de línea),
+ "images": lista de URLs absolutas de las fotos del producto (galería principal, en la mayor resolución disponible, máx. 8; nada de logos, iconos ni otros productos),
+ "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega, stock. "" si nada}
+Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JSON con lo que hayas encontrado, aunque falten datos; nunca respondas con una disculpa.`;
+  const SHOT_PROMPT=`Estas imágenes son capturas de pantalla del móvil de una página de producto de una tienda online (normalmente España, euros). Extrae los datos de compra. En "images" pon [] (las capturas ya se guardan).\n`+FIELDS;
+  const URL_PROMPT=u=>`Abre con web_fetch esta página de producto y extrae los datos de compra: ${u}\nSi la página ofrece varias versiones, usa la que corresponde a esta URL.\n`+FIELDS;
 
-  function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});}
+  function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});}
   async function shrink(file){try{const bmp=await createImageBitmap(file);const max=1600,s=Math.min(1,max/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));return b||file;}catch(e){return file;}}
   function parseJSON(t){try{return JSON.parse(t);}catch(e){}const m=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(m){try{return JSON.parse(m[1]);}catch(e){}}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}return null;}
 
   async function askClaude({images,url}){
-    if(!cfg.key)throw new Error('Falta la clave de API. Ponla en Ajustes.');
+    if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
     for(const b of images||[])content.push({type:'image',source:{type:'base64',media_type:b.type||'image/jpeg',data:await toB64(b)}});
-    let text=PROMPT;const body={model:cfg.model,max_tokens:700,messages:[{role:'user',content}]};
+    const body={model:cfg.model,max_tokens:2500,messages:[{role:'user',content}]};
     const headers={'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
     if(url&&!(images||[]).length){
-      text=`Abre esta página de producto con web_fetch y extrae los datos: ${url}\n\n`+PROMPT;
+      content.push({type:'text',text:URL_PROMPT(url)});
       body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:2}];
       headers['anthropic-beta']='web-fetch-2025-09-10';
-    }
-    content.push({type:'text',text});
+    } else content.push({type:'text',text:SHOT_PROMPT+(url?`\nLa URL de la página es: ${url}`:'')});
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
-    if(!r.ok){const m=(j.error&&j.error.message)||('Error '+r.status);throw new Error(r.status===401?'Clave de API no válida. Revísala en Ajustes.':m);}
+    if(!r.ok){const m=(j.error&&j.error.message)||('error '+r.status);throw new Error(r.status===401?'la clave de API no es válida':m);}
+    const fetchErr=(j.content||[]).find(c=>c.type==='web_fetch_tool_result'&&c.content&&c.content.type==='web_fetch_tool_result_error');
     const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
-    const d=parseJSON(txt);if(!d||typeof d!=='object')throw new Error('No he entendido la respuesta. Prueba con una captura.');
+    const d=parseJSON(txt);
+    if(!d||typeof d!=='object'||(!d.product&&!d.price)){
+      if(fetchErr)throw new Error('esta tienda no deja leer su web; comparte una captura');
+      throw new Error('no se han encontrado datos del producto');
+    }
     return d;
   }
 
-  function docFrom(d,images,fallbackUrl){
-    const url=safeUrl(String(d.url||'').trim())||safeUrl(fallbackUrl||'');
+  function fromClaude(d,fallbackUrl){
+    const url=safeUrl(clean(d.url))||safeUrl(fallbackUrl||'');
     const miss=[];if(!(num(d.price)>0))miss.push('precio');if(d.shipping===null||d.shipping===undefined)miss.push('envío');
-    const notes=[String(d.notes||'').trim(),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' ');
-    return{id:uid(),product:String(d.product||'').trim()||'Producto sin nombre',store:String(d.store||'').trim()||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:String(d.code||'').trim(),shipping:num(d.shipping),freeFrom:num(d.freeFrom),notes,images,incomplete:miss.length>0,status:'pending',createdAt:new Date().toISOString()};
+    return{product:clean(d.product)||'Producto sin nombre',variant:clean(d.variant),brand:clean(d.brand),sku:clean(d.sku),mpn:clean(d.mpn),ean:clean(d.ean).replace(/\s/g,''),
+      store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
+      shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
+      notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[]};
   }
 
-  async function processShots(files,sharedUrl){
+  async function processShared(files,sharedUrl){
     const list=[...files].filter(f=>/^image\//.test(f.type)).slice(0,4);
     if(!list.length&&!sharedUrl)return;
-    setStatus(list.length?`Leyendo ${list.length===1?'la captura':list.length+' capturas'}…`:'Leyendo la página…','busy');
-    const images=[];for(const f of list)images.push(await shrink(f));
+    tab='compare';
+    setStatus(list.length?`Leyendo ${list.length===1?'la captura':list.length+' capturas'}…`:'Leyendo la web del producto y sus fotos…','busy');
+    const shots=[];for(const f of list)shots.push(await shrink(f));
     let doc;
-    try{const d=await askClaude({images,url:sharedUrl});doc=docFrom(d,images,sharedUrl);}
-    catch(err){
-      doc={id:uid(),product:'Sin leer · '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),store:hostOf(sharedUrl||''),url:safeUrl(sharedUrl||''),price:0,discount:0,discountType:'eur',code:'',shipping:0,freeFrom:0,notes:'No se pudo leer: '+(err.message||err),images,incomplete:true,status:'pending',createdAt:new Date().toISOString()};
-      await put('items',doc);items.push(doc);render();setStatus('Guardado sin datos: '+(err.message||err),'err');return;
+    try{
+      const d=fromClaude(await askClaude({images:shots,url:sharedUrl}),sharedUrl);
+      if(d.imageUrls.length)setStatus('Guardando las fotos del producto…','busy');
+      const webImgs=await grabImages(d.imageUrls);delete d.imageUrls;
+      doc={id:uid(),...d,images:[...webImgs,...shots],status:'pending',createdAt:new Date().toISOString()};
+      doc.group=autoGroup(doc);
+    }catch(err){
+      doc={id:uid(),product:'Sin leer · '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),variant:'',store:hostOf(sharedUrl||''),url:safeUrl(sharedUrl||''),price:0,discount:0,discountType:'eur',code:'',shipping:0,freeFrom:0,description:'',notes:'No se pudo leer: '+(err.message||err),images:shots,incomplete:true,status:'pending',createdAt:new Date().toISOString()};
+      await put('items',doc);items.push(doc);render();setStatus('Guardado sin datos: '+(err.message||err)+'. Puedes editarlo.','err');return;
     }
-    await put('items',doc);items.push(doc);tab='compare';render();
-    const c=calc(doc);setStatus(`Guardado: ${doc.product} · ${eur(c.total)}${doc.incomplete?' (revisa: falta algún dato)':''}`);
+    await put('items',doc);items.push(doc);render();
+    const c=calc(doc);const n=(doc.images||[]).length;
+    setStatus(`Guardado: ${fullName(doc)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${doc.incomplete?' (revisa: falta algún dato)':''}`);
   }
 
+  let draining=false;
   async function drainInbox(){
+    if(draining)return;draining=true;
+    try{
     const inbox=await getAll('inbox').catch(()=>[]);
     for(const e of inbox.sort((a,b)=>a.at.localeCompare(b.at))){
-      const link=safeUrl(e.url)||safeUrl((e.text||'').match(/https?:\/\/\S+/)?.[0]||'')||'';
-      await processShots(e.files||[],link);
-      await del('inbox',e.id);
+      const link=safeUrl(e.url)||safeUrl(((e.text||'').match(/https?:\/\/\S+/)||[''])[0])||'';
+      await del('inbox',e.id).catch(()=>{});
+      await processShared(e.files||[],link);
     }
     if(location.search.includes('shared'))history.replaceState(null,'','./');
+    }finally{draining=false;}
   }
+  $('#fShot').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';processShared(fs,'');});
 
-  $('#fShot').addEventListener('change',e=>{const fs=[...e.target.files];e.target.value='';processShots(fs,'');});
-
-  // ---------- formulario manual ----------
+  // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  function openForm(it){editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';F('fUrl').value=it?.url||'';F('fProduct').value=it?.product||'';F('fStore').value=it?.store||'';F('fPrice').value=it?.price??'';F('fDisc').value=it?.discount||'';F('fDiscType').value=it?.discountType||'eur';F('fCode').value=it?.code||'';F('fShip').value=it?.shipping||'';F('fFree').value=it?.freeFrom||'';F('fNotes').value=it?.notes||'';$('#form').hidden=false;F('fProduct').focus();}
-  function closeForm(){$('#form').hidden=true;editingId=null;$('#form').reset();}
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  let formImgs=[];
+  function renderImgEdit(){
+    const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
+    formImgs.forEach((v,i)=>{const d=document.createElement('div');d.className='th';
+      d.innerHTML=`${imgTag(v)}${i===0?'<span class="first">Principal</span>':`<button type="button" data-first="${i}" aria-label="Hacer principal" style="right:auto;left:3px;bottom:3px;top:auto;font-size:11px">★</button>`}<button type="button" data-rm="${i}" aria-label="Quitar">×</button>`;
+      box.insertBefore(d,add);});
+  }
+  $('#imgEdit').addEventListener('click',e=>{
+    const rm=e.target.closest('[data-rm]');if(rm){formImgs.splice(+rm.dataset.rm,1);renderImgEdit();return;}
+    const fi=e.target.closest('[data-first]');if(fi){const [x]=formImgs.splice(+fi.dataset.first,1);formImgs.unshift(x);renderImgEdit();}
+  });
+  F('fImgs').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs)formImgs.push(await shrink(f));renderImgEdit();});
+  function fillForm(it){
+    FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
+    if(!it.group)F('fGroup').value=it.product?groupName(it):'';
+  }
+  function openForm(it){
+    editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
+    $('#form').reset();fillForm(it||{});formImgs=[...((it&&it.images)||[])];renderImgEdit();$('#readHint').textContent='';
+    $('#form').hidden=false;$('#form').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function closeForm(){$('#form').hidden=true;editingId=null;formImgs=[];renderImgEdit();}
   $('#openForm').addEventListener('click',()=>openForm(null));
   $('#cancelBtn').addEventListener('click',closeForm);
   F('fUrl').addEventListener('input',()=>{if(!F('fStore').value)F('fStore').value=hostOf(F('fUrl').value);});
+  $('#readWeb').addEventListener('click',async()=>{
+    const u=safeUrl(F('fUrl').value.trim());if(!u){$('#readHint').textContent='Pega antes el enlace.';return;}
+    const b=$('#readWeb');b.disabled=true;$('#readHint').textContent='Leyendo la web…';
+    try{
+      const d=fromClaude(await askClaude({url:u}),u);
+      $('#readHint').textContent='Guardando fotos…';
+      const imgs=await grabImages(d.imageUrls);delete d.imageUrls;
+      const keepGroup=F('fGroup').value;fillForm(d);if(keepGroup)F('fGroup').value=keepGroup;
+      formImgs=[...imgs,...formImgs.filter(v=>!imgs.includes(v))];renderImgEdit();
+      $('#readHint').textContent=`Listo: ${imgs.length} fotos. Revisa la variante y pulsa Guardar.`;
+    }catch(err){$('#readHint').textContent='No se pudo: '+(err.message||err);}
+    finally{b.disabled=false;}
+  });
   $('#form').addEventListener('submit',async e=>{
     e.preventDefault();
-    const d={url:F('fUrl').value.trim(),product:F('fProduct').value.trim(),store:F('fStore').value.trim(),price:num(F('fPrice').value),discount:num(F('fDisc').value),discountType:F('fDiscType').value,code:F('fCode').value.trim(),shipping:num(F('fShip').value),freeFrom:num(F('fFree').value),notes:F('fNotes').value.trim(),incomplete:false};
-    if(!d.product||!d.price)return;
-    if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d);await put('items',it);}
-    else{const it={id:uid(),...d,images:[],status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
-    closeForm();render();
+    const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});
+    ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
+    d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
+    if(!d.product)return;
+    if(!d.group)d.group=fullName(d);
+    if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d,{images:formImgs});await put('items',it);}
+    else{const it={id:uid(),...d,images:formImgs,status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
+    closeForm();render();setStatus('Guardado.');
   });
 
   // ---------- acciones ----------
@@ -349,10 +474,10 @@ Usa punto decimal. Si un dato no se ve, no lo inventes.`;
   });
   ['compare','buy','done'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
-  // ---------- visor ----------
+  // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
-  function lbShow(){$('#lbImg').src=imgSrc(lbIt,lbI);$('#lbCount').textContent=`${lbI+1} / ${lbIt.images.length}`;$('#lbPrev').hidden=$('#lbNext').hidden=lbIt.images.length<2;}
-  document.addEventListener('click',e=>{const t=e.target.closest('[data-lb]');if(!t)return;const it=items.find(i=>i.id===t.dataset.lb);if(!it||!(it.images||[]).length)return;lbIt=it;lbI=+t.dataset.i||0;$('#lb').hidden=false;lbShow();});
+  function lbShow(){$('#lbImg').src=src(lbIt.images[lbI]);$('#lbCount').textContent=`${lbI+1} / ${lbIt.images.length}`;$('#lbPrev').hidden=$('#lbNext').hidden=lbIt.images.length<2;}
+  $('#view').addEventListener('click',e=>{const t=e.target.closest('[data-lb]');if(!t)return;const it=items.find(i=>i.id===t.dataset.lb);if(!it||!(it.images||[]).length)return;lbIt=it;lbI=+t.dataset.i||0;$('#lb').hidden=false;lbShow();});
   $('#lbClose').addEventListener('click',()=>{$('#lb').hidden=true;});
   $('#lb').addEventListener('click',e=>{if(e.target.id==='lb')$('#lb').hidden=true;});
   $('#lbPrev').addEventListener('click',()=>{lbI=(lbI-1+lbIt.images.length)%lbIt.images.length;lbShow();});
@@ -362,23 +487,26 @@ Usa punto decimal. Si un dato no se ve, no lo inventes.`;
 
   // ---------- copia de seguridad ----------
   $('#exportBtn').addEventListener('click',async()=>{
-    const out=[];for(const it of items){const imgs=[];for(const b of it.images||[])imgs.push({type:b.type,data:await toB64(b)});out.push({...it,images:imgs});}
-    const txt=JSON.stringify({v:1,items:out});
-    try{await navigator.clipboard.writeText(txt);setStatus('Copia de seguridad copiada al portapapeles. Pégala en un archivo o en una nota.');}
-    catch(e){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download='comparador-copia.json';a.click();setStatus('Copia descargada.');}
+    setStatus('Preparando la copia…','busy');
+    const out=[];for(const it of items){const imgs=[];for(const b of it.images||[])imgs.push(typeof b==='string'?{url:b}:{type:b.type,data:await toB64(b)});out.push({...it,images:imgs});}
+    const blob=new Blob([JSON.stringify({v:2,items:out})],{type:'application/json'});
+    const file=new File([blob],'comparador-copia.json',{type:'application/json'});
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia Comparador'});setStatus('Copia compartida.');return;}}catch(e){}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='comparador-copia.json';a.click();setStatus('Copia descargada.');
   });
   $('#importFile').addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
-    try{const j=JSON.parse(await f.text());for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
+    try{const j=JSON.parse(await f.text());for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{if(im.url)return im.url;const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
       items=await getAll('items');render();setStatus('Copia restaurada.');}catch(err){setStatus('No se pudo restaurar: '+err.message,'err');}
   });
 
   // ---------- arranque ----------
   (async()=>{
     items=await getAll('items').catch(()=>[]);render();
-    if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que las capturas se lean solas.');}
+    if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     await drainInbox();
+    document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
   })();
 })();
 </script>
