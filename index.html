@@ -355,7 +355,23 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   const URL_PROMPT=u=>`Abre con web_fetch esta página de una tienda y extrae los datos de compra: ${u}\nSi es la ficha de un producto con varias versiones, usa la que corresponde a esta URL. Si es un listado, pon en "url" el enlace propio de cada producto y en "images" su foto. `+MULTI+FIELDS;
 
   function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});}
-  async function shrink(file){try{const bmp=await createImageBitmap(file);const max=1600,s=Math.min(1,max/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));return b||file;}catch(e){return file;}}
+  // Para guardar: limita el ANCHO (una captura larga sigue siendo legible).
+  async function shrink(file){try{const bmp=await createImageBitmap(file);const s=Math.min(1,1080/bmp.width,12000/bmp.height);const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));return b||file;}catch(e){return file;}}
+  // Para enviar a Claude: corta las capturas muy alargadas en trozos legibles (alto ≈ 2 × ancho).
+  async function slices(blob){
+    try{
+      const bmp=await createImageBitmap(blob);const W=bmp.width,H=bmp.height;
+      if(H<=W*2.3)return [blob];
+      const step=Math.round(W*2),ov=Math.round(W*0.15),out=[];
+      for(let y=0;y<H&&out.length<8;y+=step-ov){
+        const h=Math.min(step,H-y);if(h<W*0.3&&out.length)break;
+        const cv=document.createElement('canvas');cv.width=W;cv.height=h;
+        cv.getContext('2d').drawImage(bmp,0,y,W,h,0,0,W,h);
+        out.push(await new Promise(r=>cv.toBlob(r,'image/jpeg',0.88)));
+      }
+      return out.filter(Boolean);
+    }catch(e){return [blob];}
+  }
   function parseJSON(t){try{return JSON.parse(t);}catch(e){}const m=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(m){try{return JSON.parse(m[1]);}catch(e){}}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}return null;}
 
   async function askClaude({images,url}){
@@ -401,14 +417,28 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     }catch(e){return null;}
   }
 
+  const fixUrl=u=>{u=clean(u);if(!u)return '';if(/^https?:\/\//i.test(u))return u;return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(u)?'https://'+u:'';};
   function fromClaude(d,fallbackUrl){
-    const url=safeUrl(clean(d.url))||safeUrl(fallbackUrl||'');
+    const url=safeUrl(fixUrl(d.url))||safeUrl(fallbackUrl||'');
     const miss=[];if(!(num(d.price)>0))miss.push('precio');if(d.shipping===null||d.shipping===undefined)miss.push('envío');
     return{product:clean(d.product)||'Producto sin nombre',variant:clean(d.variant),brand:clean(d.brand),sku:clean(d.sku),mpn:clean(d.mpn),ean:clean(d.ean).replace(/\s/g,''),
       store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box};
+  }
+
+  // Une lo leído en la web con lo leído en la captura: precio y variante de la captura; el resto, lo más completo.
+  function mergeWeb(d,w){
+    ['brand','sku','mpn','ean','store','code'].forEach(k=>{if(!d[k]&&w[k])d[k]=w[k];});
+    if((w.description||'').length>(d.description||'').length)d.description=w.description;
+    if(!(d.price>0)&&w.price>0){d.price=w.price;}
+    if(d.shipping===0&&w.shipping>0)d.shipping=w.shipping;
+    if(!d.freeFrom&&w.freeFrom)d.freeFrom=w.freeFrom;
+    if(!d.variant&&w.variant)d.variant=w.variant;
+    if(w.notes&&!d.notes.includes(w.notes))d.notes=[d.notes,w.notes].filter(Boolean).join(' ');
+    d.imageUrls=[...w.imageUrls,...d.imageUrls];
+    d.incomplete=!(d.price>0);
   }
 
   // Muestra los productos encontrados y deja elegir cuáles guardar. Resuelve con los elegidos ([] si cancela).
@@ -440,18 +470,25 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     tab='compare';
     setStatus(list.length?`Leyendo ${list.length===1?'la captura':list.length+' capturas'}…`:'Leyendo la web del producto y sus fotos…','busy');
     const shots=[];for(const f of list)shots.push(await shrink(f));
+    const parts=[];for(const b of shots)parts.push(...await slices(b));
     let doc;
     try{
-      const found=await askClaude({images:shots,url:sharedUrl});
+      const found=await askClaude({images:parts.slice(0,10),url:sharedUrl});
       const single=found.length===1;
       setStatus(single?'Guardando las fotos del producto…':`Guardando ${found.length} productos y sus fotos…`,'busy');
       const cands=[];
       for(const raw of found){
         const d=fromClaude(raw,single?sharedUrl:(clean(raw.url)?'':sharedUrl));
+        // Con captura de una sola ficha: abre también su web para traer descripción completa, fotos y referencias.
+        if(single&&shots.length&&d.url&&!/amazon\./i.test(d.url)){
+          setStatus('Abriendo la web del producto para traer descripción y fotos…','busy');
+          try{const w=fromClaude((await askClaude({url:d.url}))[0],d.url);mergeWeb(d,w);}catch(e){}
+          setStatus('Guardando las fotos del producto…','busy');
+        }
         const webImgs=await grabImages(d.imageUrls);
-        const shot=shots[Math.min(Math.max(d.shot,0),shots.length-1)];
-        const crop=shot&&!single?await cropBox(shot,d.box):null;
-        const imgs=single?[...webImgs,...shots]:[...(crop?[crop]:[]),...webImgs,...(shot?[shot]:[])];
+        const part=parts[Math.min(Math.max(d.shot,0),parts.length-1)];
+        const crop=part&&shots.length?await cropBox(part,d.box):null;
+        const imgs=single?[...(crop&&!webImgs.length?[crop]:[]),...webImgs,...shots]:[...(crop?[crop]:[]),...webImgs,...(shots.length?[shots[0]]:[])];
         delete d.imageUrls;delete d.shot;delete d.box;
         cands.push({id:uid(),...d,images:imgs,status:'pending',createdAt:new Date().toISOString()});
       }
