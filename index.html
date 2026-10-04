@@ -105,6 +105,15 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .lb .bar{position:absolute;left:0;right:0;bottom:14px;display:flex;justify-content:center;gap:10px;align-items:center;color:#fff;font-family:var(--f-mono)}
 .lb button{background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:600 .95rem var(--f-body);cursor:pointer}
 .lb .close{position:absolute;top:14px;right:12px}
+.picker{background:var(--surface);border:2px solid var(--accent);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.picker h2{margin:0;font:700 1.05rem var(--f-display)}
+.pick{display:grid;grid-template-columns:auto 64px 1fr auto;gap:10px;align-items:center;padding:8px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.pick input{width:22px;height:22px;accent-color:var(--accent)}
+.pick img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
+.pick .nm{font-weight:600;font-size:.9rem;overflow-wrap:anywhere;min-width:0}
+.pick .vr{font-size:.8rem;color:var(--muted)}
+.pick .pr{font:600 .95rem var(--f-mono)}
+.pick.off{opacity:.55}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -116,6 +125,16 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   </div>
 
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
+
+  <div class="picker" id="picker" hidden>
+    <h2 id="pickTitle">Elige qué guardar</h2>
+    <div class="list" id="pickList"></div>
+    <div class="actions">
+      <button class="btn primary" type="button" id="pickSave">Guardar</button>
+      <button class="btn" type="button" id="pickAll">Marcar todos</button>
+      <button class="btn" type="button" id="pickCancel">Cancelar</button>
+    </div>
+  </div>
 
   <div class="summary">
     <div><b id="sProducts" class="num">0</b><span>Productos</span></div>
@@ -133,7 +152,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   <div class="settings" id="settings" hidden>
     <h2>Ajustes</h2>
     <div class="f c6"><label for="apiKey">Clave de API de Anthropic</label><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"></div>
-    <div class="f c6"><label for="model">Modelo</label>
+    <div class="f c6"><label for="model">Modelo para leer webs (las capturas usan siempre Sonnet)</label>
       <select id="model">
         <option value="claude-haiku-4-5-20251001">Haiku 4.5 (rápido y barato)</option>
         <option value="claude-sonnet-5-5">Sonnet 5.5 (más preciso con variantes)</option>
@@ -303,12 +322,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
   // ---------- ajustes ----------
   const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-  const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')}};
+  const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')},shotModel:'claude-sonnet-5-5'};
   $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;});
   $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);$('#settings').hidden=true;setStatus('Ajustes guardados.');});
 
   // ---------- Claude ----------
-  const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con estas claves:
+  const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con esta forma: {"products":[ ...un objeto por producto... ]}
+Cada objeto de producto lleva estas claves:
 {"product": nombre del producto SIN la variante (marca + modelo),
  "variant": versión o variante concreta de ESTA oferta (p. ej. Full, Lite, Junior, Pro, talla, color, capacidad, nº de unidades). Fíjate bien en la seleccionada; "" si no hay,
  "brand": marca,
@@ -325,10 +345,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
  "freeFrom": importe mínimo para envío gratis si aparece, si no 0,
  "description": descripción del producto en español, fiel a la tienda, con las características y especificaciones clave (máx. 900 caracteres, puedes usar saltos de línea),
  "images": lista de URLs absolutas de las fotos del producto (galería principal, en la mayor resolución disponible, máx. 8; nada de logos, iconos ni otros productos),
- "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega, stock. "" si nada}
+ "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega, stock (p. ej. "Agotado"). "" si nada,
+ "shot": (solo con capturas) índice empezando en 0 de la captura donde aparece este producto,
+ "box": (solo con capturas) recuadro ajustado SOLO a la foto de este producto (sin el texto ni el precio) dentro de esa captura, como fracciones del ancho y alto [x0,y0,x1,y1] entre 0 y 1; [] si no se ve foto}
 Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JSON con lo que hayas encontrado, aunque falten datos; nunca respondas con una disculpa.`;
-  const SHOT_PROMPT=`Estas imágenes son capturas de pantalla del móvil de una página de producto de una tienda online (normalmente España, euros). Extrae los datos de compra. En "images" pon [] (las capturas ya se guardan).\n`+FIELDS;
-  const URL_PROMPT=u=>`Abre con web_fetch esta página de producto y extrae los datos de compra: ${u}\nSi la página ofrece varias versiones, usa la que corresponde a esta URL.\n`+FIELDS;
+  const MULTI=`Puede ser la ficha de UN producto o un LISTADO con varios productos. Devuelve un objeto por cada producto distinto que tenga precio (máximo 12), en el orden en que aparecen.
+Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son distintos. En "variant" pon lo que los diferencia (lo que diga el nombre o, si no, lo que se ve en SU PROPIA foto: p. ej. "cañón corto, madera" frente a "cañón largo, negro"). Antes de escribir cada producto, mira su foto, su nombre y su precio, que estén en la misma tarjeta o columna, y no mezcles datos de tarjetas distintas.\n`;
+  const SHOT_PROMPT=`Estas imágenes son capturas de pantalla del móvil de una tienda online (normalmente España, euros). Extrae los datos de compra. En "images" pon [] (las capturas ya se guardan). `+MULTI+FIELDS;
+  const URL_PROMPT=u=>`Abre con web_fetch esta página de una tienda y extrae los datos de compra: ${u}\nSi es la ficha de un producto con varias versiones, usa la que corresponde a esta URL. Si es un listado, pon en "url" el enlace propio de cada producto y en "images" su foto. `+MULTI+FIELDS;
 
   function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});}
   async function shrink(file){try{const bmp=await createImageBitmap(file);const max=1600,s=Math.min(1,max/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);const b=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.85));return b||file;}catch(e){return file;}}
@@ -338,7 +362,7 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
     if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
     for(const b of images||[])content.push({type:'image',source:{type:'base64',media_type:b.type||'image/jpeg',data:await toB64(b)}});
-    const body={model:cfg.model,max_tokens:2500,messages:[{role:'user',content}]};
+    const body={model:(images||[]).length?cfg.shotModel:cfg.model,max_tokens:4000,messages:[{role:'user',content}]};
     const headers={'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
     if(url&&!(images||[]).length){
       content.push({type:'text',text:URL_PROMPT(url)});
@@ -351,11 +375,30 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
     const fetchErr=(j.content||[]).find(c=>c.type==='web_fetch_tool_result'&&c.content&&c.content.type==='web_fetch_tool_result_error');
     const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');
     const d=parseJSON(txt);
-    if(!d||typeof d!=='object'||(!d.product&&!d.price)){
+    let list=d&&Array.isArray(d.products)?d.products:Array.isArray(d)?d:(d&&typeof d==='object'?[d]:[]);
+    list=list.filter(p=>p&&typeof p==='object'&&(p.product||p.price)).slice(0,12);
+    if(!list.length){
       if(fetchErr)throw new Error('esta tienda no deja leer su web; comparte una captura');
       throw new Error('no se han encontrado datos del producto');
     }
-    return d;
+    return list;
+  }
+  // Recorta la foto de un producto dentro de una captura (box en fracciones 0-1).
+  async function cropBox(blob,box){
+    try{
+      if(!Array.isArray(box)||box.length!==4)return null;
+      let [x0,y0,x1,y1]=box.map(Number);
+      if(![x0,y0,x1,y1].every(v=>isFinite(v)))return null;
+      if(x0>1||y0>1||x1>1||y1>1){return null;}
+      x0=Math.max(0,x0);y0=Math.max(0,y0);x1=Math.min(1,x1);y1=Math.min(1,y1);
+      if(x1-x0<0.05||y1-y0<0.03)return null;
+      const bmp=await createImageBitmap(blob);
+      const pad=0.01,sx=Math.max(0,(x0-pad))*bmp.width,sy=Math.max(0,(y0-pad))*bmp.height;
+      const sw=Math.min(bmp.width-sx,(x1-x0+2*pad)*bmp.width),sh=Math.min(bmp.height-sy,(y1-y0+2*pad)*bmp.height);
+      const cv=document.createElement('canvas');cv.width=Math.round(sw);cv.height=Math.round(sh);
+      cv.getContext('2d').drawImage(bmp,sx,sy,sw,sh,0,0,cv.width,cv.height);
+      return await new Promise(r=>cv.toBlob(r,'image/jpeg',0.9));
+    }catch(e){return null;}
   }
 
   function fromClaude(d,fallbackUrl){
@@ -364,7 +407,31 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
     return{product:clean(d.product)||'Producto sin nombre',variant:clean(d.variant),brand:clean(d.brand),sku:clean(d.sku),mpn:clean(d.mpn),ean:clean(d.ean).replace(/\s/g,''),
       store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
-      notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[]};
+      notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
+      shot:Number.isInteger(d.shot)?d.shot:0,box:d.box};
+  }
+
+  // Muestra los productos encontrados y deja elegir cuáles guardar. Resuelve con los elegidos ([] si cancela).
+  function pickProducts(cands){
+    return new Promise(resolve=>{
+      const sel=new Set();
+      const box=$('#pickList');
+      const draw=()=>{
+        box.innerHTML=cands.map((c,i)=>`<label class="pick ${sel.has(i)?'':'off'}"><input type="checkbox" data-i="${i}" ${sel.has(i)?'checked':''}>
+          ${(c.images||[]).length?imgTag(c.images[0]):'<span></span>'}
+          <span class="nm">${esc(c.product)}${c.variant?`<div class="vr">${esc(c.variant)}</div>`:''}${c.notes?`<div class="vr">${esc(c.notes)}</div>`:''}</span>
+          <span class="pr">${eur(calc(c).total)}</span></label>`).join('');
+        $('#pickSave').textContent=sel.size?`Guardar ${sel.size}`:'Guardar';$('#pickSave').disabled=!sel.size;
+        $('#pickAll').textContent=sel.size===cands.length?'Desmarcar todos':'Marcar todos';
+      };
+      box.onchange=e=>{const i=+e.target.dataset.i;if(e.target.checked)sel.add(i);else sel.delete(i);draw();};
+      $('#pickAll').onclick=()=>{if(sel.size===cands.length)sel.clear();else cands.forEach((c,i)=>sel.add(i));draw();};
+      const done=v=>{$('#picker').hidden=true;box.onchange=null;resolve(v);};
+      $('#pickSave').onclick=()=>done(cands.filter((c,i)=>sel.has(i)));
+      $('#pickCancel').onclick=()=>done([]);
+      $('#pickTitle').textContent=`He encontrado ${cands.length} productos. Marca los que quieras guardar:`;
+      draw();$('#picker').hidden=false;$('#picker').scrollIntoView({behavior:'smooth',block:'start'});
+    });
   }
 
   async function processShared(files,sharedUrl){
@@ -375,18 +442,32 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
     const shots=[];for(const f of list)shots.push(await shrink(f));
     let doc;
     try{
-      const d=fromClaude(await askClaude({images:shots,url:sharedUrl}),sharedUrl);
-      if(d.imageUrls.length)setStatus('Guardando las fotos del producto…','busy');
-      const webImgs=await grabImages(d.imageUrls);delete d.imageUrls;
-      doc={id:uid(),...d,images:[...webImgs,...shots],status:'pending',createdAt:new Date().toISOString()};
-      doc.group=autoGroup(doc);
+      const found=await askClaude({images:shots,url:sharedUrl});
+      const single=found.length===1;
+      setStatus(single?'Guardando las fotos del producto…':`Guardando ${found.length} productos y sus fotos…`,'busy');
+      const cands=[];
+      for(const raw of found){
+        const d=fromClaude(raw,single?sharedUrl:(clean(raw.url)?'':sharedUrl));
+        const webImgs=await grabImages(d.imageUrls);
+        const shot=shots[Math.min(Math.max(d.shot,0),shots.length-1)];
+        const crop=shot&&!single?await cropBox(shot,d.box):null;
+        const imgs=single?[...webImgs,...shots]:[...(crop?[crop]:[]),...webImgs,...(shot?[shot]:[])];
+        delete d.imageUrls;delete d.shot;delete d.box;
+        cands.push({id:uid(),...d,images:imgs,status:'pending',createdAt:new Date().toISOString()});
+      }
+      let chosen=cands;
+      if(!single){setStatus('');chosen=await pickProducts(cands);if(!chosen.length){setStatus('No se ha guardado nada.');return;}}
+      const saved=[];
+      for(const it of chosen){it.group=autoGroup(it);await put('items',it);items.push(it);saved.push(it);}
+      render();
+      if(single){const it=saved[0],c=calc(it),n=(it.images||[]).length;
+        setStatus(`Guardado: ${fullName(it)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${it.incomplete?' (revisa: falta algún dato)':''}`);}
+      else setStatus(`Guardados ${saved.length} ${saved.length===1?'producto':'productos'}: `+saved.map(it=>`${fullName(it)} (${eur(calc(it).total)})`).join(' · '));
+      return;
     }catch(err){
       doc={id:uid(),product:'Sin leer · '+new Date().toLocaleString('es-ES',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}),variant:'',store:hostOf(sharedUrl||''),url:safeUrl(sharedUrl||''),price:0,discount:0,discountType:'eur',code:'',shipping:0,freeFrom:0,description:'',notes:'No se pudo leer: '+(err.message||err),images:shots,incomplete:true,status:'pending',createdAt:new Date().toISOString()};
       await put('items',doc);items.push(doc);render();setStatus('Guardado sin datos: '+(err.message||err)+'. Puedes editarlo.','err');return;
     }
-    await put('items',doc);items.push(doc);render();
-    const c=calc(doc);const n=(doc.images||[]).length;
-    setStatus(`Guardado: ${fullName(doc)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${doc.incomplete?' (revisa: falta algún dato)':''}`);
   }
 
   let draining=false;
@@ -436,7 +517,7 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
     const u=safeUrl(F('fUrl').value.trim());if(!u){$('#readHint').textContent='Pega antes el enlace.';return;}
     const b=$('#readWeb');b.disabled=true;$('#readHint').textContent='Leyendo la web…';
     try{
-      const d=fromClaude(await askClaude({url:u}),u);
+      const d=fromClaude((await askClaude({url:u}))[0],u);delete d.shot;delete d.box;
       $('#readHint').textContent='Guardando fotos…';
       const imgs=await grabImages(d.imageUrls);delete d.imageUrls;
       const keepGroup=F('fGroup').value;fillForm(d);if(keepGroup)F('fGroup').value=keepGroup;
