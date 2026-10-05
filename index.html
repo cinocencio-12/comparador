@@ -126,6 +126,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
 
+  <div class="status" id="photoBar" hidden><span id="photoTxt"></span><button class="btn small primary" id="photoGo" type="button">Buscar fotos</button></div>
+
   <div class="picker" id="picker" hidden>
     <h2 id="pickTitle">Elige qué guardar</h2>
     <div class="list" id="pickList"></div>
@@ -292,7 +294,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return `<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -582,6 +584,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const it=items.find(i=>i.id===b.dataset.id);if(!it)return;
     const act=b.dataset.act;
     if(act==='edit')return openForm(it);
+    if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
     if(act==='del'){
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
       armed=null;await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
@@ -618,12 +621,56 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       items=await getAll('items');render();setStatus('Copia restaurada.');}catch(err){setStatus('No se pudo restaurar: '+err.message,'err');}
   });
 
+  // ---------- completar fotos de productos antiguos ----------
+  // Un producto "no tiene foto" si no tiene imágenes o si todas son capturas de pantalla (más altas que anchas).
+  const noPhoto=new Set();
+  async function isShot(v){if(typeof v==='string')return false;try{const b=await createImageBitmap(v);return b.height>b.width*1.4;}catch(e){return false;}}
+  async function scanPhotos(){
+    noPhoto.clear();
+    for(const it of items){const im=it.images||[];let lacks=!im.length;if(!lacks){lacks=true;for(const v of im){if(!(await isShot(v))){lacks=false;break;}}}if(lacks&&(it.url||im.length))noPhoto.add(it.id);}
+    const n=noPhoto.size;$('#photoBar').hidden=!n||!cfg.key;
+    $('#photoTxt').textContent=`${n} ${n===1?'producto no tiene':'productos no tienen'} foto del producto.`;
+  }
+  async function fillPhotos(it){
+    const before=(it.images||[]).length;let added=[];
+    try{
+      if(safeUrl(it.url)&&!/amazon\./i.test(it.url)){
+        const w=fromClaude((await askClaude({url:it.url}))[0],it.url);
+        added=(await grabImages(w.imageUrls)).filter(v=>!(it.images||[]).includes(v));
+        ['brand','sku','mpn','ean'].forEach(k=>{if(!it[k]&&w[k])it[k]=w[k];});
+        if(!it.description&&w.description)it.description=w.description;
+      }
+      if(!added.length){
+        const shot=(it.images||[]).find(v=>typeof v!=='string');
+        if(shot){
+          const parts=await slices(shot);
+          const found=await askClaude({images:parts.slice(0,10)});
+          const k=key(it.product);
+          const p=found.find(f=>key(f.product)===k&&key(f.variant)===key(it.variant))||found.find(f=>key(f.product)===k)||found[0];
+          const part=parts[Math.min(Math.max(Number.isInteger(p.shot)?p.shot:0,0),parts.length-1)];
+          const crop=await cropBox(part,p.box);if(crop)added=[crop];
+          if(!it.description&&p.description)it.description=clean(p.description);
+        }
+      }
+    }catch(e){}
+    if(!added.length)return false;
+    it.images=[...added,...(it.images||[])];await put('items',it);return before!==it.images.length;
+  }
+  $('#photoGo').addEventListener('click',async()=>{
+    const list=items.filter(i=>noPhoto.has(i.id));let ok=0,i=0;
+    $('#photoBar').hidden=true;
+    for(const it of list){i++;setStatus(`Buscando fotos ${i} de ${list.length}: ${fullName(it)}…`,'busy');if(await fillPhotos(it))ok++;render();}
+    await scanPhotos();render();
+    setStatus(`Listo: fotos añadidas a ${ok} de ${list.length} productos.${ok<list.length?' A los que faltan puedes añadirles fotos desde Editar.':''}`,ok?'':'err');
+  });
+
   // ---------- arranque ----------
   (async()=>{
     items=await getAll('items').catch(()=>[]);render();
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     await drainInbox();
+    await scanPhotos();render();
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
   })();
 })();
