@@ -114,6 +114,16 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .pick .vr{font-size:.8rem;color:var(--muted)}
 .pick .pr{font:600 .95rem var(--f-mono)}
 .pick.off{opacity:.55}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters input,.filters select{font:400 .95rem var(--f-body);padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);width:100%;min-width:0}
+.filters .q{grid-column:1/-1}
+.filters .clr{grid-column:1/-1;justify-self:start}
+.cathead{font:700 .78rem var(--f-body);text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:8px 2px -2px;display:flex;gap:8px;align-items:baseline}
+.chip.cat{background:var(--accent-soft);color:var(--fg);text-transform:none;letter-spacing:0;font-size:.74rem}
+.chip.plat{background:transparent;border:1px solid var(--line);color:var(--fg);text-transform:none;letter-spacing:0;font-size:.74rem}
+.compat{grid-column:1/-1;font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.catrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.catrow input{font:400 .95rem var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -164,6 +174,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <button class="btn" id="exportBtn" type="button">Copia de seguridad</button>
       <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
+    <div class="f c6"><label>Categorías (cambia el nombre para renombrarla en todos los productos; pon el de otra para unirlas)</label><div class="list" id="catEdit"></div></div>
     <p class="hint full" style="margin:0">La clave y la lista se guardan solo en este móvil.</p>
   </div>
 
@@ -174,6 +185,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c6"><label for="fProduct">Producto</label><input id="fProduct" required></div>
     <div class="f c3"><label for="fVariant">Variante / versión</label><input id="fVariant" placeholder="Full, Lite, Junior, 128 GB…"></div>
     <div class="f c3"><label for="fBrand">Marca</label><input id="fBrand"></div>
+    <div class="f c3"><label for="fCategory">Categoría</label><input id="fCategory" list="catList" placeholder="Pistolas, Piezas internas…"><datalist id="catList"></datalist></div>
+    <div class="f c3"><label for="fPlatform">Modelo / plataforma</label><input id="fPlatform" list="platList" placeholder="Hi-Capa 5.1, Glock 17, AK…"><datalist id="platList"></datalist></div>
+    <div class="f c6"><label for="fCompat">Compatible con (separa con comas)</label><input id="fCompat" placeholder="Hi-Capa 4.3, Hi-Capa 5.1, TM…"></div>
     <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
     <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
     <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
@@ -194,6 +208,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <button class="btn" type="button" id="cancelBtn">Cancelar</button>
     </div>
   </form>
+
+  <div class="filters" id="filters">
+    <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
+    <select id="fCat" aria-label="Categoría"></select>
+    <select id="fPlat" aria-label="Modelo o plataforma"></select>
+    <button class="btn small clr" id="clrFilters" type="button" hidden>Quitar filtros</button>
+    <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
+  </div>
 
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-compare" aria-selected="true">Comparar</button>
@@ -258,7 +280,41 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const fullName=it=>[clean(it.product),clean(it.variant)].filter(Boolean).join(' · ');
   const groupName=it=>clean(it.group)||fullName(it)||'Sin nombre';
   const key=s=>clean(s).toLowerCase().replace(/\s+/g,' ');
-  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>g.offers.sort((a,b)=>calc(a).total-calc(b).total));arr.sort((a,b)=>a.name.localeCompare(b.name,'es'));return arr;}
+  // ---------- búsqueda y clasificación ----------
+  const NOCAT='Sin categoría';
+  const norm=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
+  const catOf=it=>clean(it.category)||NOCAT;
+  const compatList=it=>String(it.compat||'').split(/[,;\/]| y /).map(clean).filter(Boolean);
+  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat','')};
+  function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
+  function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);}catch(e){}}
+  function matches(it){
+    if(flt.cat&&catOf(it)!==flt.cat)return false;
+    if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p))return false;}
+    if(flt.q){const hay=norm([it.product,it.variant,it.brand,it.sku,it.mpn,it.ean,it.store,it.category,it.platform,it.compat,it.description,it.notes,it.group].join(' '));
+      if(!norm(flt.q).split(' ').every(t=>hay.includes(t)))return false;}
+    return true;
+  }
+  function allCats(){const m=new Map();items.forEach(i=>{const c=catOf(i);m.set(c,(m.get(c)||0)+1);});return [...m.entries()].sort((a,b)=>a[0]===NOCAT?1:b[0]===NOCAT?-1:a[0].localeCompare(b[0],'es'));}
+  function allPlats(){const m=new Map();items.forEach(i=>{[clean(i.platform),...compatList(i)].filter(Boolean).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,{name:p,n:0});m.get(k).n++;});});return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));}
+  function renderFilters(){
+    const cats=allCats(),plats=allPlats();
+    $('#fCat').innerHTML=`<option value="">Todas las categorías</option>`+cats.map(([c,n])=>`<option value="${esc(c)}" ${c===flt.cat?'selected':''}>${esc(c)} (${n})</option>`).join('');
+    $('#fPlat').innerHTML=`<option value="">Todos los modelos</option>`+plats.map(p=>`<option value="${esc(p.name)}" ${norm(p.name)===norm(flt.plat)?'selected':''}>${esc(p.name)} (${p.n})</option>`).join('');
+    if(document.activeElement!==$('#q'))$('#q').value=flt.q;
+    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat);
+    $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
+    $('#platList').innerHTML=plats.map(p=>`<option value="${esc(p.name)}">`).join('');
+    const nc=items.filter(i=>!clean(i.category)).length;
+    $('#classifyBtn').hidden=!nc||!cfg.key;$('#classifyBtn').textContent=`Clasificar ${nc} sin categoría`;
+  }
+  let qTimer=null;
+  $('#q').addEventListener('input',e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{flt.q=e.target.value.trim();saveFlt();render();},200);});
+  $('#fCat').addEventListener('change',e=>{flt.cat=e.target.value;saveFlt();render();});
+  $('#fPlat').addEventListener('change',e=>{flt.plat=e.target.value;saveFlt();render();});
+  $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat='';$('#q').value='';saveFlt();render();});
+
+  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
   // Busca con qué producto ya guardado comparar: mismo EAN o misma ref. de fabricante; si no, mismo nombre + variante.
   function autoGroup(doc){
     const ean=clean(doc.ean),mpn=key(doc.mpn);
@@ -272,6 +328,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>s+calc(g.offers[0]).total,0));
+    renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','buy','done'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
@@ -290,6 +347,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <div><div class="total">${eur(c.total)}</div>${!best?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
       ${refsLine(it)}
+      ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
+      ${it.compat?`<div class="compat">Compatible con: ${esc(it.compat)}</div>`:''}
       <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span></div>
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
@@ -297,12 +356,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
-    if(!gs.length)return `<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
+    let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
-      return `<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt,names.size>1)).join('')}</article>`;}).join('')}</div>`;
+      const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
+      return `${head}<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt,names.size>1)).join('')}</article>`;}).join('')}</div>`;
   }
   function renderBuy(gs){
-    if(!gs.length)return `<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
     let total=0,worst=0;
     const rows=gs.map(g=>{const o=g.offers[0],c=calc(o);total+=c.total;worst+=calc(g.offers[g.offers.length-1]).total;const url=safeUrl(o.url);
       return `<div class="buyrow"><div class="who">${thumb(o)}<div style="min-width:0"><div class="name">${esc(g.name)}</div><div class="meta">${esc(o.store||hostOf(o.url)||'Tienda')}${o.code?` · cupón <span class="num">${esc(o.code)}</span>`:''}${g.offers.length>1?` · mejor de ${g.offers.length}`:''}</div></div></div><div class="total">${eur(c.total)}</div>
@@ -311,7 +372,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     return `<div class="list">${rows}<div class="grand"><span>Total con envíos${save>0.005?`<br><span class="hint">Ahorras ${eur(save)} frente a lo más caro</span>`:''}</span><b>${eur(total)}</b></div></div>`;
   }
   function renderDone(){
-    const done=items.filter(i=>i.status==='bought').sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
+    const done=items.filter(i=>i.status==='bought'&&matches(i)).sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
     if(!done.length)return `<div class="empty">Lo que marques como comprado aparecerá aquí.</div>`;
     const sum=done.reduce((s,i)=>s+calc(i).total,0);
     return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(i.store||'')}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
@@ -337,6 +398,9 @@ Cada objeto de producto lleva estas claves:
  "sku": referencia de la tienda (Referencia, SKU, Ref., código de artículo), "" si no hay,
  "mpn": referencia o modelo del fabricante si aparece aparte, "" si no,
  "ean": código EAN/GTIN/código de barras si aparece, "" si no,
+ "category": tipo de producto en español, corto y genérico (ver lista de categorías abajo),
+ "platform": modelo o plataforma al que pertenece o para el que es el producto (p. ej. "Hi-Capa 5.1", "Glock 17", "CAM870", "M4", "AK"); "" si no aplica,
+ "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios); [] si no lo dice,
  "store": nombre de la tienda,
  "url": URL de la página del producto,
  "price": precio actual de venta con IVA antes de cupones, número,
@@ -376,6 +440,10 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
   function parseJSON(t){try{return JSON.parse(t);}catch(e){}const m=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(m){try{return JSON.parse(m[1]);}catch(e){}}const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1));}catch(e){}}return null;}
 
+  function catHint(){
+    const cats=allCats().map(c=>c[0]).filter(c=>c!==NOCAT);
+    return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, crea una corta y genérica en plural, por ejemplo: Pistolas, Revólveres, Escopetas, Rifles, Subfusiles, Piezas internas, Piezas externas, Cargadores, Munición, Gas y baterías, Ópticas, Accesorios, Equipamiento.`;
+  }
   async function askClaude({images,url}){
     if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
@@ -387,6 +455,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:2}];
       headers['anthropic-beta']='web-fetch-2025-09-10';
     } else content.push({type:'text',text:SHOT_PROMPT+(url?`\nLa URL de la página es: ${url}`:'')});
+    content[content.length-1].text+=catHint();
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
     if(!r.ok){const m=(j.error&&j.error.message)||('error '+r.status);throw new Error(r.status===401?'la clave de API no es válida':m);}
@@ -427,7 +496,8 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
-      shot:Number.isInteger(d.shot)?d.shot:0,box:d.box};
+      shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
+      category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
   // Une lo leído en la web con lo leído en la captura: precio y variante de la captura; el resto, lo más completo.
@@ -526,7 +596,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fPlatform','platform'],['fCompat','compat'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -620,6 +690,49 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     try{const j=JSON.parse(await f.text());for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{if(im.url)return im.url;const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
       items=await getAll('items');render();setStatus('Copia restaurada.');}catch(err){setStatus('No se pudo restaurar: '+err.message,'err');}
   });
+
+  // ---------- clasificar productos guardados sin categoría ----------
+  $('#classifyBtn').addEventListener('click',async()=>{
+    const todo=items.filter(i=>!clean(i.category));if(!todo.length)return;
+    const b=$('#classifyBtn');b.disabled=true;let done=0;
+    try{
+      for(let i=0;i<todo.length;i+=40){
+        const batch=todo.slice(i,i+40);
+        setStatus(`Clasificando ${Math.min(i+40,todo.length)} de ${todo.length}…`,'busy');
+        const list=batch.map(it=>({id:it.id,nombre:it.product,variante:it.variant,marca:it.brand,descripcion:clean(it.description).slice(0,300)}));
+        const prompt=`Clasifica estos productos de compras. Para cada uno devuelve su categoría, su modelo/plataforma y los modelos compatibles que se deduzcan del nombre o la descripción.
+Responde SOLO JSON: {"items":[{"id":..., "category":..., "platform":..., "compatible":[...]}]}
+- "category": tipo de producto en español, corto, genérico y en plural.
+- "platform": modelo o plataforma al que pertenece o para el que es (p. ej. "Hi-Capa 5.1", "Glock 17", "CAM870", "M4"); "" si no aplica.
+- "compatible": modelos compatibles que se indiquen; [] si no se indica. No inventes.${catHint()}
+Productos: ${JSON.stringify(list)}`;
+        const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+          body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:4000,messages:[{role:'user',content:prompt}]})});
+        const j=await r.json().catch(()=>({}));
+        if(!r.ok)throw new Error((j.error&&j.error.message)||('error '+r.status));
+        const d=parseJSON((j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n'))||{};
+        for(const x of d.items||[]){const it=items.find(i=>i.id===x.id);if(!it||!clean(x.category))continue;
+          it.category=clean(x.category);if(!it.platform&&clean(x.platform))it.platform=clean(x.platform);
+          if(!it.compat&&Array.isArray(x.compatible)&&x.compatible.length)it.compat=x.compatible.map(clean).filter(Boolean).join(', ');
+          await put('items',it);done++;}
+        render();
+      }
+      setStatus(`Clasificados ${done} de ${todo.length}. Puedes cambiar la categoría desde Editar o renombrarlas en Ajustes.`);
+    }catch(err){setStatus('No se pudo clasificar: '+(err.message||err),'err');}
+    finally{b.disabled=false;render();}
+  });
+  function renderCatEdit(){
+    const cats=allCats().filter(c=>c[0]!==NOCAT);
+    $('#catEdit').innerHTML=cats.length?cats.map(([c,n])=>`<div class="catrow"><input value="${esc(c)}" data-old="${esc(c)}" aria-label="Categoría"><span class="hint">${n}</span></div>`).join(''):'<span class="hint">Aún no hay categorías.</span>';
+  }
+  $('#catEdit').addEventListener('change',async e=>{
+    const inp=e.target.closest('input[data-old]');if(!inp)return;
+    const from=inp.dataset.old,to=clean(inp.value);if(!to||to===from){inp.value=from;return;}
+    for(const it of items)if(catOf(it)===from){it.category=to;await put('items',it);}
+    if(flt.cat===from){flt.cat=to;saveFlt();}
+    renderCatEdit();render();setStatus(`Categoría «${from}» → «${to}».`);
+  });
+  $('#openSettings').addEventListener('click',renderCatEdit);
 
   // ---------- completar fotos de productos antiguos ----------
   // Un producto "no tiene foto" si no tiene imágenes o si todas son capturas de pantalla (más altas que anchas).
