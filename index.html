@@ -213,12 +213,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
     <select id="fCat" aria-label="Categoría"></select>
     <select id="fPlat" aria-label="Modelo o plataforma"></select>
+    <select id="fShop" aria-label="Tienda" style="grid-column:1/-1"></select>
     <button class="btn small clr" id="clrFilters" type="button" hidden>Quitar filtros</button>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
   </div>
 
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-compare" aria-selected="true">Comparar</button>
+    <button role="tab" id="tab-shops" aria-selected="false">Por tienda</button>
     <button role="tab" id="tab-buy" aria-selected="false">Listo para comprar</button>
     <button role="tab" id="tab-done" aria-selected="false">Comprados</button>
   </div>
@@ -285,11 +287,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const norm=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   const catOf=it=>clean(it.category)||NOCAT;
   const compatList=it=>String(it.compat||'').split(/[,;\/]| y /).map(clean).filter(Boolean);
-  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat','')};
+  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat',''),shop:ls0('fshop','')};
+  const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
-  function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);}catch(e){}}
+  function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);}catch(e){}}
   function matches(it){
     if(flt.cat&&catOf(it)!==flt.cat)return false;
+    if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
     if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p))return false;}
     if(flt.q){const hay=norm([it.product,it.variant,it.brand,it.sku,it.mpn,it.ean,it.store,it.category,it.platform,it.compat,it.description,it.notes,it.group].join(' '));
       if(!norm(flt.q).split(' ').every(t=>hay.includes(t)))return false;}
@@ -302,7 +306,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#fCat').innerHTML=`<option value="">Todas las categorías</option>`+cats.map(([c,n])=>`<option value="${esc(c)}" ${c===flt.cat?'selected':''}>${esc(c)} (${n})</option>`).join('');
     $('#fPlat').innerHTML=`<option value="">Todos los modelos</option>`+plats.map(p=>`<option value="${esc(p.name)}" ${norm(p.name)===norm(flt.plat)?'selected':''}>${esc(p.name)} (${p.n})</option>`).join('');
     if(document.activeElement!==$('#q'))$('#q').value=flt.q;
-    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat);
+    const shops=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=norm(shopOf(i));if(!shops.has(k))shops.set(k,{name:shopOf(i),n:0});shops.get(k).n++;});
+    $('#fShop').innerHTML=`<option value="">Todas las tiendas</option>`+[...shops.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.shop)?'selected':''}>${esc(x.name)} (${x.n} pendientes)</option>`).join('');
+    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat||flt.shop);
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
     $('#platList').innerHTML=plats.map(p=>`<option value="${esc(p.name)}">`).join('');
     const nc=items.filter(i=>!clean(i.category)).length;
@@ -312,7 +318,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#q').addEventListener('input',e=>{clearTimeout(qTimer);qTimer=setTimeout(()=>{flt.q=e.target.value.trim();saveFlt();render();},200);});
   $('#fCat').addEventListener('change',e=>{flt.cat=e.target.value;saveFlt();render();});
   $('#fPlat').addEventListener('change',e=>{flt.plat=e.target.value;saveFlt();render();});
-  $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat='';$('#q').value='';saveFlt();render();});
+  $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
+  $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat=flt.shop='';$('#q').value='';saveFlt();render();});
 
   function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
   // Busca con qué producto ya guardado comparar: mismo EAN o misma ref. de fabricante; si no, mismo nombre + variante.
@@ -330,9 +337,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>s+calc(g.offers[0]).total,0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
-    ['compare','buy','done'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
+    ['compare','shops','buy','done'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
-    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='buy'?renderBuy(pend):renderDone();
+    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):renderDone();
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
   function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
@@ -356,14 +363,38 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
-    if(!gs.length)return (flt.q||flt.cat||flt.plat)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
     let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
       const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
       return `${head}<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt,names.size>1)).join('')}</article>`;}).join('')}</div>`;
   }
+  // Pendientes agrupados por tienda: lo que pedirías en cada web, con un solo envío por pedido.
+  function renderShops(){
+    const pend=items.filter(i=>(i.status||'pending')==='pending'&&matches(i));
+    if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
+    // ¿Es esta la oferta más barata de su producto?
+    const best=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=key(groupName(i)),t=calc(i).after;if(!best.has(k)||t<best.get(k))best.set(k,t);});
+    const map=new Map();pend.forEach(i=>{const k=norm(shopOf(i));if(!map.has(k))map.set(k,{name:shopOf(i),list:[]});map.get(k).list.push(i);});
+    const shops=[...map.values()].map(sh=>{
+      const sub=sh.list.reduce((a,i)=>a+calc(i).after,0);
+      const ship=Math.max(0,...sh.list.map(i=>num(i.shipping)));const free=Math.max(0,...sh.list.map(i=>num(i.freeFrom)));
+      const shipNow=free>0&&sub>=free?0:ship;
+      return{...sh,sub,ship,free,shipNow,total:sub+shipNow};
+    }).sort((a,b)=>b.list.length-a.list.length||a.name.localeCompare(b.name,'es'));
+    return `<div class="list">${shops.map(sh=>{
+      const url=sh.list.map(i=>safeUrl(i.url)).find(Boolean);
+      let shipTxt=sh.shipNow===0?(sh.ship>0||sh.free>0?'Envío gratis':'Envío: sin dato'):`Envío ${eur(sh.shipNow)}`;
+      const left=sh.free>0&&sh.sub<sh.free?`<div class="notes">Te faltan <b>${eur(sh.free-sh.sub)}</b> para el envío gratis (desde ${eur(sh.free)}).</div>`:'';
+      return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span></header>
+        ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
+          return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
+            <div class="meta">${esc(catOf(i))}${isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda'}</div></div></div><div class="total">${eur(calc(i).after)}</div></div>`;}).join('')}
+        <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
+        ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
+  }
   function renderBuy(gs){
-    if(!gs.length)return (flt.q||flt.cat||flt.plat)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
     let total=0,worst=0;
     const rows=gs.map(g=>{const o=g.offers[0],c=calc(o);total+=c.total;worst+=calc(g.offers[g.offers.length-1]).total;const url=safeUrl(o.url);
       return `<div class="buyrow"><div class="who">${thumb(o)}<div style="min-width:0"><div class="name">${esc(g.name)}</div><div class="meta">${esc(o.store||hostOf(o.url)||'Tienda')}${o.code?` · cupón <span class="num">${esc(o.code)}</span>`:''}${g.offers.length>1?` · mejor de ${g.offers.length}`:''}</div></div></div><div class="total">${eur(c.total)}</div>
@@ -663,7 +694,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(act==='unbuy'){it.status='pending';it.boughtAt=null;}
     await put('items',it);render();
   });
-  ['compare','buy','done'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
+  ['compare','shops','buy','done'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
