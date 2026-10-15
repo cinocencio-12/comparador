@@ -232,6 +232,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <button role="tab" id="tab-shops" aria-selected="false">Por tienda</button>
     <button role="tab" id="tab-buy" aria-selected="false">Listo para comprar</button>
     <button role="tab" id="tab-done" aria-selected="false">Comprados</button>
+    <button role="tab" id="tab-discarded" aria-selected="false">Descartados</button>
   </div>
   <section id="view"></section>
 </div>
@@ -357,9 +358,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>s+calc(g.offers[0]).total,0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
-    ['compare','shops','buy','done'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
+    ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
-    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):renderDone();
+    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():renderDiscarded();
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
   function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
@@ -381,7 +382,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -411,7 +412,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
             <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda'}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
-            <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
+            <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small" data-act="discard" data-id="${i.id}">Descartar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
         <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
         ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
   }
@@ -424,11 +425,17 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const save=worst-total;
     return `<div class="list">${rows}<div class="grand"><span>Total con envíos${save>0.005?`<br><span class="hint">Ahorras ${eur(save)} frente a lo más caro</span>`:''}</span><b>${eur(total)}</b></div></div>`;
   }
+  function renderDiscarded(){
+    const list=items.filter(i=>i.status==='discarded'&&matches(i)).sort((a,b)=>(b.discardedAt||'').localeCompare(a.discardedAt||''));
+    if(!list.length)return `<div class="empty">Lo que descartes aparecerá aquí. Puedes recuperarlo cuando quieras.</div>`;
+    return `<div class="list">${list.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.discardedAt?' · '+new Date(i.discardedAt).toLocaleDateString('es-ES'):''}${i.discardReason?' · '+esc(i.discardReason):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
+      <div class="row-actions"><button class="btn small primary" data-act="unbuy" data-id="${i.id}">Recuperar</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`).join('')}</div>`;
+  }
   function renderDone(){
     const done=items.filter(i=>i.status==='bought'&&matches(i)).sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
     if(!done.length)return `<div class="empty">Lo que marques como comprado aparecerá aquí.</div>`;
     const sum=done.reduce((s,i)=>s+calc(i).total,0);
-    return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(i.store||'')}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
+    return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
       <div class="row-actions"><button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
@@ -715,11 +722,18 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
       armed=null;await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
-    if(act==='bought'){it.status='bought';it.boughtAt=new Date().toISOString();}
-    if(act==='unbuy'){it.status='pending';it.boughtAt=null;}
+    if(act==='unbuy'){it.status='pending';it.boughtAt=null;it.discardedAt=null;it.discardReason='';}
+    if(act==='discard'){it.status='discarded';it.discardedAt=new Date().toISOString();it.discardReason='';await put('items',it);render();setStatus(`Descartado: ${fullName(it)}. Está en «Descartados».`);return;}
+    if(act==='bought'){
+      // Las otras tiendas del mismo producto pasan a Descartados.
+      const k=key(groupName(it));const others=items.filter(o=>o!==it&&(o.status||'pending')==='pending'&&key(groupName(o))===k);
+      for(const o of others){o.status='discarded';o.discardedAt=new Date().toISOString();o.discardReason='comprado en '+shopOf(it);await put('items',o);}
+      it.status='bought';it.boughtAt=new Date().toISOString();await put('items',it);render();
+      setStatus(`Comprado: ${fullName(it)}.${others.length===1?' La otra oferta pasa a Descartados.':others.length?` Las otras ${others.length} ofertas pasan a Descartados.`:''}`);return;
+    }
     await put('items',it);render();
   });
-  ['compare','shops','buy','done'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
+  ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
