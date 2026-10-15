@@ -124,6 +124,12 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .compat{grid-column:1/-1;font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
 .catrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
 .catrow input{font:400 .95rem var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
+.chipbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chipbox .on{font:600 .8rem var(--f-body);padding:5px 8px 5px 10px;border-radius:999px;background:var(--accent);color:var(--accent-fg);border:0;cursor:pointer}
+.chipbox .sug{font:500 .8rem var(--f-body);padding:5px 10px;border-radius:999px;background:transparent;color:var(--fg);border:1px dashed var(--muted);cursor:pointer}
+.chipbox input{flex:1 1 120px;font:400 .9rem var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
+.chip.tag{background:var(--var);color:var(--var-fg);text-transform:none;letter-spacing:0;font-size:.74rem}
+.chip.err{background:var(--danger);color:#fff}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -181,13 +187,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   <form class="add" id="form" hidden autocomplete="off">
     <h2 id="formTitle">Nuevo</h2>
     <div class="f c6"><label for="fUrl">Enlace de la tienda</label><input id="fUrl" type="url" inputmode="url" placeholder="https://…"></div>
-    <div class="actions full"><button class="btn small" type="button" id="readWeb">Leer datos y fotos de la web</button><span class="hint" id="readHint"></span></div>
+    <div class="actions full"><button class="btn small" type="button" id="readWeb">Leer datos y fotos de la web</button><button class="btn small" type="button" id="readShots">Leer de las capturas</button><span class="hint" id="readHint"></span></div>
     <div class="f c6"><label for="fProduct">Producto</label><input id="fProduct" required></div>
     <div class="f c3"><label for="fVariant">Variante / versión</label><input id="fVariant" placeholder="Full, Lite, Junior, 128 GB…"></div>
     <div class="f c3"><label for="fBrand">Marca</label><input id="fBrand"></div>
     <div class="f c3"><label for="fCategory">Categoría</label><input id="fCategory" list="catList" placeholder="Pistolas, Piezas internas…"><datalist id="catList"></datalist></div>
     <div class="f c3"><label for="fPlatform">Modelo / plataforma</label><input id="fPlatform" list="platList" placeholder="Hi-Capa 5.1, Glock 17, AK…"><datalist id="platList"></datalist></div>
-    <div class="f c6"><label for="fCompat">Compatible con (separa con comas)</label><input id="fCompat" placeholder="Hi-Capa 4.3, Hi-Capa 5.1, TM…"></div>
+    <div class="f c6"><label>Aplica a (modelos o tipos con los que sirve)</label><input id="fCompat" type="hidden"><div class="chipbox" data-for="fCompat" data-kind="applies"></div></div>
+    <div class="f c6"><label>Etiquetas / subcategorías</label><input id="fTags" type="hidden"><div class="chipbox" data-for="fTags" data-kind="tags"></div></div>
     <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
     <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
     <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
@@ -213,9 +220,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
     <select id="fCat" aria-label="Categoría"></select>
     <select id="fPlat" aria-label="Modelo o plataforma"></select>
-    <select id="fShop" aria-label="Tienda" style="grid-column:1/-1"></select>
+    <select id="fTag" aria-label="Etiqueta"></select>
+    <select id="fShop" aria-label="Tienda"></select>
     <button class="btn small clr" id="clrFilters" type="button" hidden>Quitar filtros</button>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
+    <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
   </div>
 
   <div class="tabs" role="tablist">
@@ -286,21 +295,27 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const NOCAT='Sin categoría';
   const norm=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   const catOf=it=>clean(it.category)||NOCAT;
-  const compatList=it=>String(it.compat||'').split(/[,;\/]| y /).map(clean).filter(Boolean);
-  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat',''),shop:ls0('fshop','')};
+  const splitList=v=>(Array.isArray(v)?v:String(v||'').split(/[,;]/)).map(clean).filter(Boolean);
+  const compatList=it=>splitList(it.compat);
+  const tagList=it=>splitList(it.tags);
+  const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
+  const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
+  const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
+  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat',''),shop:ls0('fshop',''),tag:ls0('ftag','')};
   const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
-  function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);}catch(e){}}
+  function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);localStorage.setItem('ftag',flt.tag);}catch(e){}}
   function matches(it){
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
-    if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p))return false;}
-    if(flt.q){const hay=norm([it.product,it.variant,it.brand,it.sku,it.mpn,it.ean,it.store,it.category,it.platform,it.compat,it.description,it.notes,it.group].join(' '));
+    if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p||norm(c)==='todos'))return false;}
+    if(flt.tag&&!tagList(it).some(t=>norm(t)===norm(flt.tag)))return false;
+    if(flt.q){const hay=norm([it.product,it.variant,it.brand,it.sku,it.mpn,it.ean,it.store,it.category,it.platform,it.compat,tagList(it).join(' '),it.description,it.notes,it.group].join(' '));
       if(!norm(flt.q).split(' ').every(t=>hay.includes(t)))return false;}
     return true;
   }
   function allCats(){const m=new Map();items.forEach(i=>{const c=catOf(i);m.set(c,(m.get(c)||0)+1);});return [...m.entries()].sort((a,b)=>a[0]===NOCAT?1:b[0]===NOCAT?-1:a[0].localeCompare(b[0],'es'));}
-  function allPlats(){const m=new Map();items.forEach(i=>{[clean(i.platform),...compatList(i)].filter(Boolean).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,{name:p,n:0});m.get(k).n++;});});return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));}
+  function allPlats(){const m=new Map();items.forEach(i=>{[clean(i.platform),...compatList(i)].filter(p=>p&&norm(p)!=='todos').forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,{name:p,n:0});m.get(k).n++;});});return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name,'es'));}
   function renderFilters(){
     const cats=allCats(),plats=allPlats();
     $('#fCat').innerHTML=`<option value="">Todas las categorías</option>`+cats.map(([c,n])=>`<option value="${esc(c)}" ${c===flt.cat?'selected':''}>${esc(c)} (${n})</option>`).join('');
@@ -308,7 +323,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     if(document.activeElement!==$('#q'))$('#q').value=flt.q;
     const shops=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=norm(shopOf(i));if(!shops.has(k))shops.set(k,{name:shopOf(i),n:0});shops.get(k).n++;});
     $('#fShop').innerHTML=`<option value="">Todas las tiendas</option>`+[...shops.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.shop)?'selected':''}>${esc(x.name)} (${x.n} pendientes)</option>`).join('');
-    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat||flt.shop);
+    const tags=new Map();items.forEach(i=>tagList(i).forEach(t=>{const k=norm(t);if(!tags.has(k))tags.set(k,{name:t,n:0});tags.get(k).n++;}));
+    $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');
+    const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
+    $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
+    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat||flt.shop||flt.tag);
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
     $('#platList').innerHTML=plats.map(p=>`<option value="${esc(p.name)}">`).join('');
     const nc=items.filter(i=>!clean(i.category)).length;
@@ -319,7 +338,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#fCat').addEventListener('change',e=>{flt.cat=e.target.value;saveFlt();render();});
   $('#fPlat').addEventListener('change',e=>{flt.plat=e.target.value;saveFlt();render();});
   $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
-  $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat=flt.shop='';$('#q').value='';saveFlt();render();});
+  $('#fTag').addEventListener('change',e=>{flt.tag=e.target.value;saveFlt();render();});
+  $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat=flt.shop=flt.tag='';$('#q').value='';saveFlt();render();});
 
   function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
   // Busca con qué producto ya guardado comparar: mismo EAN o misma ref. de fabricante; si no, mismo nombre + variante.
@@ -350,12 +370,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const gal=(it.images||[]).length?`<div class="gallery">${it.images.map((b,i)=>imgTag(b,`data-lb="${it.id}" data-i="${i}"`)).join('')}</div>`:'';
     return `<div class="offer ${best?'best':''}">
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
-        ${best?'<span class="chip">Más barato</span>':''}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
+        ${best?'<span class="chip">Más barato</span>':''}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
       <div><div class="total">${eur(c.total)}</div>${!best?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
       ${refsLine(it)}
       ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
-      ${it.compat?`<div class="compat">Compatible con: ${esc(it.compat)}</div>`:''}
+      ${it.compat?`<div class="compat">Aplica a: ${compatList(it).map(esc).join(', ')}</div>`:''}
+      ${tagList(it).length?`<div class="store">${tagList(it).map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</div>`:''}
       <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span></div>
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
@@ -363,7 +384,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
-    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
     let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
       const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
@@ -372,7 +393,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   // Pendientes agrupados por tienda: lo que pedirías en cada web, con un solo envío por pedido.
   function renderShops(){
     const pend=items.filter(i=>(i.status||'pending')==='pending'&&matches(i));
-    if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
+    if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
     // ¿Es esta la oferta más barata de su producto?
     const best=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=key(groupName(i)),t=calc(i).after;if(!best.has(k)||t<best.get(k))best.set(k,t);});
     const map=new Map();pend.forEach(i=>{const k=norm(shopOf(i));if(!map.has(k))map.set(k,{name:shopOf(i),list:[]});map.get(k).list.push(i);});
@@ -389,12 +410,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span></header>
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
-            <div class="meta">${esc(catOf(i))}${isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda'}</div></div></div><div class="total">${eur(calc(i).after)}</div></div>`;}).join('')}
+            <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda'}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
+            <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
         <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
         ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
   }
   function renderBuy(gs){
-    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
+    if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;
     let total=0,worst=0;
     const rows=gs.map(g=>{const o=g.offers[0],c=calc(o);total+=c.total;worst+=calc(g.offers[g.offers.length-1]).total;const url=safeUrl(o.url);
       return `<div class="buyrow"><div class="who">${thumb(o)}<div style="min-width:0"><div class="name">${esc(g.name)}</div><div class="meta">${esc(o.store||hostOf(o.url)||'Tienda')}${o.code?` · cupón <span class="num">${esc(o.code)}</span>`:''}${g.offers.length>1?` · mejor de ${g.offers.length}`:''}</div></div></div><div class="total">${eur(c.total)}</div>
@@ -495,8 +517,9 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const d=parseJSON(txt);
     let list=d&&Array.isArray(d.products)?d.products:Array.isArray(d)?d:(d&&typeof d==='object'?[d]:[]);
     list=list.filter(p=>p&&typeof p==='object'&&(p.product||p.price)).slice(0,12);
-    if(!list.length){
-      if(fetchErr)throw new Error('esta tienda no deja leer su web; comparte una captura');
+    if(!list.length||(!(images||[]).length&&list.every(p=>!(num(p.price)>0))&&/oh noes|botstopper|denegado|bloque|captcha/i.test(txt))){
+      if(/oh noes|botstopper|denegado|bloque|captcha/i.test(txt))throw new Error('esta tienda bloquea la lectura automática de su web; comparte una captura');
+      if(fetchErr||/oh noes|botstopper|captcha|access denied|cloudflare/i.test(txt))throw new Error('esta tienda bloquea la lectura automática de su web; comparte una captura');
       throw new Error('no se han encontrado datos del producto');
     }
     return list;
@@ -627,7 +650,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fPlatform','platform'],['fCompat','compat'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -643,10 +666,12 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
+    F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');
+    if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
   }
   function openForm(it){
     editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
-    $('#form').reset();fillForm(it||{});formImgs=[...((it&&it.images)||[])];renderImgEdit();$('#readHint').textContent='';
+    $('#form').reset();fillForm(it||{});formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';
     $('#form').hidden=false;$('#form').scrollIntoView({behavior:'smooth',block:'start'});
   }
   function closeForm(){$('#form').hidden=true;editingId=null;formImgs=[];renderImgEdit();}
@@ -720,6 +745,94 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const f=e.target.files[0];e.target.value='';if(!f)return;
     try{const j=JSON.parse(await f.text());for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{if(im.url)return im.url;const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
       items=await getAll('items');render();setStatus('Copia restaurada.');}catch(err){setStatus('No se pudo restaurar: '+err.message,'err');}
+  });
+
+  // ---------- campos de etiquetas (Aplica a / Etiquetas) ----------
+  function chipSuggest(kind){
+    const m=new Map();const add=v=>{const k=norm(v);if(v&&!m.has(k))m.set(k,v);};
+    if(kind==='applies'){APPLY_DEF.forEach(add);items.forEach(i=>{add(clean(i.platform));compatList(i).forEach(add);});}
+    else{items.forEach(i=>tagList(i).forEach(add));TAG_DEF.forEach(add);}
+    return [...m.values()];
+  }
+  function drawChips(box){
+    const inp=F(box.dataset.for);const vals=splitList(inp.value);const typed=box.querySelector('input.typ');const q=typed?norm(typed.value):'';
+    const sug=chipSuggest(box.dataset.kind).filter(v=>!vals.some(x=>norm(x)===norm(v))&&(!q||norm(v).includes(q))).slice(0,q?12:10);
+    box.innerHTML=vals.map((v,i)=>`<button type="button" class="on" data-rm="${i}">${esc(v)} ×</button>`).join('')+
+      `<input class="typ" placeholder="Escribe y pulsa Intro…" value="${typed?esc(typed.value):''}" enterkeyhint="done">`+
+      sug.map(v=>`<button type="button" class="sug" data-add="${esc(v)}">+ ${esc(v)}</button>`).join('');
+  }
+  function chipSet(box,vals){F(box.dataset.for).value=vals.join(', ');drawChips(box);}
+  document.querySelectorAll('.chipbox').forEach(box=>{
+    box.addEventListener('click',e=>{
+      const vals=splitList(F(box.dataset.for).value);
+      const rm=e.target.closest('[data-rm]');if(rm){vals.splice(+rm.dataset.rm,1);chipSet(box,vals);return;}
+      const ad=e.target.closest('[data-add]');if(ad){vals.push(ad.dataset.add);const t=box.querySelector('input.typ');if(t)t.value='';chipSet(box,vals);}
+    });
+    box.addEventListener('keydown',e=>{
+      if(!e.target.matches('input.typ')||(e.key!=='Enter'&&e.key!==','))return;
+      e.preventDefault();const v=clean(e.target.value);if(!v)return;
+      const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);e.target.value='';chipSet(box,vals);
+      box.querySelector('input.typ').focus();
+    });
+    box.addEventListener('input',e=>{if(!e.target.matches('input.typ'))return;const pos=e.target.selectionStart;drawChips(box);const t=box.querySelector('input.typ');t.focus();t.setSelectionRange(pos,pos);});
+    box.addEventListener('focusout',e=>{if(!e.target.matches('input.typ'))return;const v=clean(e.target.value);if(!v)return;
+      setTimeout(()=>{if(box.contains(document.activeElement))return;const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);const t=box.querySelector('input.typ');if(t)t.value='';chipSet(box,vals);},150);});
+  });
+  const drawAllChips=()=>document.querySelectorAll('.chipbox').forEach(drawChips);
+
+  // ---------- volver a leer productos sin datos ----------
+  function applyRead(it,d){
+    ['product','variant','brand','sku','mpn','ean','store','category','platform'].forEach(k=>{if(d[k]&&(!clean(it[k])||(k==='product'&&/^Sin leer/.test(it.product))))it[k]=d[k];});
+    ['price','discount','shipping','freeFrom'].forEach(k=>{if(num(d[k])>0)it[k]=d[k];});
+    if(d.discountType)it.discountType=d.discountType;if(d.code&&!it.code)it.code=d.code;
+    if((d.description||'').length>(it.description||'').length)it.description=d.description;
+    if(d.compat&&!it.compat)it.compat=d.compat;
+    if(safeUrl(d.url)&&!safeUrl(it.url))it.url=d.url;
+    it.notes=clean(d.notes);it.incomplete=!!d.incomplete;
+    if(!clean(it.group)||/^Sin leer/.test(it.group))it.group=autoGroup(it);
+  }
+  async function rereadItem(it){
+    const shots=(it.images||[]).filter(v=>typeof v!=='string');
+    let d=null,err=null;
+    if(shots.length){
+      try{const parts=[];for(const b of shots.slice(0,3))parts.push(...await slices(b));
+        const found=await askClaude({images:parts.slice(0,10),url:safeUrl(it.url)});
+        d=fromClaude(found[0],it.url);
+        const part=parts[Math.min(Math.max(d.shot,0),parts.length-1)];const crop=await cropBox(part,d.box);
+        if(crop)it.images=[crop,...(it.images||[])];
+      }catch(e){err=e;}
+    }
+    if(!d&&safeUrl(it.url)){
+      try{d=fromClaude((await askClaude({url:it.url}))[0],it.url);const imgs=await grabImages(d.imageUrls);if(imgs.length)it.images=[...imgs,...(it.images||[])];}catch(e){err=e;}
+    }
+    if(!d)throw err||new Error('no tiene enlace ni captura');
+    delete d.imageUrls;delete d.shot;delete d.box;applyRead(it,d);await put('items',it);return it;
+  }
+  $('#retryBtn').addEventListener('click',async()=>{
+    const list=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i));let ok=0,blocked=0,i=0;
+    $('#retryBtn').disabled=true;
+    for(const it of list){i++;setStatus(`Leyendo ${i} de ${list.length}…`,'busy');
+      try{await rereadItem(it);ok++;}catch(e){if(/bloquea/.test(e.message||''))blocked++;}render();}
+    $('#retryBtn').disabled=false;render();
+    setStatus(`Leídos ${ok} de ${list.length}.${blocked?` ${blocked} son de tiendas que bloquean la lectura: abre cada uno en Editar, añade una captura con «+ Fotos» y pulsa «Leer de las capturas».`:''}`,ok===list.length?'':'err');
+  });
+  $('#readShots').addEventListener('click',async()=>{
+    const shots=formImgs.filter(v=>typeof v!=='string');
+    if(!shots.length){$('#readHint').textContent='Añade antes una captura con «+ Fotos».';return;}
+    const b=$('#readShots');b.disabled=true;$('#readHint').textContent='Leyendo las capturas…';
+    try{
+      const parts=[];for(const x of shots.slice(0,3))parts.push(...await slices(x));
+      const found=await askClaude({images:parts.slice(0,10),url:safeUrl(F('fUrl').value.trim())});
+      const d=fromClaude(found[0],F('fUrl').value.trim());
+      const part=parts[Math.min(Math.max(d.shot,0),parts.length-1)];const crop=await cropBox(part,d.box);
+      delete d.imageUrls;delete d.shot;delete d.box;
+      const keep={group:F('fGroup').value,compat:F('fCompat').value,tags:F('fTags').value,url:F('fUrl').value};
+      fillForm(d);if(keep.group&&!/^Sin leer/.test(keep.group))F('fGroup').value=keep.group;else F('fGroup').value=fullName(d);
+      if(keep.compat)F('fCompat').value=keep.compat;if(keep.tags)F('fTags').value=keep.tags;if(keep.url&&!d.url)F('fUrl').value=keep.url;
+      if(crop)formImgs.unshift(crop);renderImgEdit();drawAllChips();
+      $('#readHint').textContent=found.length>1?`Hay ${found.length} productos en la captura; he puesto el primero. Revisa y pulsa Guardar.`:'Listo. Revisa y pulsa Guardar.';
+    }catch(err){$('#readHint').textContent='No se pudo: '+(err.message||err);}
+    finally{b.disabled=false;}
   });
 
   // ---------- clasificar productos guardados sin categoría ----------
