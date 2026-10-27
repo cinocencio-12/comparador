@@ -130,6 +130,14 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .chipbox input{flex:1 1 120px;font:400 .9rem var(--f-body);padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
 .chip.tag{background:var(--var);color:var(--var-fg);text-transform:none;letter-spacing:0;font-size:.74rem}
 .chip.err{background:var(--danger);color:#fff}
+.chip.ok{background:#1F8A5B;color:#fff}
+.chip.low{background:var(--tag);color:var(--tag-fg)}
+.bestline{padding:8px 14px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem}
+.bestline b{font-family:var(--f-mono)}
+.hist{grid-column:1/-1;font-size:.8rem;color:var(--muted)}
+.hist table{border-collapse:collapse;margin-top:4px;font-family:var(--f-mono);font-size:.76rem}
+.hist td{padding:2px 10px 2px 0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -225,6 +233,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <button class="btn small clr" id="clrFilters" type="button" hidden>Quitar filtros</button>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
+    <div class="toolbar clr"><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
   </div>
 
   <div class="tabs" role="tablist">
@@ -343,10 +352,20 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat=flt.shop=flt.tag='';$('#q').value='';saveFlt();render();});
 
   function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
-  // Busca con qué producto ya guardado comparar: mismo EAN o misma ref. de fabricante; si no, mismo nombre + variante.
+  // Busca con qué producto ya guardado comparar: mismo EAN o ref. de fabricante, o nombre muy parecido (mismas palabras clave).
+  const STOP=new Set(['de','del','la','el','los','las','para','con','y','en','a','the','for','with','and','of','airsoft','replica','réplica','version','versión','gbb','co2']);
+  const toks=it=>new Set(norm([it.brand,it.product,it.variant].join(' ')).replace(/[^a-z0-9.\s-]/g,' ').split(/[\s-]+/).filter(t=>t&&!STOP.has(t)));
+  function similar(a,b){
+    if(clean(a.ean)&&clean(a.ean)===clean(b.ean))return true;
+    if(clean(a.mpn)&&key(a.mpn)===key(b.mpn)&&key(a.variant)===key(b.variant))return true;
+    if(norm(a.variant)!==norm(b.variant)&&a.variant&&b.variant)return false;
+    const A=toks(a),B=toks(b);if(!A.size||!B.size)return false;
+    let inter=0;A.forEach(t=>{if(B.has(t))inter++;});
+    const jac=inter/(A.size+B.size-inter),cover=inter/Math.min(A.size,B.size);
+    return jac>=0.6||(cover>=0.85&&inter>=3);
+  }
   function autoGroup(doc){
-    const ean=clean(doc.ean),mpn=key(doc.mpn);
-    const m=items.find(i=>(ean&&clean(i.ean)===ean)||(mpn&&key(i.mpn)===mpn&&key(i.variant)===key(doc.variant)));
+    const m=items.find(i=>i!==doc&&i.status!=='discarded'&&!isUnread(i)&&similar(doc,i));
     return m?groupName(m):fullName(doc);
   }
 
@@ -364,15 +383,27 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
   function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
-  function offerRow(it,best,bestTotal,showName){
+  function availChip(it){const a=norm(it.availability);if(!a)return '';
+    if(/agotad|sin stock|no disponible|out of stock/.test(a))return '<span class="chip err">Agotado</span>';
+    if(/pocas|ultimas|últimas|low/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
+    if(/pedido|reserva|preorder/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
+    return `<span class="chip ok">${esc(it.availability)}</span>`;}
+  function histHtml(it){
+    const h=(it.history||[]).filter(x=>x.price>0);if(h.length<1)return it.checkedAt?`<div class="hist">Comprobado ${new Date(it.checkedAt).toLocaleDateString('es-ES')}</div>`:'';
+    const lo=h.reduce((a,b)=>b.price<a.price?b:a),hi=h.reduce((a,b)=>b.price>a.price?b:a),d=x=>new Date(x.at).toLocaleDateString('es-ES');
+    return `<details class="hist"><summary>Histórico: mín <b>${eur(lo.price)}</b> (${d(lo)}) · máx ${eur(hi.price)} (${d(hi)}) · ${h.length} ${h.length===1?'registro':'registros'}${it.checkedAt?' · comprobado '+new Date(it.checkedAt).toLocaleDateString('es-ES'):''}</summary>
+      <table>${h.slice().reverse().map(x=>`<tr><td>${d(x)}</td><td>${eur(x.price)}</td><td>${x.total?eur(x.total)+' con portes':''}</td><td>${esc(x.avail||'')}</td></tr>`).join('')}</table></details>`;
+  }
+  function offerRow(it,best,bestTotal,showName,flags){
+    flags=flags||{};
     const c=calc(it);const url=safeUrl(it.url);const store=esc(it.store||hostOf(it.url)||'Tienda');
     const discTxt=c.disc>0?`−${eur(c.disc)}${it.discountType==='pct'?` (${num(it.discount)}%)`:''}`:'sin dto.';
     const shipTxt=c.shipWaived?'envío gratis':(c.ship>0?`+${eur(c.ship)} envío`:'envío 0');
     const gal=(it.images||[]).length?`<div class="gallery">${it.images.map((b,i)=>imgTag(b,`data-lb="${it.id}" data-i="${i}"`)).join('')}</div>`:'';
     return `<div class="offer ${best?'best':''}">
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
-        ${best?'<span class="chip">Más barato</span>':''}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
-      <div><div class="total">${eur(c.total)}</div>${!best?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
+        ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Mejor precio</span>':''}${flags.lowTotal?'<span class="chip">Mejor con portes</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
+      <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||num(it.shipping)===0&&num(it.freeFrom)>0?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
       ${refsLine(it)}
       ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
@@ -382,21 +413,25 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      ${histHtml(it)}
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
     let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
       const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
-      return `${head}<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${g.offers.map((o,i)=>offerRow(o,i===0,bt,names.size>1)).join('')}</article>`;}).join('')}</div>`;
+      const valid=g.offers.filter(o=>!isUnread(o));const single=valid.length<2;
+      const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null,lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):null;
+      const line=lp?`<div class="bestline"><span>Mejor precio: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}</span><span>Mejor con portes: <b>${eur(calc(lt).total)}</b> en ${esc(shopOf(lt))}</span></div>`:'';
+      return `${head}<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${line}${g.offers.map(o=>offerRow(o,false,calc(lt||o).total,names.size>1,{single,lowPrice:!single&&o===lp,lowTotal:!single&&o===lt})).join('')}</article>`;}).join('')}</div>`;
   }
   // Pendientes agrupados por tienda: lo que pedirías en cada web, con un solo envío por pedido.
   function renderShops(){
     const pend=items.filter(i=>(i.status||'pending')==='pending'&&matches(i));
     if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
     // ¿Es esta la oferta más barata de su producto?
-    const best=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=key(groupName(i)),t=calc(i).after;if(!best.has(k)||t<best.get(k))best.set(k,t);});
+    const best=new Map(),cnt=new Map();items.filter(i=>(i.status||'pending')==='pending'&&!isUnread(i)).forEach(i=>{const k=key(groupName(i)),t=calc(i).after;cnt.set(k,(cnt.get(k)||0)+1);if(!best.has(k)||t<best.get(k))best.set(k,t);});
     const map=new Map();pend.forEach(i=>{const k=norm(shopOf(i));if(!map.has(k))map.set(k,{name:shopOf(i),list:[]});map.get(k).list.push(i);});
     const shops=[...map.values()].map(sh=>{
       const sub=sh.list.reduce((a,i)=>a+calc(i).after,0);
@@ -411,7 +446,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span></header>
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
-            <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda'}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
+            <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${(cnt.get(key(groupName(i)))||0)<2?' · solo guardado en esta tienda':isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda ('+eur(best.get(key(groupName(i))))+')'}${/agotad/.test(norm(i.availability))?' · <b style="color:var(--danger)">agotado</b>':''}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
             <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small" data-act="discard" data-id="${i.id}">Descartar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
         <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
         ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
@@ -434,9 +469,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   function renderDone(){
     const done=items.filter(i=>i.status==='bought'&&matches(i)).sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
     if(!done.length)return `<div class="empty">Lo que marques como comprado aparecerá aquí.</div>`;
-    const sum=done.reduce((s,i)=>s+calc(i).total,0);
-    return `<div class="list">${done.map(i=>`<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</div></div></div><div class="total">${eur(calc(i).total)}</div>
-      <div class="row-actions"><button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
+    const sum=done.reduce((s,i)=>s+(num(i.paid)||calc(i).total),0);
+    return `<div class="list">${done.map(i=>{const paid=num(i.paid)||calc(i).total;const now=calc(i).total;const ch=i.checkedAt&&i.checkedAt>(i.boughtAt||'')&&Math.abs(now-paid)>0.005;
+      return `<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}${ch?` · <b style="color:${now<paid?'var(--accent)':'var(--danger)'}">ahora ${eur(now)}</b>`:''} ${availChip(i)}</div></div></div><div class="total">${eur(paid)}</div>
+      ${histHtml(i)}
+      <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
   // ---------- estado ----------
@@ -471,7 +508,8 @@ Cada objeto de producto lleva estas claves:
  "freeFrom": importe mínimo para envío gratis si aparece, si no 0,
  "description": descripción del producto en español, fiel a la tienda, con las características y especificaciones clave (máx. 900 caracteres, puedes usar saltos de línea),
  "images": lista de URLs absolutas de las fotos del producto (galería principal, en la mayor resolución disponible, máx. 8; nada de logos, iconos ni otros productos),
- "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega, stock (p. ej. "Agotado"). "" si nada,
+ "availability": disponibilidad tal como la indica la tienda, corta: "En stock", "Agotado", "Pocas unidades", "Bajo pedido", "Reserva"… "" si no aparece,
+ "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega. "" si nada,
  "shot": (solo con capturas) índice empezando en 0 de la captura donde aparece este producto,
  "box": (solo con capturas) recuadro ajustado SOLO a la foto de este producto (sin el texto ni el precio) dentro de esa captura, como fracciones del ancho y alto [x0,y0,x1,y1] entre 0 y 1; [] si no se ve foto}
 Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JSON con lo que hayas encontrado, aunque falten datos; nunca respondas con una disculpa.`;
@@ -558,6 +596,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
+      availability:clean(d.availability),
       category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
@@ -623,7 +662,8 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
         const crop=part&&shots.length?await cropBox(part,d.box):null;
         const imgs=single?[...(crop&&!webImgs.length?[crop]:[]),...webImgs,...shots]:[...(crop?[crop]:[]),...webImgs,...(shots.length?[shots[0]]:[])];
         delete d.imageUrls;delete d.shot;delete d.box;
-        cands.push({id:uid(),...d,images:imgs,status:'pending',createdAt:new Date().toISOString()});
+        const now0=new Date().toISOString();
+        cands.push({id:uid(),...d,images:imgs,status:'pending',createdAt:now0,checkedAt:now0,history:num(d.price)>0?[{at:now0,price:calc(d).after,total:calc(d).total,avail:d.availability||''}]:[]});
       }
       let chosen=cands;
       if(!single){setStatus('');chosen=await pickProducts(cands);if(!chosen.length){setStatus('No se ha guardado nada.');return;}}
@@ -722,13 +762,20 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
       armed=null;await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
-    if(act==='unbuy'){it.status='pending';it.boughtAt=null;it.discardedAt=null;it.discardReason='';}
+    if(act==='check'){b.disabled=true;b.textContent='Comprobando…';const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
+    if(act==='rebuy'){
+      const copy=JSON.parse(JSON.stringify({...it,images:[]}));copy.images=it.images||[];
+      Object.assign(copy,{id:uid(),status:'pending',boughtAt:null,paid:null,createdAt:new Date().toISOString(),discardedAt:null,discardReason:'',history:(it.history||[]).slice()});
+      await put('items',copy);items.push(copy);tab='compare';
+      const r=safeUrl(copy.url)?await checkItem(copy):{msg:''};render();
+      setStatus(`Añadido otra vez a pendientes: ${fullName(copy)}. ${r.msg||''}`,r.ok===false?'err':'');return;}
+    if(act==='unbuy'){it.status='pending';it.boughtAt=null;it.paid=null;it.discardedAt=null;it.discardReason='';}
     if(act==='discard'){it.status='discarded';it.discardedAt=new Date().toISOString();it.discardReason='';await put('items',it);render();setStatus(`Descartado: ${fullName(it)}. Está en «Descartados».`);return;}
     if(act==='bought'){
       // Las otras tiendas del mismo producto pasan a Descartados.
       const k=key(groupName(it));const others=items.filter(o=>o!==it&&(o.status||'pending')==='pending'&&key(groupName(o))===k);
       for(const o of others){o.status='discarded';o.discardedAt=new Date().toISOString();o.discardReason='comprado en '+shopOf(it);await put('items',o);}
-      it.status='bought';it.boughtAt=new Date().toISOString();await put('items',it);render();
+      it.status='bought';it.boughtAt=new Date().toISOString();it.paid=calc(it).total;await put('items',it);render();
       setStatus(`Comprado: ${fullName(it)}.${others.length===1?' La otra oferta pasa a Descartados.':others.length?` Las otras ${others.length} ofertas pasan a Descartados.`:''}`);return;
     }
     await put('items',it);render();
@@ -793,6 +840,58 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       setTimeout(()=>{if(box.contains(document.activeElement))return;const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);const t=box.querySelector('input.typ');if(t)t.value='';chipSet(box,vals);},150);});
   });
   const drawAllChips=()=>document.querySelectorAll('.chipbox').forEach(drawChips);
+
+  // ---------- comprobar precio y disponibilidad ----------
+  // Vuelve a leer la web de la oferta y guarda el precio en el histórico.
+  async function checkItem(it){
+    if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
+    const before=calc(it).total;
+    if(!(it.history||[]).length&&num(it.price)>0)it.history=[{at:it.createdAt||new Date().toISOString(),price:calc(it).after,total:calc(it).total,avail:it.availability||''}];
+    try{
+      const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
+      if(num(d.price)>0){it.price=d.price;it.discount=d.discount;it.discountType=d.discountType;if(d.code)it.code=d.code;}
+      if(d.shipping>0)it.shipping=d.shipping;if(d.freeFrom>0)it.freeFrom=d.freeFrom;
+      it.availability=d.availability||it.availability||'';
+      ['brand','sku','mpn','ean','description'].forEach(k=>{if(!clean(it[k])&&d[k])it[k]=d[k];});
+      const now=new Date().toISOString();it.checkedAt=now;
+      if(num(d.price)>0){(it.history=it.history||[]).push({at:now,price:calc(it).after,total:calc(it).total,avail:it.availability});if(it.history.length>60)it.history=it.history.slice(-60);}
+      await put('items',it);
+      const after=calc(it).total,diff=after-before;
+      return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${num(d.price)>0?eur(after)+(Math.abs(diff)>0.005?` (${diff<0?'baja':'sube'} ${eur(Math.abs(diff))})`:' (sin cambios)'):'precio no encontrado'}${it.availability?' · '+it.availability:''}.`};
+    }catch(e){it.checkedAt=new Date().toISOString();await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
+  }
+  $('#checkAllBtn').addEventListener('click',async()=>{
+    if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    const list=items.filter(i=>(tab==='done'?i.status==='bought':(i.status||'pending')==='pending')&&matches(i)&&safeUrl(i.url));
+    if(!list.length){setStatus('No hay productos con enlace en esta vista.','err');return;}
+    const b=$('#checkAllBtn');b.disabled=true;let ok=0,fail=0,ups=0,downs=0,out=0;
+    for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');
+      const before=calc(list[i]).total;const r=await checkItem(list[i]);if(r.ok){ok++;const d=calc(list[i]).total-before;if(d>0.005)ups++;if(d<-0.005)downs++;if(/agotad/.test(norm(list[i].availability)))out++;}else fail++;render();}
+    b.disabled=false;render();
+    setStatus(`Comprobados ${ok} de ${list.length}: ${downs} bajan, ${ups} suben, ${out} agotados.${fail?` ${fail} no se pudieron leer (tiendas que bloquean la lectura o sin conexión).`:''}`,fail&&!ok?'err':'');
+  });
+  // Agrupa con Claude las ofertas que son el mismo producto aunque cada tienda lo llame distinto.
+  $('#regroupBtn').addEventListener('click',async()=>{
+    if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    const list=items.filter(i=>i.status!=='discarded'&&!isUnread(i));if(list.length<2)return;
+    const b=$('#regroupBtn');b.disabled=true;setStatus('Buscando productos iguales en distintas tiendas…','busy');
+    try{
+      const data=list.map(i=>({id:i.id,nombre:i.product,variante:i.variant,marca:i.brand,ref_fabricante:i.mpn,ean:i.ean,tienda:shopOf(i),precio:calc(i).after}));
+      const prompt=`Estas son ofertas de productos guardadas desde distintas tiendas online. Agrupa las que son EXACTAMENTE el mismo producto y la misma variante (mismo modelo, misma versión, mismo color/tamaño/capacidad si importa), aunque cada tienda lo escriba distinto. NO juntes versiones distintas (p. ej. Full vs Lite, cañón largo vs corto, pack de 2 vs 1). Si dudas, no las juntes.
+Responde SOLO JSON: {"groups":[{"name": nombre corto y claro del producto con su variante, "ids":[...]}]} incluyendo TODAS las ofertas (las que no tienen pareja van solas en su grupo).
+Ofertas: ${JSON.stringify(data)}`;
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-5-5',max_tokens:8000,messages:[{role:'user',content:prompt}]})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||('error '+r.status));
+      const d=parseJSON((j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n'))||{};
+      let joined=0,changed=0;
+      for(const g of d.groups||[]){const ids=(g.ids||[]).filter(id=>list.some(i=>i.id===id));if(!ids.length||!clean(g.name))continue;
+        if(ids.length>1)joined++;
+        for(const id of ids){const it=items.find(i=>i.id===id);if(it&&it.group!==clean(g.name)){it.group=clean(g.name);await put('items',it);changed++;}}}
+      render();setStatus(`Listo: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, cámbialo en Editar → «Comparar junto con».`);
+    }catch(e){setStatus('No se pudo agrupar: '+(e.message||e),'err');}
+    finally{b.disabled=false;}
+  });
 
   // ---------- volver a leer productos sin datos ----------
   function applyRead(it,d){
