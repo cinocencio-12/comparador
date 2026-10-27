@@ -223,7 +223,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
     <div class="f c2"><label for="fEan">EAN</label><input id="fEan" inputmode="numeric"></div>
     <div class="f c3"><label for="fStore">Tienda</label><input id="fStore"></div>
-    <div class="f c3"><label for="fPrice">Precio €</label><input id="fPrice" inputmode="decimal" required></div>
+    <div class="f c3"><label for="fPrice">Precio</label><div class="disc"><input id="fPrice" inputmode="decimal" required><select id="fCur" aria-label="Moneda" style="width:86px"></select></div></div>
     <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
     <div class="f c3"><label for="fShip">Envío €</label><input id="fShip" inputmode="decimal" placeholder="0"></div>
@@ -254,6 +254,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     </select>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
+    <button class="btn small primary clr" id="fxFixBtn" type="button" hidden></button>
     <div class="toolbar clr"><button class="btn small" id="selModeBtn" type="button">☑ Seleccionar para comparar o unir</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
   </div>
 
@@ -373,6 +374,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#fShop').innerHTML=`<option value="">Todas las tiendas</option>`+[...shops.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.shop)?'selected':''}>${esc(x.name)} (${x.n} pendientes)</option>`).join('');
     const tags=new Map();items.forEach(i=>tagList(i).forEach(t=>{const k=norm(t);if(!tags.has(k))tags.set(k,{name:t,n:0});tags.get(k).n++;}));
     $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');
+    const fxs=items.filter(i=>guessCur(i));$('#fxFixBtn').hidden=!fxs.length;
+    $('#fxFixBtn').textContent=`Corregir moneda en ${fxs.length} ${fxs.length===1?'producto':'productos'} (${[...new Set(fxs.map(guessCur))].join(', ')} guardado como €)`;
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
     $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
     $('#fState').value=flt.state;
@@ -501,6 +504,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.compat?`<div class="compat">Aplica a: ${compatList(it).map(esc).join(', ')}</div>`:''}
       ${tagList(it).length?`<div class="store">${tagList(it).map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</div>`:''}
       <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span></div>
+      ${it.orig?`<div class="compat">Precio original: <b>${fmtCur(it.orig.price,it.orig.currency)}</b>${it.orig.shipping?` + ${fmtCur(it.orig.shipping,it.orig.currency)} envío`:''} · cambio 1 € = ${num(it.orig.rate).toLocaleString('es-ES',{maximumFractionDigits:3})} ${it.orig.currency}</div>`:''}
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
@@ -591,7 +595,8 @@ Cada objeto de producto lleva estas claves:
  "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios); [] si no lo dice,
  "store": nombre de la tienda,
  "url": URL de la página del producto,
- "price": precio actual de venta con IVA antes de cupones, número,
+ "currency": código ISO 4217 de la moneda en que están los precios (EUR, USD, GBP, JPY, TWD, HKD, CNY, AUD, CAD…). Fíjate en el símbolo y en el país de la tienda: "NT$" = TWD, "¥" o "円" = JPY (CNY si la tienda es china), "£" = GBP, "HK$" = HKD, "$" en tienda de EE. UU. = USD. NO conviertas: devuelve los importes tal como aparecen y su moneda,
+ "price": precio actual de venta con IVA antes de cupones, número, en la moneda de "currency",
  "discount": SOLO un descuento extra que aún no está aplicado en "price" (un cupón o código, o un % extra que se aplica en la cesta). Si el precio ya aparece rebajado (precio tachado), eso NO es descuento: pon 0,
  "discountType": "pct" o "eur",
  "code": código de cupón si aparece, si no "",
@@ -679,7 +684,45 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
 
   const fixUrl=u=>{u=clean(u);if(!u)return '';if(/^https?:\/\//i.test(u))return u;return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(u)?'https://'+u:'';};
-  function fromClaude(d,fallbackUrl){
+  // ---------- monedas ----------
+  // Unidades de cada moneda por 1 €. Se actualiza a diario; si no hay conexión usa estos valores aproximados.
+  const FX_FALLBACK={EUR:1,USD:1.08,GBP:0.85,JPY:165,TWD:34.5,HKD:8.4,CNY:7.8,AUD:1.65,CAD:1.48,CHF:0.95,SEK:11.4,NOK:11.6,DKK:7.46,PLN:4.3,CZK:25,KRW:1480,SGD:1.45,MXN:20};
+  const CURS=['EUR','USD','GBP','JPY','TWD','HKD','CNY','AUD','CAD','CHF','SEK','NOK','DKK','PLN','CZK','KRW','SGD','MXN'];
+  let FX={...FX_FALLBACK},fxDate='';
+  async function loadFx(){
+    try{const c=JSON.parse(localStorage.getItem('fx')||'null');if(c&&Date.now()-c.t<20*3600e3){FX={...FX_FALLBACK,...c.rates};fxDate=c.date;return;}}catch(e){}
+    try{const r=await fetch('https://open.er-api.com/v6/latest/EUR');const j=await r.json();
+      if(j&&j.rates&&j.rates.USD){FX={...FX_FALLBACK,...j.rates};fxDate=new Date().toLocaleDateString('es-ES');try{localStorage.setItem('fx',JSON.stringify({t:Date.now(),rates:j.rates,date:fxDate}));}catch(e){}}}catch(e){}
+  }
+  const r2=n=>Math.round(n*100)/100;
+  const toEur=(n,cur)=>!cur||cur==='EUR'||!FX[cur]?num(n):r2(num(n)/FX[cur]);
+  const fmtCur=(n,cur)=>num(n).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:2})+' '+cur;
+  function normCur(c){c=clean(c).toUpperCase().replace(/[^A-Z$£¥€]/g,'');
+    const m={'€':'EUR','$':'USD','US$':'USD','NT$':'TWD','NTD':'TWD','£':'GBP','¥':'JPY','YEN':'JPY','RMB':'CNY','HK$':'HKD','A$':'AUD','C$':'CAD'};
+    return m[c]||(CURS.includes(c)||FX[c]?c:'EUR');}
+  // Pasa a euros los importes de un producto leído en otra moneda y guarda los originales.
+  function convertItem(d,cur){
+    cur=normCur(cur);if(cur==='EUR'){d.orig=null;return d;}
+    d.orig={currency:cur,price:num(d.price),shipping:num(d.shipping),freeFrom:num(d.freeFrom),discount:d.discountType==='eur'?num(d.discount):0,rate:FX[cur],at:new Date().toISOString()};
+    d.price=toEur(d.price,cur);d.shipping=toEur(d.shipping,cur);d.freeFrom=toEur(d.freeFrom,cur);if(d.discountType==='eur')d.discount=toEur(d.discount,cur);
+    return d;
+  }
+  // Detecta productos antiguos guardados en otra moneda como si fueran euros.
+  function guessCur(it){
+    if(it.orig||it.curChecked)return '';
+    const t=[it.notes,it.description,it.store].join(' ');let h='';try{h=new URL(it.url).hostname;}catch(e){}
+    const p=num(it.price); // por dominio solo si el importe es demasiado alto para ser euros
+    if(/NT\$|TWD|d[oó]lares? (de )?taiw|nuevo d[oó]lar/i.test(t)||(/\.tw$/.test(h)&&p>=300))return 'TWD';
+    if(/JPY|\byenes?\b|円/i.test(t)||(/\.jp$/.test(h)&&p>=500))return 'JPY';
+    if(/HK\$|HKD|hong kong/i.test(t))return 'HKD';
+    if(/GBP|£|libras?( esterlinas?)?\b/i.test(t)||/\.uk$/.test(h))return 'GBP';
+    if(/CNY|RMB|yuan/i.test(t)||/\.cn$/.test(h))return 'CNY';
+    if(/US\$|USD|d[oó]lares? (estadounidenses|americanos|USA)/i.test(t))return 'USD';
+    return '';
+  }
+
+  function fromClaude(d,fallbackUrl){const o=fromClaude0(d,fallbackUrl);convertItem(o,o.currency);delete o.currency;return o;}
+  function fromClaude0(d,fallbackUrl){
     const url=safeUrl(fixUrl(d.url))||safeUrl(fallbackUrl||'');
     const miss=[];if(!(num(d.price)>0))miss.push('precio');if(d.shipping===null||d.shipping===undefined)miss.push('envío');
     return{product:clean(d.product)||'Producto sin nombre',variant:clean(d.variant),brand:clean(d.brand),sku:clean(d.sku),mpn:clean(d.mpn),ean:clean(d.ean).replace(/\s/g,''),
@@ -687,7 +730,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
-      availability:clean(d.availability),
+      availability:clean(d.availability),currency:normCur(d.currency||'EUR'),
       category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
@@ -803,6 +846,10 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   F('fImgs').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs)formImgs.push(await shrink(f));renderImgEdit();});
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
+    // Si se leyó en otra moneda, el formulario muestra los importes originales.
+    F('fCur').innerHTML=CURS.map(c=>`<option>${c}</option>`).join('');
+    const o=it.orig;F('fCur').value=o?o.currency:'EUR';
+    if(o){F('fPrice').value=o.price||'';F('fShip').value=o.shipping||'';F('fFree').value=o.freeFrom||'';if(it.discountType==='eur')F('fDisc').value=o.discount||'';}
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
     F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
@@ -833,10 +880,11 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     e.preventDefault();
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
+    convertItem(d,F('fCur').value);
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
     if(!d.product)return;
     if(!d.group)d.group=fullName(d);
-    if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d,{images:formImgs});await put('items',it);}
+    if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d,{images:formImgs,curChecked:true});await put('items',it);}
     else{const it={id:uid(),...d,images:formImgs,status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
     closeForm();render();setStatus('Guardado.');
   });
@@ -933,6 +981,15 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   });
   const drawAllChips=()=>document.querySelectorAll('.chipbox').forEach(drawChips);
 
+  $('#fxFixBtn').addEventListener('click',async()=>{
+    const list=items.filter(i=>guessCur(i));let n=0;
+    for(const it of list){const cur=guessCur(it);const before=num(it.price);
+      convertItem(it,cur);const f=before>0?num(it.price)/before:1;
+      (it.history||[]).forEach(h=>{h.price=r2(h.price*f);if(h.total)h.total=r2(h.total*f);});
+      it.curChecked=true;await put('items',it);n++;}
+    render();setStatus(`Moneda corregida en ${n} ${n===1?'producto':'productos'}. Ahora ves el precio en euros y el original debajo. Si alguno no era de otra moneda, cámbialo en Editar → moneda EUR.`);
+  });
+
   // ---------- comprobar precio y disponibilidad ----------
   // Vuelve a leer la web de la oferta y guarda el precio en el histórico.
   async function checkItem(it){
@@ -941,7 +998,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(!(it.history||[]).length&&num(it.price)>0)it.history=[{at:it.createdAt||new Date().toISOString(),price:calc(it).after,total:calc(it).total,avail:it.availability||''}];
     try{
       const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
-      if(num(d.price)>0){it.price=d.price;it.discount=d.discount;it.discountType=d.discountType;if(d.code)it.code=d.code;}
+      if(num(d.price)>0){it.price=d.price;it.discount=d.discount;it.discountType=d.discountType;it.orig=d.orig||null;it.curChecked=true;if(d.code)it.code=d.code;}
       if(d.shipping>0)it.shipping=d.shipping;if(d.freeFrom>0)it.freeFrom=d.freeFrom;
       it.availability=d.availability||it.availability||'';
       ['brand','sku','mpn','ean','description'].forEach(k=>{if(!clean(it[k])&&d[k])it[k]=d[k];});
@@ -1128,7 +1185,9 @@ Productos: ${JSON.stringify(list)}`;
 
   // ---------- arranque ----------
   (async()=>{
-    items=await getAll('items').catch(()=>[]);render();
+    items=await getAll('items').catch(()=>[]);
+    try{await Promise.race([loadFx(),new Promise(r=>setTimeout(r,4000))]);}catch(e){}
+    render();
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     await drainInbox();
