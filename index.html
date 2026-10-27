@@ -236,6 +236,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="toolbar clr"><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
   </div>
 
+  <div class="status" id="activeFlt" hidden><span id="activeFltTxt"></span><button class="btn small primary" id="showAll" type="button">Ver todo</button></div>
+
   <div class="tabs" role="tablist">
     <button role="tab" id="tab-compare" aria-selected="true">Comparar</button>
     <button role="tab" id="tab-shops" aria-selected="false">Por tienda</button>
@@ -311,7 +313,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
   const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
-  const flt={q:ls0('fq',''),cat:ls0('fcat',''),plat:ls0('fplat',''),shop:ls0('fshop',''),tag:ls0('ftag','')};
+  const flt={q:'',cat:'',plat:'',shop:'',tag:''}; // cada vez que abres la app empieza sin filtros
   const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
   function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);localStorage.setItem('ftag',flt.tag);}catch(e){}}
@@ -337,7 +339,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
     $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
-    $('#clrFilters').hidden=!(flt.q||flt.cat||flt.plat||flt.shop||flt.tag);
+    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop].filter(Boolean);
+    $('#clrFilters').hidden=!on.length;$('#activeFlt').hidden=!on.length;
+    $('#activeFltTxt').textContent=on.length?'Filtrando: '+on.join(' · '):'';
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
     $('#platList').innerHTML=plats.map(p=>`<option value="${esc(p.name)}">`).join('');
     const nc=items.filter(i=>!clean(i.category)).length;
@@ -349,6 +353,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#fPlat').addEventListener('change',e=>{flt.plat=e.target.value;saveFlt();render();});
   $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
   $('#fTag').addEventListener('change',e=>{flt.tag=e.target.value;saveFlt();render();});
+  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag='';$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
+  $('#showAll').addEventListener('click',goHome);
+  document.querySelector('h1').addEventListener('click',goHome);document.querySelector('h1').style.cursor='pointer';
+  $('#q').addEventListener('search',e=>{flt.q=e.target.value.trim();saveFlt();render();});
   $('#clrFilters').addEventListener('click',()=>{flt.q=flt.cat=flt.plat=flt.shop=flt.tag='';$('#q').value='';saveFlt();render();});
 
   function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
