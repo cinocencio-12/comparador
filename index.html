@@ -159,6 +159,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .imggrid button img{width:100%;height:100%;object-fit:contain;display:block}
 .imggrid button.on{border-color:var(--accent)}
 .imggrid button.on::after{content:"✓";position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-weight:700;display:flex;align-items:center;justify-content:center}
+.rr{width:100%;border-collapse:collapse;font-size:.84rem}
+.rr td{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top;overflow-wrap:anywhere}
+.rr td:first-child{width:30px}.rr input{width:22px;height:22px;accent-color:var(--accent)}
+.rr .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block}
+.rr .old{color:var(--muted);text-decoration:line-through}.rr .new{color:var(--accent);font-weight:600}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -172,6 +177,16 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
 
   <div class="status" id="photoBar" hidden><span id="photoTxt"></span><button class="btn small primary" id="photoGo" type="button">Buscar fotos</button></div>
+
+  <div class="picker" id="rrDlg" hidden>
+    <h2 id="rrTitle"></h2>
+    <p class="hint" id="rrHint" style="margin:0"></p>
+    <div style="overflow-x:auto"><table class="rr" id="rrTable"></table></div>
+    <div class="actions">
+      <button class="btn primary" type="button" id="rrApply">Aplicar</button>
+      <button class="btn" type="button" id="rrCancel">Cancelar</button>
+    </div>
+  </div>
 
   <div class="picker" id="buyDlg" hidden>
     <h2 id="buyTitle"></h2>
@@ -531,7 +546,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histHtml(it)}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${safeUrl(it.url)||(it.images||[]).some(v=>typeof v!=='string')?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -593,7 +608,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${(()=>{const alts=items.filter(a=>a.status==='alt'&&a.altOf===i.id);if(!alts.length)return '';
         return `<details class="hist"><summary>Alternativas que miraste (${alts.length})</summary><div class="list" style="margin-top:6px">${alts.map(a=>{const d=calc(a).total-paid;
           return `<div class="who" style="justify-content:space-between;gap:8px"><div class="who">${thumb(a)}<div style="min-width:0"><div class="name" style="font-size:.86rem">${safeUrl(a.url)?`<a href="${esc(a.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(a))}</a>`:esc(fullName(a))}</div><div class="meta">${esc(shopOf(a))} · ${eur(calc(a).total)}${isUnread(a)?'':` (${d>=0?'+':'−'}${eur(Math.abs(d))})`}</div></div></div><button class="btn small" data-act="unbuy" data-id="${a.id}">A pendientes</button></div>`;}).join('')}</div></details>`;})()}
-      <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
+      <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)||(i.images||[]).some(v=>typeof v!=='string')?`<button class="btn small" data-act="reread" data-id="${i.id}">Volver a leer</button>`:''}${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
   // ---------- estado ----------
@@ -983,6 +998,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const it=items.find(i=>i.id===b.dataset.id);if(!it)return;
     const act=b.dataset.act;
     if(act==='edit')return openForm(it);
+    if(act==='reread'){b.disabled=true;b.textContent='Leyendo…';await rereadReview(it);b.disabled=false;b.textContent='Volver a leer';return;}
     if(act==='dup'){openForm(null);copyFrom(it);F('fStore').focus();return;}
     if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
     if(act==='del'){
@@ -1194,6 +1210,61 @@ Ofertas: ${JSON.stringify(data)}`;
     it.notes=clean(d.notes);it.incomplete=!!d.incomplete;
     if(!clean(it.group)||/^Sin leer/.test(it.group))it.group=autoGroup(it);
   }
+  // ---------- volver a leer un producto: rellenar vacíos y revisar discrepancias ----------
+  const RR_FIELDS=[['product','Producto'],['variant','Variante'],['brand','Marca'],['sku','Ref. tienda'],['mpn','Ref. fabricante'],['ean','EAN'],['store','Tienda'],
+    ['price','Precio','m'],['discount','Descuento','m'],['code','Cupón'],['shipping','Envío','m'],['freeFrom','Envío gratis desde','m'],['availability','Disponibilidad'],
+    ['category','Categoría'],['platform','Modelo / plataforma'],['compat','Aplica a'],['description','Descripción']];
+  let rrItem=null,rrRead=null,rrRows=[],rrImgs=[];
+  const rrVal=(k,v,m)=>m?(num(v)>0?eur(num(v)):'—'):(k==='description'?esc(clean(v).slice(0,220))+(clean(v).length>220?'…':''):esc(clean(v)||'—'));
+  async function rereadReview(it){
+    if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    setStatus(`Volviendo a leer ${fullName(it)}…`,'busy');
+    let d=null,err=null,how='';const shots=(it.images||[]).filter(v=>typeof v!=='string');
+    if(safeUrl(it.url)){try{d=fromClaude((await askClaude({url:it.url}))[0],it.url);how='la web';}catch(e){err=e;}}
+    if(!d&&shots.length){try{const parts=[];for(const x of shots.slice(0,3))parts.push(...await slices(x));
+      const found=await askClaude({images:parts.slice(0,10),url:safeUrl(it.url)});
+      const k=key(it.product);const raw=found.find(f=>key(f.product)===k)||found[0];d=fromClaude(raw,it.url);how='las capturas';}catch(e){err=err||e;}}
+    if(!d){setStatus(`No se pudo leer: ${(err&&err.message)||'sin enlace ni captura'}.`,'err');return;}
+    rrItem=it;rrRead=d;rrRows=[];rrImgOn=true;
+    const auto=[];
+    for(const [k,label,m] of RR_FIELDS){
+      const cur=it[k],nv=d[k];
+      const has=m?num(nv)>0:!!clean(nv);if(!has)continue;
+      const empty=m?!(num(cur)>0):!clean(cur);
+      const same=m?Math.abs(num(cur)-num(nv))<0.005:norm(cur)===norm(nv);
+      if(same)continue;
+      if(empty&&!/^Sin leer/.test(it.product||'')){auto.push(label);rrRows.push({k,label,m,cur,nv,on:true,empty:true});}
+      else rrRows.push({k,label,m,cur,nv,on:empty||k==='price'||k==='shipping'||k==='freeFrom'||k==='availability'||/^Sin leer/.test(it.product||''),empty});
+    }
+    const imgs=await grabImages(d.imageUrls);rrImgs=imgs.filter(v=>!(it.images||[]).includes(v));
+    setStatus('');
+    if(!rrRows.length&&!rrImgs.length){setStatus(`${fullName(it)}: todo coincide con ${how}. No hay nada que cambiar.`);return;}
+    $('#rrTitle').textContent=`Volver a leer: ${fullName(it)} (${shopOf(it)})`;
+    $('#rrHint').textContent=`Leído de ${how}. Lo vacío viene marcado para rellenar; en lo que no coincide, marca lo que quieras cambiar.${d.orig?` Precio original: ${fmtCur(d.orig.price,d.orig.currency)}.`:''}`;
+    drawRR();$('#rrDlg').hidden=false;$('#rrDlg').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function drawRR(){
+    $('#rrTable').innerHTML=rrRows.map((r,i)=>`<tr><td><input type="checkbox" data-rr="${i}" ${r.on?'checked':''}></td><td><span class="k">${esc(r.label)}${r.empty?' · vacío':' · no coincide'}</span>
+      ${r.empty?'':`<span class="old">${rrVal(r.k,r.cur,r.m)}</span><br>`}<span class="new">${rrVal(r.k,r.nv,r.m)}</span></td></tr>`).join('')+
+      (rrImgs.length?`<tr><td><input type="checkbox" data-rr="img" checked></td><td><span class="k">Fotos nuevas de la web</span><div class="gallery">${rrImgs.map(v=>imgTag(v)).join('')}</div></td></tr>`:'');
+    const n=rrRows.filter(r=>r.on).length+(rrImgs.length&&rrImgOn?1:0);$('#rrApply').textContent=n?`Aplicar ${n} ${n===1?'cambio':'cambios'}`:'Aplicar';
+  }
+  let rrImgOn=true;
+  $('#rrTable').addEventListener('change',e=>{const c=e.target.closest('[data-rr]');if(!c)return;if(c.dataset.rr==='img')rrImgOn=c.checked;else rrRows[+c.dataset.rr].on=c.checked;drawRR();});
+  $('#rrCancel').addEventListener('click',()=>{$('#rrDlg').hidden=true;rrItem=null;});
+  $('#rrApply').addEventListener('click',async()=>{
+    const it=rrItem,d=rrRead;if(!it)return;const before=calc(it).total;let n=0,money=false;
+    for(const r of rrRows.filter(r=>r.on)){it[r.k]=r.nv;n++;if(r.m)money=true;}
+    if(money){if(rrRows.some(r=>r.on&&r.k==='price')){it.discountType=d.discountType;it.orig=d.orig||null;}
+      const now=new Date().toISOString();if(!(it.history||[]).length&&before>0)it.history=[{at:it.createdAt||now,price:before,total:before}];
+      (it.history=it.history||[]).push({at:now,price:calc(it).after,total:calc(it).total,avail:it.availability||''});it.checkedAt=now;}
+    if(rrImgs.length&&rrImgOn){it.images=[...(it.images||[]),...rrImgs];n++;}
+    if(/^Sin leer/.test(it.group||'')||!clean(it.group))it.group=autoGroup(it);
+    it.incomplete=!(num(it.price)>0);it.curChecked=true;
+    await put('items',it);$('#rrDlg').hidden=true;rrItem=null;rrImgOn=true;render();
+    setStatus(n?`${fullName(it)}: ${n} ${n===1?'cambio aplicado':'cambios aplicados'}.`:'Sin cambios.');
+  });
+
   async function rereadItem(it){
     const shots=(it.images||[]).filter(v=>typeof v!=='string');
     let d=null,err=null;
