@@ -249,6 +249,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
     <div class="f c6"><label for="fNotes">Notas</label><input id="fNotes"></div>
     <div class="f c6"><label>Imágenes (la primera es la principal)</label>
+      <div class="f" style="margin-bottom:6px"><input id="fCopyImg" list="copyList" placeholder="Copiar solo las fotos de otro producto: escribe y elige…" autocomplete="off" aria-label="Copiar fotos desde otro producto"></div>
       <div class="actions" style="margin-bottom:6px"><button class="btn small primary" type="button" id="webImgs">Buscar fotos en la web</button><button class="btn small" type="button" id="gImgs">Google Imágenes</button><button class="btn small" type="button" id="pasteImg">Pegar imagen o enlace</button></div>
       <div class="imgsearch" id="imgSearch" hidden><span class="hint" id="imgSearchHint"></span><div class="imggrid" id="imgGrid"></div>
         <div class="actions"><button class="btn small primary" type="button" id="imgAdd">Añadir seleccionadas</button><button class="btn small" type="button" id="imgClose">Cerrar</button></div></div>
@@ -888,6 +889,9 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const add=(src.images||[]).filter(v=>!formImgs.includes(v));formImgs=[...formImgs,...add];renderImgEdit();drawAllChips();
     $('#copyHint').textContent=`Copiado de ${copyLabel(src)}. Rellena tienda, enlace, precio, portes y código.`;
   }
+  F('fCopyImg').addEventListener('change',e=>{const src=items.find(i=>copyLabel(i)===e.target.value);if(!src)return;e.target.value='';
+    const add=(src.images||[]).filter(v=>!formImgs.includes(v));formImgs=[...formImgs,...add];renderImgEdit();
+    setStatus(add.length?`${add.length} ${add.length===1?'foto copiada':'fotos copiadas'} de ${copyLabel(src)}. Pulsa Guardar.`:`${copyLabel(src)} no tiene fotos nuevas que copiar.`,add.length?'':'err');});
   F('fCopy').addEventListener('change',e=>{const v=e.target.value;const src=items.find(i=>copyLabel(i)===v);if(src){copyFrom(src);e.target.value='';}});
 
   // ---------- buscar fotos ----------
