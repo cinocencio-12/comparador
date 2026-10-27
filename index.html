@@ -1036,34 +1036,42 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- campos de etiquetas (Aplica a / Etiquetas) ----------
   function chipSuggest(kind){
-    const m=new Map();const add=v=>{const k=norm(v);if(v&&!m.has(k))m.set(k,v);};
-    if(kind==='applies'){APPLY_DEF.forEach(add);items.forEach(i=>{add(clean(i.platform));compatList(i).forEach(add);});}
+    const m=new Map();const add=v=>{v=clean(v);const k=norm(v);if(v&&!m.has(k))m.set(k,v);};
+    if(kind==='applies'){APPLY_DEF.forEach(add);items.forEach(i=>{splitList(i.platform).forEach(add);compatList(i).forEach(add);});}
     else{items.forEach(i=>tagList(i).forEach(add));TAG_DEF.forEach(add);}
-    return [...m.values()];
+    return [...m.values()].sort((x,y)=>x.localeCompare(y,'es'));
   }
-  function drawChips(box){
-    const inp=F(box.dataset.for);const vals=splitList(inp.value);const typed=box.querySelector('input.typ');const q=typed?norm(typed.value):'';
-    const sug=chipSuggest(box.dataset.kind).filter(v=>!vals.some(x=>norm(x)===norm(v))&&(!q||norm(v).includes(q))).slice(0,q?12:10);
+  // Lo escrito sirve solo para filtrar sugerencias: no se añade hasta que tocas una sugerencia, pulsas Intro o «+ Añadir».
+  function drawChips(box,keepFocus){
+    const inp=F(box.dataset.for);const vals=splitList(inp.value);const typed=box.querySelector('input.typ');const raw=typed?typed.value:'';const q=norm(raw);
+    const sug=chipSuggest(box.dataset.kind).filter(v=>!vals.some(x=>norm(x)===norm(v))&&(!q||norm(v).includes(q))).slice(0,q?25:10);
+    const exact=q&&(vals.some(x=>norm(x)===q)||sug.some(v=>norm(v)===q));
     box.innerHTML=vals.map((v,i)=>`<button type="button" class="on" data-rm="${i}">${esc(v)} ×</button>`).join('')+
-      `<input class="typ" placeholder="Escribe y pulsa Intro…" value="${typed?esc(typed.value):''}" enterkeyhint="done">`+
-      sug.map(v=>`<button type="button" class="sug" data-add="${esc(v)}">+ ${esc(v)}</button>`).join('');
+      `<input class="typ" placeholder="Escribe para buscar…" value="${esc(raw)}" enterkeyhint="done">`+
+      (q&&!exact?`<button type="button" class="sug" data-add="${esc(clean(raw))}" style="border-style:solid">+ Añadir «${esc(clean(raw))}»</button>`:'')+
+      sug.map(v=>`<button type="button" class="sug" data-add="${esc(v)}">+ ${esc(v)}</button>`).join('')+
+      (q?`<button type="button" class="sug" data-clear="1">✕ Borrar búsqueda</button>`:'');
+    if(keepFocus){const t=box.querySelector('input.typ');t.focus();const n=t.value.length;t.setSelectionRange(n,n);}
   }
-  function chipSet(box,vals){F(box.dataset.for).value=vals.join(', ');drawChips(box);}
+  function chipSet(box,vals,keepFocus){F(box.dataset.for).value=vals.join(', ');drawChips(box,keepFocus);}
   document.querySelectorAll('.chipbox').forEach(box=>{
+    // Que tocar un botón no quite el foco al campo (así no se cierra el teclado).
+    box.addEventListener('pointerdown',e=>{if(e.target.closest('button'))e.preventDefault();});
+    box.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault();});
     box.addEventListener('click',e=>{
-      const vals=splitList(F(box.dataset.for).value);
-      const rm=e.target.closest('[data-rm]');if(rm){vals.splice(+rm.dataset.rm,1);chipSet(box,vals);return;}
-      const ad=e.target.closest('[data-add]');if(ad){vals.push(ad.dataset.add);const t=box.querySelector('input.typ');if(t)t.value='';chipSet(box,vals);}
+      const vals=splitList(F(box.dataset.for).value);const t=box.querySelector('input.typ');const typing=t&&document.activeElement===t;
+      const rm=e.target.closest('[data-rm]');if(rm){vals.splice(+rm.dataset.rm,1);chipSet(box,vals,typing);return;}
+      const cl=e.target.closest('[data-clear]');if(cl){t.value='';drawChips(box,true);return;}
+      const ad=e.target.closest('[data-add]');if(ad){const v=ad.dataset.add;if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);
+        // Si lo añadido es justo lo escrito, se limpia; si era una sugerencia, se mantiene la búsqueda para añadir más.
+        if(t&&norm(t.value)===norm(v))t.value='';chipSet(box,vals,typing||!!(t&&t.value));}
     });
     box.addEventListener('keydown',e=>{
       if(!e.target.matches('input.typ')||(e.key!=='Enter'&&e.key!==','))return;
       e.preventDefault();const v=clean(e.target.value);if(!v)return;
-      const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);e.target.value='';chipSet(box,vals);
-      box.querySelector('input.typ').focus();
+      const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);e.target.value='';chipSet(box,vals,true);
     });
-    box.addEventListener('input',e=>{if(!e.target.matches('input.typ'))return;const pos=e.target.selectionStart;drawChips(box);const t=box.querySelector('input.typ');t.focus();t.setSelectionRange(pos,pos);});
-    box.addEventListener('focusout',e=>{if(!e.target.matches('input.typ'))return;const v=clean(e.target.value);if(!v)return;
-      setTimeout(()=>{if(box.contains(document.activeElement))return;const vals=splitList(F(box.dataset.for).value);if(!vals.some(x=>norm(x)===norm(v)))vals.push(v);const t=box.querySelector('input.typ');if(t)t.value='';chipSet(box,vals);},150);});
+    box.addEventListener('input',e=>{if(!e.target.matches('input.typ'))return;drawChips(box,true);});
   });
   const drawAllChips=()=>document.querySelectorAll('.chipbox').forEach(drawChips);
 
