@@ -173,6 +173,17 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
   <div class="status" id="photoBar" hidden><span id="photoTxt"></span><button class="btn small primary" id="photoGo" type="button">Buscar fotos</button></div>
 
+  <div class="picker" id="buyDlg" hidden>
+    <h2 id="buyTitle"></h2>
+    <p class="hint" style="margin:0">Marca lo que ya no necesitas mirar: sale de pendientes y queda guardado como alternativa de esta compra, en «Comprados».</p>
+    <div class="list" id="buyList"></div>
+    <div class="actions">
+      <button class="btn primary" type="button" id="buyAlt">Guardar como alternativas</button>
+      <button class="btn" type="button" id="buyOnly">Solo marcar comprado</button>
+      <button class="btn" type="button" id="buyCancel">Cancelar</button>
+    </div>
+  </div>
+
   <div class="picker" id="picker" hidden>
     <h2 id="pickTitle">Elige qué guardar</h2>
     <div class="list" id="pickList"></div>
@@ -475,7 +486,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const pend=groups('pending');
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
-    $('#sTotal').textContent=eur(pend.reduce((s,g)=>s+calc(g.offers[0]).total,0));
+    $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(o=>!isUnread(o));return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
@@ -578,6 +589,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     return `<div class="list">${done.map(i=>{const paid=num(i.paid)||calc(i).total;const now=calc(i).total;const ch=i.checkedAt&&i.checkedAt>(i.boughtAt||'')&&Math.abs(now-paid)>0.005;
       return `<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}${ch?` · <b style="color:${now<paid?'var(--accent)':'var(--danger)'}">ahora ${eur(now)}</b>`:''} ${availChip(i)}</div></div></div><div class="total">${eur(paid)}</div>
       ${histHtml(i)}
+      ${(()=>{const alts=items.filter(a=>a.status==='alt'&&a.altOf===i.id);if(!alts.length)return '';
+        return `<details class="hist"><summary>Alternativas que miraste (${alts.length})</summary><div class="list" style="margin-top:6px">${alts.map(a=>{const d=calc(a).total-paid;
+          return `<div class="who" style="justify-content:space-between;gap:8px"><div class="who">${thumb(a)}<div style="min-width:0"><div class="name" style="font-size:.86rem">${safeUrl(a.url)?`<a href="${esc(a.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(a))}</a>`:esc(fullName(a))}</div><div class="meta">${esc(shopOf(a))} · ${eur(calc(a).total)}${isUnread(a)?'':` (${d>=0?'+':'−'}${eur(Math.abs(d))})`}</div></div></div><button class="btn small" data-act="unbuy" data-id="${a.id}">A pendientes</button></div>`;}).join('')}</div></details>`;})()}
       <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
@@ -969,7 +983,9 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
     if(act==='del'){
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
-      armed=null;await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
+      armed=null;
+      for(const a of items.filter(a=>a.status==='alt'&&a.altOf===it.id)){a.status='discarded';a.discardedAt=new Date().toISOString();a.discardReason='alternativa de una compra borrada';await put('items',a);}
+      await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
     if(act==='split'){it.group=fullName(it)+' · '+shopOf(it);await put('items',it);render();setStatus(`Separado: ${fullName(it)} (${shopOf(it)}) ya no se compara con las demás.`);return;}
     if(act==='check'){b.disabled=true;b.textContent='Comprobando…';const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
@@ -979,15 +995,11 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       await put('items',copy);items.push(copy);tab='compare';
       const r=safeUrl(copy.url)?await checkItem(copy):{msg:''};render();
       setStatus(`Añadido otra vez a pendientes: ${fullName(copy)}. ${r.msg||''}`,r.ok===false?'err':'');return;}
-    if(act==='unbuy'){it.status='pending';it.boughtAt=null;it.paid=null;it.discardedAt=null;it.discardReason='';}
+    if(act==='unbuy'){
+      if(it.status==='bought'){for(const a of items.filter(a=>a.status==='alt'&&a.altOf===it.id)){a.status='pending';a.altOf=null;await put('items',a);}}
+      it.status='pending';it.boughtAt=null;it.paid=null;it.discardedAt=null;it.discardReason='';it.altOf=null;}
     if(act==='discard'){it.status='discarded';it.discardedAt=new Date().toISOString();it.discardReason='';await put('items',it);render();setStatus(`Descartado: ${fullName(it)}. Está en «Descartados».`);return;}
-    if(act==='bought'){
-      // Las otras tiendas del mismo producto pasan a Descartados.
-      const k=key(groupName(it));const others=items.filter(o=>o!==it&&(o.status||'pending')==='pending'&&key(groupName(o))===k);
-      for(const o of others){o.status='discarded';o.discardedAt=new Date().toISOString();o.discardReason='comprado en '+shopOf(it);await put('items',o);}
-      it.status='bought';it.boughtAt=new Date().toISOString();it.paid=calc(it).total;await put('items',it);render();
-      setStatus(`Comprado: ${fullName(it)}.${others.length===1?' La otra oferta pasa a Descartados.':others.length?` Las otras ${others.length} ofertas pasan a Descartados.`:''}`);return;
-    }
+    if(act==='bought'){openBuy(it);return;}
     await put('items',it);render();
   });
   ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
@@ -1090,10 +1102,56 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     setStatus(`Comprobados ${ok} de ${list.length}: ${downs} bajan, ${ups} suben, ${out} agotados.${fail?` ${fail} no se pudieron leer (tiendas que bloquean la lectura o sin conexión).`:''}`,fail&&!ok?'err':'');
   });
   // Agrupa con Claude las ofertas que son el mismo producto aunque cada tienda lo llame distinto.
-  $('#regroupBtn').addEventListener('click',async()=>{
+  // ---------- comprar: qué hacer con lo relacionado ----------
+  const famToks=it=>new Set(norm([it.brand,it.product].join(' ')).replace(/[^a-z0-9.\s-]/g,' ').split(/[\s-]+/).filter(t=>t&&!STOP.has(t)));
+  function relation(it,o){
+    if(key(groupName(o))===key(groupName(it)))return 'same';
+    const A=famToks(it),B=famToks(o);let inter=0;A.forEach(t=>{if(B.has(t))inter++;});
+    const jac=A.size&&B.size?inter/(A.size+B.size-inter):0,cover=A.size&&B.size?inter/Math.min(A.size,B.size):0;
+    if(jac>=0.5||(cover>=0.8&&inter>=2))return 'version';
+    if(it.brand&&norm(it.brand)===norm(o.brand)&&it.platform&&norm(it.platform)===norm(o.platform)&&catOf(it)===catOf(o))return 'similar';
+    return '';
+  }
+  const REL_TXT={same:'mismo producto, otra tienda',version:'otra versión u opción',similar:'parecido (misma marca y modelo)'};
+  let buyItem=null,buyCands=[],buySel=new Set();
+  function openBuy(it){
+    buyItem=it;buyCands=items.filter(o=>o!==it&&(o.status||'pending')==='pending').map(o=>({o,rel:relation(it,o)})).filter(x=>x.rel)
+      .sort((a,b)=>['same','version','similar'].indexOf(a.rel)-['same','version','similar'].indexOf(b.rel));
+    buySel=new Set(buyCands.filter(x=>x.rel!=='similar').map(x=>x.o.id));
+    if(!buyCands.length){finishBuy([]);return;}
+    $('#buyTitle').textContent=`Comprado: ${fullName(it)} en ${shopOf(it)} (${eur(calc(it).total)}). ¿Qué hago con lo relacionado?`;
+    drawBuy();$('#buyDlg').hidden=false;$('#buyDlg').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function drawBuy(){
+    $('#buyList').innerHTML=buyCands.map(({o,rel})=>`<label class="pick ${buySel.has(o.id)?'':'off'}"><input type="checkbox" data-bi="${o.id}" ${buySel.has(o.id)?'checked':''}>
+      ${(o.images||[]).length?imgTag(o.images[0]):'<span></span>'}
+      <span class="nm">${esc(fullName(o))}<div class="vr">${esc(shopOf(o))} · ${REL_TXT[rel]}</div></span><span class="pr">${isUnread(o)?'—':eur(calc(o).total)}</span></label>`).join('');
+    $('#buyAlt').textContent=buySel.size?`Guardar ${buySel.size} como alternativas`:'Guardar como alternativas';$('#buyAlt').disabled=!buySel.size;
+  }
+  $('#buyList').addEventListener('change',e=>{const c=e.target.closest('[data-bi]');if(!c)return;if(c.checked)buySel.add(c.dataset.bi);else buySel.delete(c.dataset.bi);drawBuy();});
+  async function finishBuy(altIds){
+    const it=buyItem;const now=new Date().toISOString();
+    for(const id of altIds){const o=items.find(x=>x.id===id);if(!o)continue;o.status='alt';o.altOf=it.id;o.altAt=now;await put('items',o);}
+    it.status='bought';it.boughtAt=now;it.paid=calc(it).total;await put('items',it);
+    $('#buyDlg').hidden=true;buyItem=null;render();
+    setStatus(`Comprado: ${fullName(it)} en ${shopOf(it)}.${altIds.length?` ${altIds.length} ${altIds.length===1?'alternativa guardada':'alternativas guardadas'} con la compra (en «Comprados»).`:''}`);
+  }
+  $('#buyAlt').addEventListener('click',()=>finishBuy([...buySel]));
+  $('#buyOnly').addEventListener('click',()=>finishBuy([]));
+  $('#buyCancel').addEventListener('click',()=>{$('#buyDlg').hidden=true;buyItem=null;});
+
+  $('#regroupBtn').addEventListener('click',()=>regroup(false));
+  // Agrupa sola, como mucho una vez al día y solo si hay productos nuevos desde la última vez.
+  async function autoRegroup(){
+    if(!cfg.key)return;const n=items.filter(i=>(i.status||'pending')==='pending'&&!isUnread(i)).length;if(n<2)return;
+    let last={};try{last=JSON.parse(localStorage.getItem('regroup')||'{}');}catch(e){}
+    if(last.n===items.length||(last.t&&Date.now()-last.t<20*3600e3))return;
+    await regroup(true);
+  }
+  async function regroup(silent){
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
-    const list=items.filter(i=>i.status!=='discarded'&&!isUnread(i));if(list.length<2)return;
-    const b=$('#regroupBtn');b.disabled=true;setStatus('Buscando productos iguales en distintas tiendas…','busy');
+    const list=items.filter(i=>i.status!=='discarded'&&i.status!=='alt'&&!isUnread(i));if(list.length<2)return;
+    const b=$('#regroupBtn');b.disabled=true;setStatus(silent?'Agrupando productos iguales de distintas tiendas…':'Buscando productos iguales en distintas tiendas…','busy');
     try{
       const data=list.map(i=>({id:i.id,nombre:i.product,variante:i.variant,marca:i.brand,ref_fabricante:i.mpn,ean:i.ean,tienda:shopOf(i),precio:calc(i).after}));
       const prompt=`Estas son ofertas de productos guardadas desde distintas tiendas online. Agrupa las que son EXACTAMENTE el mismo producto y la misma variante (mismo modelo, misma versión, mismo color/tamaño/capacidad si importa), aunque cada tienda lo escriba distinto. NO juntes versiones distintas (p. ej. Full vs Lite, cañón largo vs corto, pack de 2 vs 1). Si dudas, no las juntes.
@@ -1107,10 +1165,11 @@ Ofertas: ${JSON.stringify(data)}`;
       for(const g of d.groups||[]){const ids=(g.ids||[]).filter(id=>list.some(i=>i.id===id));if(!ids.length||!clean(g.name))continue;
         if(ids.length>1)joined++;
         for(const id of ids){const it=items.find(i=>i.id===id);if(it&&it.group!==clean(g.name)){it.group=clean(g.name);await put('items',it);changed++;}}}
-      render();setStatus(`Listo: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, cámbialo en Editar → «Comparar junto con».`);
-    }catch(e){setStatus('No se pudo agrupar: '+(e.message||e),'err');}
+      try{localStorage.setItem('regroup',JSON.stringify({t:Date.now(),n:items.length}));}catch(e){}
+      render();setStatus(`Agrupados: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, usa «Separar» o «Seleccionar» → «Unir».`);
+    }catch(e){if(!silent)setStatus('No se pudo agrupar: '+(e.message||e),'err');else setStatus('');}
     finally{b.disabled=false;}
-  });
+  }
 
   // ---------- volver a leer productos sin datos ----------
   function applyRead(it,d){
@@ -1262,6 +1321,7 @@ Productos: ${JSON.stringify(list)}`;
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     await drainInbox();
     await scanPhotos();render();
+    autoRegroup();
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
   })();
 })();
