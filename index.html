@@ -142,6 +142,17 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 #showAll{background:var(--danger);border-color:var(--danger);color:#fff;font-size:.95rem;padding:9px 14px;white-space:nowrap}
 .fab{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:30;display:flex;align-items:center;gap:6px;padding:12px 16px;border-radius:999px;border:0;background:var(--accent);color:var(--accent-fg);font:700 .95rem var(--f-body);box-shadow:0 4px 14px rgba(0,0,0,.35);cursor:pointer}
 .wrap{padding-bottom:96px}
+.selbar{position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--surface);border-top:2px solid var(--accent);padding:10px 16px calc(env(safe-area-inset-bottom,0px) + 10px);display:flex;flex-wrap:wrap;gap:8px;align-items:center;box-shadow:0 -4px 14px rgba(0,0,0,.25)}
+.selbar b{margin-right:auto}
+.selbox{grid-column:1/-1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:.88rem;cursor:pointer}
+.selbox input{width:22px;height:22px;accent-color:var(--accent)}
+.offer.sel{outline:3px solid var(--accent);outline-offset:-3px}
+.cmpwrap{overflow-x:auto;background:var(--surface);border:2px solid var(--accent);border-radius:12px}
+.cmp{border-collapse:collapse;font-size:.84rem;min-width:100%}
+.cmp th,.cmp td{border-bottom:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;min-width:140px}
+.cmp th{position:sticky;left:0;background:var(--surface);min-width:90px;color:var(--muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em}
+.cmp img{width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
+.cmp .win{color:var(--accent);font-weight:700}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -234,9 +245,16 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <select id="fPlat" aria-label="Modelo o plataforma"></select>
     <select id="fTag" aria-label="Etiqueta"></select>
     <select id="fShop" aria-label="Tienda"></select>
+    <select id="fState" aria-label="Estado" style="grid-column:1/-1">
+      <option value="">Todos los estados</option>
+      <option value="nophoto">Sin foto del producto</option>
+      <option value="missing">Faltan datos (precio, envío…)</option>
+      <option value="out">Agotados</option>
+      <option value="single">Solo en una tienda</option>
+    </select>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
-    <div class="toolbar clr"><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
+    <div class="toolbar clr"><button class="btn small" id="selModeBtn" type="button">☑ Seleccionar para comparar o unir</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
   </div>
 
   <div class="status" id="activeFlt" hidden><span id="activeFltTxt"></span><button class="btn small" id="showAll" type="button">✕ Quitar filtros</button></div>
@@ -252,6 +270,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 </div>
 
 <button class="fab" id="homeBtn" type="button" aria-label="Inicio: ver todo">⌂ Inicio</button>
+<div class="selbar" id="selBar" hidden><b id="selCount">0 seleccionados</b>
+  <button class="btn small" id="selCompare" type="button">Comparar</button>
+  <button class="btn small primary" id="selJoin" type="button">Unir como el mismo</button>
+  <button class="btn small" id="selCancel" type="button">Cancelar</button></div>
 
 <div class="lb" id="lb" hidden role="dialog">
   <button class="close" id="lbClose" type="button">Cerrar</button>
@@ -318,11 +340,20 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
   const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
-  const flt={q:'',cat:'',plat:'',shop:'',tag:''}; // cada vez que abres la app empieza sin filtros
+  const flt={q:'',cat:'',plat:'',shop:'',tag:'',state:''}; // cada vez que abres la app empieza sin filtros
   const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
   function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);localStorage.setItem('ftag',flt.tag);}catch(e){}}
+  function stateOk(it){
+    if(!flt.state)return true;
+    if(flt.state==='nophoto')return !(it.images||[]).length||noPhoto.has(it.id);
+    if(flt.state==='missing')return isUnread(it)||!!it.incomplete||!(num(it.shipping)>0||num(it.freeFrom)>0);
+    if(flt.state==='out')return /agotad|sin stock|no disponible/.test(norm(it.availability));
+    if(flt.state==='single'){const k=key(groupName(it));return items.filter(o=>(o.status||'pending')==='pending'&&key(groupName(o))===k).length<2;}
+    return true;
+  }
   function matches(it){
+    if(!stateOk(it))return false;
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
     if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p||norm(c)==='todos'))return false;}
@@ -344,7 +375,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
     $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
-    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop].filter(Boolean);
+    $('#fState').value=flt.state;
+    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent].filter(Boolean);
     $('#activeFlt').hidden=!on.length;
     $('#activeFltTxt').textContent=on.length?'Filtrando: '+on.join(' · '):'';
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
@@ -358,7 +390,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#fPlat').addEventListener('change',e=>{flt.plat=e.target.value;saveFlt();render();});
   $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
   $('#fTag').addEventListener('change',e=>{flt.tag=e.target.value;saveFlt();render();});
-  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag='';$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
+  $('#fState').addEventListener('change',e=>{flt.state=e.target.value;render();});
+  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
   $('#showAll').addEventListener('click',goHome);
   $('#homeBtn').addEventListener('click',goHome);
   document.querySelector('h1').addEventListener('click',goHome);document.querySelector('h1').style.cursor='pointer';
@@ -382,6 +415,48 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     return m?groupName(m):fullName(doc);
   }
 
+  // ---------- seleccionar para comparar o unir ----------
+  let selMode=false,cmpOpen=false;const sel=new Set();
+  function drawSelBar(){
+    $('#selBar').hidden=!selMode;$('#homeBtn').hidden=selMode;
+    $('#selCount').textContent=`${sel.size} ${sel.size===1?'seleccionado':'seleccionados'}`;
+    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;
+    $('#selModeBtn').textContent=selMode?'☑ Salir de seleccionar':'☑ Seleccionar para comparar o unir';
+  }
+  function compareTable(){
+    const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);if(list.length<2)return '';
+    const minP=Math.min(...list.map(i=>calc(i).after)),minT=Math.min(...list.map(i=>calc(i).total));
+    const row=(h,f)=>`<tr><th>${h}</th>${list.map(i=>`<td>${f(i)}</td>`).join('')}</tr>`;
+    return `<div class="cmpwrap"><table class="cmp">
+      ${row('',i=>(i.images||[]).length?imgTag(i.images[0],`data-lb="${i.id}" data-i="0"`):'')}
+      ${row('Producto',i=>`<b>${esc(i.product)}</b>${i.variant?`<br><span class="chip var">${esc(i.variant)}</span>`:''}`)}
+      ${row('Tienda',i=>safeUrl(i.url)?`<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(shopOf(i))}</a>`:esc(shopOf(i)))}
+      ${row('Precio',i=>`<span class="${calc(i).after<=minP+0.001?'win':''}">${eur(calc(i).after)}</span>`)}
+      ${row('Portes',i=>{const c=calc(i);return c.ship>0?eur(c.ship):(c.shipWaived||num(i.freeFrom)>0?'gratis':'sin dato');})}
+      ${row('Total',i=>`<span class="${calc(i).total<=minT+0.001?'win':''}">${eur(calc(i).total)}</span>`)}
+      ${row('Stock',i=>availChip(i)||'—')}
+      ${row('Marca',i=>esc(i.brand||'—'))}
+      ${row('Refs',i=>[i.sku&&'Ref. '+esc(i.sku),i.mpn&&'Fab. '+esc(i.mpn),i.ean&&'EAN '+esc(i.ean)].filter(Boolean).join('<br>')||'—')}
+      ${row('Categoría',i=>esc(catOf(i))+(i.platform?'<br>'+esc(i.platform):''))}
+      ${row('Comparado como',i=>esc(groupName(i)))}
+      ${row('Descripción',i=>`<div style="max-height:160px;overflow:auto;white-space:pre-line">${esc(i.description||'—')}</div>`)}
+    </table></div>`;
+  }
+  $('#selModeBtn').addEventListener('click',()=>{selMode=!selMode;if(!selMode){sel.clear();cmpOpen=false;}render();});
+  $('#selCancel').addEventListener('click',()=>{selMode=false;sel.clear();cmpOpen=false;render();});
+  $('#selCompare').addEventListener('click',()=>{cmpOpen=true;render();window.scrollTo({top:$('#view').offsetTop-80,behavior:'smooth'});});
+  $('#selJoin').addEventListener('click',async()=>{
+    const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);if(list.length<2)return;
+    // Nombre del grupo: el que ya tenga más ofertas, o el del primero.
+    const counts=new Map();list.forEach(i=>{const g=groupName(i);counts.set(g,(counts.get(g)||0)+1);});
+    const name=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+    const olds=new Set(list.map(i=>key(groupName(i))));
+    for(const it of items)if(olds.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);}
+    selMode=false;sel.clear();cmpOpen=false;render();setStatus(`Unidos como «${name}». Puedes cambiar el nombre en Editar → «Comparar junto con».`);
+  });
+  document.addEventListener('change',e=>{const c=e.target.closest('input[data-sel]');if(!c)return;if(c.checked)sel.add(c.dataset.sel);else sel.delete(c.dataset.sel);
+    c.closest('.offer')&&c.closest('.offer').classList.toggle('sel',c.checked);drawSelBar();if(cmpOpen)render();});
+
   // ---------- render ----------
   function render(){
     const pend=groups('pending');
@@ -392,7 +467,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
-    v.innerHTML=tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():renderDiscarded();
+    drawSelBar();
+    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():renderDiscarded());
+    const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
   function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
@@ -413,7 +490,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const discTxt=c.disc>0?`−${eur(c.disc)}${it.discountType==='pct'?` (${num(it.discount)}%)`:''}`:'sin dto.';
     const shipTxt=c.shipWaived?'envío gratis':(c.ship>0?`+${eur(c.ship)} envío`:'envío 0');
     const gal=(it.images||[]).length?`<div class="gallery">${it.images.map((b,i)=>imgTag(b,`data-lb="${it.id}" data-i="${i}"`)).join('')}</div>`:'';
-    return `<div class="offer ${best?'best':''}">
+    return `<div class="offer ${best?'best':''} ${sel.has(it.id)?'sel':''}">
+      ${selMode?`<label class="selbox"><input type="checkbox" data-sel="${it.id}" ${sel.has(it.id)?'checked':''}> Seleccionar</label>`:''}
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
         ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Mejor precio</span>':''}${flags.lowTotal?'<span class="chip">Mejor con portes</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
       <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||num(it.shipping)===0&&num(it.freeFrom)>0?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
@@ -427,7 +505,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histHtml(it)}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -775,6 +853,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
       armed=null;await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
+    if(act==='split'){it.group=fullName(it)+' · '+shopOf(it);await put('items',it);render();setStatus(`Separado: ${fullName(it)} (${shopOf(it)}) ya no se compara con las demás.`);return;}
     if(act==='check'){b.disabled=true;b.textContent='Comprobando…';const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
     if(act==='rebuy'){
       const copy=JSON.parse(JSON.stringify({...it,images:[]}));copy.images=it.images||[];
