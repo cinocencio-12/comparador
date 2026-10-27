@@ -153,6 +153,12 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .cmp th{position:sticky;left:0;background:var(--surface);min-width:90px;color:var(--muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.05em}
 .cmp img{width:120px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:#fff}
 .cmp .win{color:var(--accent);font-weight:700}
+.imgsearch{grid-column:1/-1;border:2px solid var(--accent);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.imggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px}
+.imggrid button{position:relative;padding:0;border:2px solid transparent;border-radius:8px;overflow:hidden;background:#fff;aspect-ratio:1;cursor:pointer}
+.imggrid button img{width:100%;height:100%;object-fit:contain;display:block}
+.imggrid button.on{border-color:var(--accent)}
+.imggrid button.on::after{content:"✓";position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-weight:700;display:flex;align-items:center;justify-content:center}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -209,6 +215,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
   <form class="add" id="form" hidden autocomplete="off">
     <h2 id="formTitle">Nuevo</h2>
+    <div class="f c6"><label for="fCopy">Copiar datos desde otro producto (nombre, refs, descripción, fotos…)</label><input id="fCopy" list="copyList" placeholder="Escribe para buscar y elige…" autocomplete="off"><datalist id="copyList"></datalist><span class="hint" id="copyHint"></span></div>
     <div class="f c6"><label for="fUrl">Enlace de la tienda</label><input id="fUrl" type="url" inputmode="url" placeholder="https://…"></div>
     <div class="actions full"><button class="btn small" type="button" id="readWeb">Leer datos y fotos de la web</button><button class="btn small" type="button" id="readShots">Leer de las capturas</button><span class="hint" id="readHint"></span></div>
     <div class="f c6"><label for="fProduct">Producto</label><input id="fProduct" required></div>
@@ -231,6 +238,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
     <div class="f c6"><label for="fNotes">Notas</label><input id="fNotes"></div>
     <div class="f c6"><label>Imágenes (la primera es la principal)</label>
+      <div class="actions" style="margin-bottom:6px"><button class="btn small primary" type="button" id="webImgs">Buscar fotos en la web</button><button class="btn small" type="button" id="gImgs">Google Imágenes</button><button class="btn small" type="button" id="pasteImg">Pegar imagen o enlace</button></div>
+      <div class="imgsearch" id="imgSearch" hidden><span class="hint" id="imgSearchHint"></span><div class="imggrid" id="imgGrid"></div>
+        <div class="actions"><button class="btn small primary" type="button" id="imgAdd">Añadir seleccionadas</button><button class="btn small" type="button" id="imgClose">Cerrar</button></div></div>
       <div class="imgedit" id="imgEdit"><label class="addimg" for="fImgs">+ Fotos</label><input id="fImgs" type="file" accept="image/*" multiple hidden></div>
     </div>
     <div class="actions full">
@@ -509,7 +519,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histHtml(it)}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -854,9 +864,68 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
   }
+  // ---------- copiar datos de otro producto ----------
+  const COPY_KEYS=['product','variant','brand','mpn','ean','category','platform','compat','tags','description'];
+  const copyLabel=i=>`${fullName(i)} · ${shopOf(i)}`;
+  function fillCopyList(){$('#copyList').innerHTML=items.filter(i=>i.id!==editingId&&!isUnread(i)).map(i=>`<option value="${esc(copyLabel(i))}">`).join('');}
+  function copyFrom(src){
+    COPY_KEYS.forEach(k=>{const id={product:'fProduct',variant:'fVariant',brand:'fBrand',mpn:'fMpn',ean:'fEan',category:'fCategory',platform:'fPlatform',compat:'fCompat',tags:'fTags',description:'fDesc'}[k];F(id).value=Array.isArray(src[k])?src[k].join(', '):(src[k]||'');});
+    F('fGroup').value=groupName(src);
+    const add=(src.images||[]).filter(v=>!formImgs.includes(v));formImgs=[...formImgs,...add];renderImgEdit();drawAllChips();
+    $('#copyHint').textContent=`Copiado de ${copyLabel(src)}. Rellena tienda, enlace, precio, portes y código.`;
+  }
+  F('fCopy').addEventListener('change',e=>{const v=e.target.value;const src=items.find(i=>copyLabel(i)===v);if(src){copyFrom(src);e.target.value='';}});
+
+  // ---------- buscar fotos ----------
+  const imgQuery=()=>{const b=clean(F('fBrand').value),p=clean(F('fProduct').value),v=clean(F('fVariant').value);return [b&&!norm(p).includes(norm(b))?b:'',p,v].filter(Boolean).join(' ');};
+  $('#gImgs').addEventListener('click',()=>{const q=imgQuery();if(!q){$('#readHint').textContent='Escribe antes el nombre del producto.';return;}
+    const a=document.createElement('a');a.href='https://www.google.com/search?tbm=isch&q='+encodeURIComponent(q);a.target='_blank';a.rel='noopener';a.click();
+    setStatus('En Google Imágenes: mantén pulsada la foto → «Copiar imagen» (o «Copiar dirección de imagen»), vuelve aquí y pulsa «Pegar imagen o enlace».');});
+  $('#pasteImg').addEventListener('click',async()=>{
+    try{
+      if(navigator.clipboard&&navigator.clipboard.read){const its=await navigator.clipboard.read();
+        for(const ci of its){const t=ci.types.find(x=>x.startsWith('image/'));if(t){formImgs.push(await shrink(await ci.getType(t)));renderImgEdit();setStatus('Imagen añadida.');return;}
+          if(ci.types.includes('text/plain')){const txt=await (await ci.getType('text/plain')).text();const u=(txt.match(/https?:\/\/\S+/)||[''])[0];if(u){formImgs.push(await grabImage(u));renderImgEdit();setStatus('Imagen añadida desde el enlace.');return;}}}}
+      const txt=navigator.clipboard&&navigator.clipboard.readText?await navigator.clipboard.readText():'';const u=(txt.match(/https?:\/\/\S+/)||[''])[0];
+      if(u){formImgs.push(await grabImage(u));renderImgEdit();setStatus('Imagen añadida desde el enlace.');return;}
+      setStatus('No hay ninguna imagen ni enlace copiado.','err');
+    }catch(e){setStatus('No se pudo leer el portapapeles. Permite el acceso o mantén pulsado en la descripción y elige «Pegar».','err');}
+  });
+  // Pegar con el menú del sistema en cualquier campo del formulario también añade la imagen.
+  $('#form').addEventListener('paste',async e=>{const fs=[...(e.clipboardData?.items||[])].filter(i=>i.kind==='file'&&i.type.startsWith('image/')).map(i=>i.getAsFile());
+    if(fs.length){e.preventDefault();for(const f of fs)formImgs.push(await shrink(f));renderImgEdit();setStatus('Imagen añadida.');}});
+  let foundImgs=[],pickedImgs=new Set();
+  function junkImg(u){return /logo|icon|favicon|sprite|banner|footer|header|payment|paypal|visa|mastercard|card_|badge|flag|avatar|placeholder|loading|spinner|social|facebook|twitter|instagram|whatsapp|youtube|pixel|tracking|\/x(40|50|60|80|100|140)\.|_(40|50|60|80|100)x|\.svg/i.test(u);}
+  $('#webImgs').addEventListener('click',async()=>{
+    const q=imgQuery();if(!q){$('#readHint').textContent='Escribe antes el nombre del producto.';return;}
+    if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    const b=$('#webImgs');b.disabled=true;$('#imgSearch').hidden=false;$('#imgGrid').innerHTML='';$('#imgSearchHint').textContent=`Buscando fotos de «${q}»… (tarda unos segundos)`;
+    try{
+      const prompt=`Busca en la web fotos del producto «${q}». Usa web_search para encontrar su página en la web del fabricante y en 1-2 tiendas, y ábrelas con web_fetch. Responde SOLO JSON {"images":[url absoluta de cada foto del producto]} con hasta 15 fotos del producto (galería, en buena resolución). Las fotos aparecen en el contenido como ![...](url) o como URLs que acaban en .jpg/.png/.webp. Nada de logos, iconos ni otros productos.`;
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true','anthropic-beta':'web-fetch-2025-09-10'},
+        body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,tools:[{type:'web_search_20250305',name:'web_search',max_uses:2},{type:'web_fetch_20250910',name:'web_fetch',max_uses:3}],messages:[{role:'user',content:prompt}]})});
+      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error((j.error&&j.error.message)||('error '+r.status));
+      const txt=(j.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('\n');const d=parseJSON(txt)||{};
+      // Además de lo que diga Claude, recoge todas las fotos que aparecen en las páginas abiertas.
+      const raw=JSON.stringify((j.content||[]).filter(c=>c.type==='web_fetch_tool_result'));
+      const fromPages=(raw.match(/https?:(?:\\\/|\/){2}[^\s"')\\<>]+?\.(?:jpe?g|png|webp)(?:\?[^\s"')\\<>]*)?/gi)||[]).map(u=>u.replace(/\\\//g,'/').replace(/&amp;/g,'&'));
+      const all=[...(Array.isArray(d.images)?d.images:[]).map(x=>typeof x==='string'?x:x&&x.url),...fromPages].filter(u=>/^https?:\/\//.test(u||'')&&!junkImg(u));
+      foundImgs=[...new Set(all)].slice(0,30);pickedImgs=new Set();
+      if(!foundImgs.length){$('#imgSearchHint').textContent='No he encontrado fotos. Prueba con «Google Imágenes».';return;}
+      $('#imgSearchHint').textContent=`${foundImgs.length} fotos encontradas. Toca las que quieras y pulsa «Añadir seleccionadas».`;
+      $('#imgGrid').innerHTML=foundImgs.map((u,i)=>`<button type="button" data-pi="${i}"><img src="${esc(u)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.parentNode.remove()"></button>`).join('');
+    }catch(e){$('#imgSearchHint').textContent='No se pudo buscar: '+(e.message||e);}
+    finally{b.disabled=false;}
+  });
+  $('#imgGrid').addEventListener('click',e=>{const t=e.target.closest('[data-pi]');if(!t)return;const i=+t.dataset.pi;if(pickedImgs.has(i))pickedImgs.delete(i);else pickedImgs.add(i);t.classList.toggle('on',pickedImgs.has(i));$('#imgAdd').textContent=pickedImgs.size?`Añadir ${pickedImgs.size}`:'Añadir seleccionadas';});
+  $('#imgAdd').addEventListener('click',async()=>{if(!pickedImgs.size)return;const b=$('#imgAdd');b.disabled=true;b.textContent='Guardando…';
+    const got=await Promise.all([...pickedImgs].map(i=>grabImage(foundImgs[i])));formImgs=[...formImgs,...got];renderImgEdit();
+    b.disabled=false;$('#imgSearch').hidden=true;setStatus(`${got.length} ${got.length===1?'foto añadida':'fotos añadidas'}. Pulsa Guardar.`);});
+  $('#imgClose').addEventListener('click',()=>{$('#imgSearch').hidden=true;});
+
   function openForm(it){
     editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
-    $('#form').reset();fillForm(it||{});formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';
+    $('#form').reset();fillForm(it||{});fillCopyList();$('#copyHint').textContent='';$('#imgSearch').hidden=true;formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';
     $('#form').hidden=false;$('#form').scrollIntoView({behavior:'smooth',block:'start'});
   }
   function closeForm(){$('#form').hidden=true;editingId=null;formImgs=[];renderImgEdit();}
@@ -896,6 +965,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const it=items.find(i=>i.id===b.dataset.id);if(!it)return;
     const act=b.dataset.act;
     if(act==='edit')return openForm(it);
+    if(act==='dup'){openForm(null);copyFrom(it);F('fStore').focus();return;}
     if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
     if(act==='del'){
       if(armed!==b){if(armed){armed.classList.remove('armed');armed.textContent='Borrar';}armed=b;b.classList.add('armed');b.textContent='¿Seguro? Pulsa otra vez';clearTimeout(armTimer);armTimer=setTimeout(()=>{b.classList.remove('armed');b.textContent='Borrar';armed=null;},4000);return;}
