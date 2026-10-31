@@ -247,6 +247,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
         <option value="claude-haiku-4-5-20251001">Haiku 4.5 (rápido y barato)</option>
         <option value="claude-sonnet-5-5">Sonnet 5.5 (más preciso con variantes)</option>
       </select></div>
+    <div class="f c2"><label for="impVat">IVA importación %</label><input id="impVat" inputmode="decimal"></div>
+    <div class="f c2"><label for="impFee">Gestión aduana €</label><input id="impFee" inputmode="decimal"></div>
+    <div class="f c2"><label for="impBank">Comisión banco %</label><input id="impBank" inputmode="decimal"></div>
+    <p class="hint full" style="margin:0">Se suman al total de las tiendas de fuera de la UE (la comisión del banco solo si se paga en otra moneda). Son estimaciones.</p>
     <div class="actions full">
       <button class="btn primary" id="saveSettings" type="button">Guardar</button>
       <button class="btn" id="curFromSettings" type="button">Revisar monedas</button>
@@ -277,6 +281,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c3"><label for="fPrice">Precio</label><div class="disc"><input id="fPrice" inputmode="decimal" required><select id="fCur" aria-label="Moneda" style="width:96px"></select></div><span class="hint" id="curPrev"></span></div>
     <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
+    <label class="selbox" style="grid-column:1/-1"><input type="checkbox" id="fOutEU"> Tienda fuera de la UE (sumar IVA de importación, aduana y banco estimados)</label>
     <div class="f c3"><label for="fShip">Envío</label><input id="fShip" inputmode="decimal" placeholder="0"></div>
     <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
     <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
@@ -399,7 +404,24 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   }
 
   // ---------- cálculo y agrupación ----------
-  function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=num(it.freeFrom);const ship=(free>0&&after>=free)?0:num(it.shipping);return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,total:after+ship};}
+  // ---------- importación desde fuera de la UE ----------
+  const EU=new Set(['ES','PT','FR','DE','IT','NL','BE','LU','IE','AT','PL','CZ','SK','HU','SI','HR','RO','BG','GR','CY','MT','DK','SE','FI','EE','LV','LT']);
+  const EU_CUR=new Set(['EUR','SEK','DKK','PLN','CZK','HUF','RON','BGN']);
+  function impCfg(){const g=(k,d)=>{try{const v=localStorage.getItem(k);return v===null||v===''?d:num(v);}catch(e){return d;}};
+    return{vat:g('impVat',21),fee:g('impFee',10),bank:g('impBank',2)};}
+  // ¿Se envía desde fuera de la UE? Lo marcado a mano manda; si no, se deduce de país, moneda o dominio.
+  function outsideEU(it){
+    if(typeof it.outsideEU==='boolean')return it.outsideEU;
+    const c=clean(it.country).toUpperCase();if(c)return !EU.has(c);
+    const cur=it.orig&&it.orig.currency;if(cur&&!EU_CUR.has(cur))return true;
+    let h='';try{h=new URL(it.url).hostname;}catch(e){}
+    return /\.(tw|jp|hk|cn|us|uk|ch|no|au|ca|kr|sg|com\.tw|co\.jp|co\.uk|com\.hk|com\.cn|com\.au)$/.test(h);
+  }
+  function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=num(it.freeFrom);const ship=(free>0&&after>=free)?0:num(it.shipping);
+    const base=after+ship;let imp=0,impVat=0,impFee=0,impBank=0;const out=outsideEU(it);
+    if(out&&after>0){const c=impCfg();impVat=base*c.vat/100;impFee=c.fee;impBank=it.orig&&it.orig.currency&&it.orig.currency!=='EUR'?base*c.bank/100:0;imp=impVat+impFee+impBank;}
+    return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,base,imp,impVat,impFee,impBank,out,total:base+imp};}
+  const impLine=(c)=>c.out&&c.imp?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">⚠ Fuera de la UE · posible importación (estimado): +${eur(c.impVat)} IVA${c.impFee?` + ${eur(c.impFee)} aduana`:''}${c.impBank?` + ${eur(c.impBank)} banco`:''} = <b>${eur(c.imp)}</b> · ya incluido en el total</div>`:'';
   const fullName=it=>[clean(it.product),clean(it.variant)].filter(Boolean).join(' · ');
   const groupName=it=>clean(it.group)||fullName(it)||'Sin nombre';
   const key=s=>clean(s).toLowerCase().replace(/\s+/g,' ');
@@ -585,7 +607,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     return `<div class="offer ${best?'best':''} ${sel.has(it.id)?'sel':''}">
       ${selMode?`<label class="selbox"><input type="checkbox" data-sel="${it.id}" ${sel.has(it.id)?'checked':''}> Seleccionar</label>`:''}
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
-        ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Mejor precio</span>':''}${flags.lowTotal?'<span class="chip">Mejor con portes</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
+        ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Mejor precio</span>':''}${flags.lowTotal?'<span class="chip">Mejor total</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
       <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||num(it.shipping)===0&&num(it.freeFrom)>0?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
       ${missBox(it)}
@@ -593,7 +615,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
       ${it.compat?`<div class="compat">Aplica a: ${compatList(it).map(esc).join(', ')}</div>`:''}
       ${tagList(it).length?`<div class="store">${tagList(it).map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</div>`:''}
-      <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span></div>
+      <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span>${c.imp?`<span>+${eur(c.imp)} importación</span>`:''}</div>
+      ${impLine(c)}
       ${it.orig?`<div class="compat">Precio original: <b>${fmtCur(it.orig.price,it.orig.currency)}</b>${it.orig.shipping?` + ${fmtCur(it.orig.shipping,it.orig.currency)} envío`:''} · cambio 1 € = ${num(it.orig.rate).toLocaleString('es-ES',{maximumFractionDigits:3})} ${it.orig.currency}</div>`:''}
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
@@ -608,7 +631,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
       const valid=g.offers.filter(o=>!isUnread(o));const single=valid.length<2;
       const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null,lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):null;
-      const line=lp?`<div class="bestline"><span>Mejor precio: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}</span><span>Mejor con portes: <b>${eur(calc(lt).total)}</b> en ${esc(shopOf(lt))}</span></div>`:'';
+      const line=lp?`<div class="bestline"><span>Mejor precio: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}</span><span>Mejor total (portes e importación): <b>${eur(calc(lt).total)}</b> en ${esc(shopOf(lt))}</span></div>`:'';
       return `${head}<article class="product"><header><h3>${esc(g.name)}</h3><span class="hint">${g.offers.length} ${g.offers.length===1?'tienda':'tiendas'}</span></header>${line}${g.offers.map(o=>offerRow(o,false,calc(lt||o).total,names.size>1,{single,lowPrice:!single&&o===lp,lowTotal:!single&&o===lt})).join('')}</article>`;}).join('')}</div>`;
   }
   // Pendientes agrupados por tienda: lo que pedirías en cada web, con un solo envío por pedido.
@@ -622,7 +645,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       const sub=sh.list.reduce((a,i)=>a+calc(i).after,0);
       const ship=Math.max(0,...sh.list.map(i=>num(i.shipping)));const free=Math.max(0,...sh.list.map(i=>num(i.freeFrom)));
       const shipNow=free>0&&sub>=free?0:ship;
-      return{...sh,sub,ship,free,shipNow,total:sub+shipNow};
+      const out=sh.list.some(outsideEU);let imp=0,impTxt='';
+      if(out){const c=impCfg();const base=sub+shipNow;const fx=sh.list.some(i=>i.orig&&i.orig.currency&&i.orig.currency!=='EUR');
+        const v=base*c.vat/100,b=fx?base*c.bank/100:0;imp=v+c.fee+b;impTxt=`⚠ Fuera de la UE · importación estimada: ${eur(v)} IVA + ${eur(c.fee)} aduana${b?` + ${eur(b)} banco`:''} = ${eur(imp)}`;}
+      return{...sh,sub,ship,free,shipNow,imp,impTxt,total:sub+shipNow+imp};
     }).sort((a,b)=>b.list.length-a.list.length||a.name.localeCompare(b.name,'es'));
     return `<div class="list">${shops.map(sh=>{
       const url=sh.list.map(i=>safeUrl(i.url)).find(Boolean);
@@ -634,7 +660,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
             ${missingList(i).length?`<div class="meta" style="color:var(--danger);font-weight:700">Falta: ${missingList(i).map(x=>x[0]).join(', ')}</div>`:''}
             <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${(cnt.get(key(groupName(i)))||0)<2?' · solo guardado en esta tienda':isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda ('+eur(best.get(key(groupName(i))))+')'}${/agotad/.test(norm(i.availability))?' · <b style="color:var(--danger)">agotado</b>':''}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
             <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small" data-act="discard" data-id="${i.id}">Descartar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
-        <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
+        <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${sh.imp?` · importación ${eur(sh.imp)}`:''}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
+        ${sh.impTxt?`<div style="padding:0 14px 12px"><div class="notes" style="color:var(--fg)"><b>${esc(sh.impTxt)}</b> · incluido en el total.</div></div>`:''}
         ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
   }
   function renderBuy(gs){
@@ -672,8 +699,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   // ---------- ajustes ----------
   const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
   const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')},shotModel:'claude-sonnet-5-5'};
-  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;});
-  $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);$('#settings').hidden=true;setStatus('Ajustes guardados.');});
+  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
+  $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);ls.set('impVat',String(num($('#impVat').value)));ls.set('impFee',String(num($('#impFee').value)));ls.set('impBank',String(num($('#impBank').value)));$('#settings').hidden=true;render();setStatus('Ajustes guardados.');});
 
   // ---------- Claude ----------
   const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con esta forma: {"products":[ ...un objeto por producto... ]}
@@ -689,6 +716,7 @@ Cada objeto de producto lleva estas claves:
  "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios); [] si no lo dice,
  "store": nombre de la tienda,
  "url": URL de la página del producto,
+ "country": código ISO de 2 letras del país desde el que vende/envía la tienda (ES, PT, DE, TW, JP, HK, CN, US, GB…); "" si no se sabe,
  "currency": código ISO 4217 de la moneda en que están los precios (EUR, USD, GBP, JPY, TWD, HKD, CNY, AUD, CAD…). Fíjate en el símbolo y en el país de la tienda: "NT$" = TWD, "¥" o "円" = JPY (CNY si la tienda es china), "£" = GBP, "HK$" = HKD, "$" en tienda de EE. UU. = USD. Si la tienda tiene selector de moneda, usa la que esté seleccionada en la página. Si dudas entre USD y HKD o entre JPY y CNY, decide por el país y el dominio de la tienda. NO conviertas: devuelve los importes tal como aparecen y su moneda,
  "price": precio actual de venta con IVA antes de cupones, número, en la moneda de "currency",
  "discount": SOLO un descuento extra que aún no está aplicado en "price" (un cupón o código, o un % extra que se aplica en la cesta). Si el precio ya aparece rebajado (precio tachado), eso NO es descuento: pon 0,
@@ -827,7 +855,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
-      availability:clean(d.availability),currency:normCur(d.currency||'EUR'),
+      availability:clean(d.availability),currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
       category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
@@ -945,6 +973,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
     // Si se leyó en otra moneda, el formulario muestra los importes originales.
+    F('fOutEU').checked=it.product?outsideEU(it):false;
     const o=it.orig;F('fCur').innerHTML=curOpts(o?o.currency:'EUR');
     const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
     F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();
@@ -1055,7 +1084,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     e.preventDefault();
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
-    convertItem(d,F('fCur').value);
+    convertItem(d,F('fCur').value);d.outsideEU=F('fOutEU').checked;
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
     if(!d.product)return;
     if(!d.group)d.group=fullName(d);
