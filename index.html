@@ -164,6 +164,12 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .rr td:first-child{width:30px}.rr input{width:22px;height:22px;accent-color:var(--accent)}
 .rr .k{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);display:block}
 .rr .old{color:var(--muted);text-decoration:line-through}.rr .new{color:var(--accent);font-weight:600}
+.rr img,.rr .pic,.cmp .pic{width:48px!important;height:48px!important;object-fit:cover;border-radius:6px;border:1px solid var(--line);background:#fff}
+.rr td:first-child img{max-width:48px}
+.quick{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.quick button{font:600 .85rem var(--f-body);padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.quick button.on{background:var(--danger);border-color:var(--danger);color:#fff}
+.quick button b{font-family:var(--f-mono);margin-left:4px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -285,6 +291,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   </form>
 
   <div class="filters" id="filters">
+    <div class="quick" id="quick">
+      <button type="button" data-qs="missing">Sin datos<b id="qn-missing"></b></button>
+      <button type="button" data-qs="nocat">Sin clasificar<b id="qn-nocat"></b></button>
+      <button type="button" data-qs="nophoto">Sin imágenes<b id="qn-nophoto"></b></button>
+    </div>
     <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
     <select id="fCat" aria-label="Categoría"></select>
     <select id="fPlat" aria-label="Modelo o plataforma"></select>
@@ -294,6 +305,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <option value="">Todos los estados</option>
       <option value="nophoto">Sin foto del producto</option>
       <option value="missing">Faltan datos (precio, envío…)</option>
+      <option value="nocat">Sin clasificar (sin categoría)</option>
       <option value="out">Agotados</option>
       <option value="single">Solo en una tienda</option>
     </select>
@@ -405,6 +417,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     if(!flt.state)return true;
     if(flt.state==='nophoto')return !(it.images||[]).length||noPhoto.has(it.id);
     if(flt.state==='missing')return isUnread(it)||!!it.incomplete||!(num(it.shipping)>0||num(it.freeFrom)>0);
+    if(flt.state==='nocat')return !clean(it.category)||/^otros$/i.test(clean(it.category));
     if(flt.state==='out')return /agotad|sin stock|no disponible/.test(norm(it.availability));
     if(flt.state==='single'){const k=key(groupName(it));return items.filter(o=>(o.status||'pending')==='pending'&&key(groupName(o))===k).length<2;}
     return true;
@@ -436,6 +449,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
     $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
     $('#fState').value=flt.state;
+    {const pend=items.filter(i=>(i.status||'pending')==='pending');const keep=flt.state;
+      for(const k of ['missing','nocat','nophoto']){flt.state=k;const n=pend.filter(stateOk).length;$('#qn-'+k).textContent=n;}
+      flt.state=keep;document.querySelectorAll('#quick [data-qs]').forEach(b=>b.classList.toggle('on',b.dataset.qs===flt.state));}
     const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent].filter(Boolean);
     $('#activeFlt').hidden=!on.length;
     $('#activeFltTxt').textContent=on.length?'Filtrando: '+on.join(' · '):'';
@@ -451,6 +467,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
   $('#fTag').addEventListener('change',e=>{flt.tag=e.target.value;saveFlt();render();});
   $('#fState').addEventListener('change',e=>{flt.state=e.target.value;render();});
+  $('#quick').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;flt.state=flt.state===b.dataset.qs?'':b.dataset.qs;tab='compare';render();$('#view').scrollIntoView({behavior:'smooth',block:'start'});});
   function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
   $('#showAll').addEventListener('click',goHome);
   $('#homeBtn').addEventListener('click',goHome);
@@ -1129,7 +1146,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function drawCur(){
     $('#curTable').innerHTML=curRows.map((r,i)=>`<tr><td style="width:56px">${thumb(r.it)}</td><td><b>${esc(fullName(r.it))}</b><span class="k">${esc(shopOf(r.it))}${r.it.status==='bought'?' · comprado':''}</span>
       <div class="disc" style="margin-top:6px"><input data-cp="${i}" inputmode="decimal" value="${esc(numIn(r.price))}" style="font:400 .95rem var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);width:110px">
-      <select data-cc="${i}" style="width:auto;font:400 .9rem var(--f-body);padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)">${curOpts(r.cur)}</select></div>
+      <select data-cc="${i}" style="width:auto;max-width:170px;min-width:0;font:400 .9rem var(--f-body);padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)">${curOpts(r.cur)}</select></div>
       <span class="new" id="ce${i}">= ${eur(toEur(r.price,r.cur))}${r.ship?` + ${eur(toEur(r.ship,r.cur))} envío`:''}</span>${r.dirty?' <span class="chip warn">Sin corregir</span>':''}</td></tr>`).join('')||'<tr><td>No hay nada que revisar.</td></tr>';
   }
   $('#curTable').addEventListener('input',e=>{const t=e.target;const i=+(t.dataset.cp??t.dataset.cc);if(isNaN(i))return;const r=curRows[i];
