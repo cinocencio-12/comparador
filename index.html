@@ -178,6 +178,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 
   <div class="status" id="photoBar" hidden><span id="photoTxt"></span><button class="btn small primary" id="photoGo" type="button">Buscar fotos</button></div>
 
+  <div class="picker" id="curDlg" hidden>
+    <h2>Revisar monedas</h2>
+    <p class="hint" style="margin:0">Productos leídos en otra moneda o con importes sospechosos. Corrige el importe tal como sale en la web y su moneda; el precio en euros se recalcula. Elige EUR si ya estaba en euros.</p>
+    <div style="overflow-x:auto"><table class="rr" id="curTable"></table></div>
+    <div class="actions"><button class="btn primary" type="button" id="curSave">Guardar cambios</button><button class="btn" type="button" id="curAll">Mostrar todos los productos</button><button class="btn" type="button" id="curClose">Cerrar</button></div>
+  </div>
+
   <div class="picker" id="rrDlg" hidden>
     <h2 id="rrTitle"></h2>
     <p class="hint" id="rrHint" style="margin:0"></p>
@@ -232,6 +239,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       </select></div>
     <div class="actions full">
       <button class="btn primary" id="saveSettings" type="button">Guardar</button>
+      <button class="btn" id="curFromSettings" type="button">Revisar monedas</button>
       <button class="btn" id="exportBtn" type="button">Copia de seguridad</button>
       <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
@@ -256,11 +264,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
     <div class="f c2"><label for="fEan">EAN</label><input id="fEan" inputmode="numeric"></div>
     <div class="f c3"><label for="fStore">Tienda</label><input id="fStore"></div>
-    <div class="f c3"><label for="fPrice">Precio</label><div class="disc"><input id="fPrice" inputmode="decimal" required><select id="fCur" aria-label="Moneda" style="width:86px"></select></div></div>
+    <div class="f c3"><label for="fPrice">Precio</label><div class="disc"><input id="fPrice" inputmode="decimal" required><select id="fCur" aria-label="Moneda" style="width:96px"></select></div><span class="hint" id="curPrev"></span></div>
     <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
-    <div class="f c3"><label for="fShip">Envío €</label><input id="fShip" inputmode="decimal" placeholder="0"></div>
-    <div class="f c3"><label for="fFree">Envío gratis desde €</label><input id="fFree" inputmode="decimal"></div>
+    <div class="f c3"><label for="fShip">Envío</label><input id="fShip" inputmode="decimal" placeholder="0"></div>
+    <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
     <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
     <div class="f c6"><label for="fNotes">Notas</label><input id="fNotes"></div>
     <div class="f c6"><label>Imágenes (la primera es la principal)</label>
@@ -292,6 +300,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="fxFixBtn" type="button" hidden></button>
+    <button class="btn small clr" id="curRevBtn" type="button" hidden></button>
     <div class="toolbar clr"><button class="btn small" id="selModeBtn" type="button">☑ Seleccionar para comparar o unir</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div>
   </div>
 
@@ -322,15 +331,25 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 <script>
 (function(){
   const $=s=>document.querySelector(s);
-  const eur=n=>(Math.round(n*100)/100).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+  // Formato español siempre: punto para miles y coma para decimales (1.299,50).
+  function fmtNum(n,dec){n=Number(n)||0;const neg=n<0;n=Math.abs(n);const f=n.toFixed(dec);let [i,d]=f.split('.');
+    i=i.replace(/\B(?=(\d{3})+(?!\d))/g,'.');return (neg?'-':'')+i+(d?','+d:'');}
+  const eur=n=>fmtNum(Math.round((Number(n)||0)*100)/100,2)+' €';
+  // Lee importes escritos de cualquier forma: 1.299,50 · 1,299.50 · 9,800 (miles) · 15,6 · 15.60
   function num(v){
     if(typeof v==='number')return isFinite(v)?v:0;
     let s=String(v??'').replace(/[^\d.,-]/g,'');if(!s)return 0;
     const c=s.lastIndexOf(','),d=s.lastIndexOf('.');
     if(c>-1&&d>-1){s=c>d?s.replace(/\./g,'').replace(',','.'):s.replace(/,/g,'');}
-    else if(c>-1)s=s.replace(',','.');
+    else{const sep=c>-1?',':d>-1?'.':'';
+      if(sep){const parts=s.split(sep);const last=parts[parts.length-1];
+        // varios separadores iguales, o uno solo seguido de exactamente 3 cifras → separador de miles
+        if(parts.length>2||(last.length===3&&parts[0].length>=1&&parts[0]!=='0'))s=parts.join('');
+        else s=parts.join('.');}}
     const n=parseFloat(s);return isFinite(n)?n:0;
   }
+  // Para mostrar un importe dentro de un campo de texto, en formato español.
+  const numIn=v=>{const n=num(v);if(!n)return '';return Number.isInteger(n)?String(n):String(Math.round(n*100)/100).replace('.',',');};
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -411,6 +430,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#fShop').innerHTML=`<option value="">Todas las tiendas</option>`+[...shops.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.shop)?'selected':''}>${esc(x.name)} (${x.n} pendientes)</option>`).join('');
     const tags=new Map();items.forEach(i=>tagList(i).forEach(t=>{const k=norm(t);if(!tags.has(k))tags.set(k,{name:t,n:0});tags.get(k).n++;}));
     $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');
+    const crs=curSuspects();$('#curRevBtn').hidden=!crs.length;$('#curRevBtn').textContent=`Revisar monedas (${crs.length})`;
     const fxs=items.filter(i=>guessCur(i));$('#fxFixBtn').hidden=!fxs.length;
     $('#fxFixBtn').textContent=`Corregir moneda en ${fxs.length} ${fxs.length===1?'producto':'productos'} (${[...new Set(fxs.map(guessCur))].join(', ')} guardado como €)`;
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
@@ -635,7 +655,7 @@ Cada objeto de producto lleva estas claves:
  "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios); [] si no lo dice,
  "store": nombre de la tienda,
  "url": URL de la página del producto,
- "currency": código ISO 4217 de la moneda en que están los precios (EUR, USD, GBP, JPY, TWD, HKD, CNY, AUD, CAD…). Fíjate en el símbolo y en el país de la tienda: "NT$" = TWD, "¥" o "円" = JPY (CNY si la tienda es china), "£" = GBP, "HK$" = HKD, "$" en tienda de EE. UU. = USD. NO conviertas: devuelve los importes tal como aparecen y su moneda,
+ "currency": código ISO 4217 de la moneda en que están los precios (EUR, USD, GBP, JPY, TWD, HKD, CNY, AUD, CAD…). Fíjate en el símbolo y en el país de la tienda: "NT$" = TWD, "¥" o "円" = JPY (CNY si la tienda es china), "£" = GBP, "HK$" = HKD, "$" en tienda de EE. UU. = USD. Si la tienda tiene selector de moneda, usa la que esté seleccionada en la página. Si dudas entre USD y HKD o entre JPY y CNY, decide por el país y el dominio de la tienda. NO conviertas: devuelve los importes tal como aparecen y su moneda,
  "price": precio actual de venta con IVA antes de cupones, número, en la moneda de "currency",
  "discount": SOLO un descuento extra que aún no está aplicado en "price" (un cupón o código, o un % extra que se aplica en la cesta). Si el precio ya aparece rebajado (precio tachado), eso NO es descuento: pon 0,
  "discountType": "pct" o "eur",
@@ -736,7 +756,10 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
   const r2=n=>Math.round(n*100)/100;
   const toEur=(n,cur)=>!cur||cur==='EUR'||!FX[cur]?num(n):r2(num(n)/FX[cur]);
-  const fmtCur=(n,cur)=>num(n).toLocaleString('es-ES',{minimumFractionDigits:0,maximumFractionDigits:2})+' '+cur;
+  const NODEC=new Set(['JPY','KRW','TWD','CLP','HUF','ISK']);
+  const fmtCur=(n,cur)=>{n=num(n);return fmtNum(n,NODEC.has(cur)||Number.isInteger(n)?0:2)+' '+cur;};
+  const CUR_NAMES={EUR:'Euro €',USD:'Dólar EE. UU. $',GBP:'Libra £',JPY:'Yen japonés ¥',TWD:'Dólar Taiwán NT$',HKD:'Dólar Hong Kong HK$',CNY:'Yuan chino ¥',AUD:'Dólar australiano A$',CAD:'Dólar canadiense C$',CHF:'Franco suizo',SEK:'Corona sueca',NOK:'Corona noruega',DKK:'Corona danesa',PLN:'Zloty polaco',CZK:'Corona checa',KRW:'Won coreano ₩',SGD:'Dólar Singapur S$',MXN:'Peso mexicano'};
+  const curOpts=sel=>CURS.map(c=>`<option value="${c}" ${c===sel?'selected':''}>${c} · ${CUR_NAMES[c]||c}</option>`).join('');
   function normCur(c){c=clean(c).toUpperCase().replace(/[^A-Z$£¥€]/g,'');
     const m={'€':'EUR','$':'USD','US$':'USD','NT$':'TWD','NTD':'TWD','£':'GBP','¥':'JPY','YEN':'JPY','RMB':'CNY','HK$':'HKD','A$':'AUD','C$':'CAD'};
     return m[c]||(CURS.includes(c)||FX[c]?c:'EUR');}
@@ -887,9 +910,9 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
     // Si se leyó en otra moneda, el formulario muestra los importes originales.
-    F('fCur').innerHTML=CURS.map(c=>`<option>${c}</option>`).join('');
-    const o=it.orig;F('fCur').value=o?o.currency:'EUR';
-    if(o){F('fPrice').value=o.price||'';F('fShip').value=o.shipping||'';F('fFree').value=o.freeFrom||'';if(it.discountType==='eur')F('fDisc').value=o.discount||'';}
+    const o=it.orig;F('fCur').innerHTML=curOpts(o?o.currency:'EUR');
+    const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
+    F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
     F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
@@ -955,6 +978,11 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const got=await Promise.all([...pickedImgs].map(i=>grabImage(foundImgs[i])));formImgs=[...formImgs,...got];renderImgEdit();
     b.disabled=false;$('#imgSearch').hidden=true;setStatus(`${got.length} ${got.length===1?'foto añadida':'fotos añadidas'}. Pulsa Guardar.`);});
   $('#imgClose').addEventListener('click',()=>{$('#imgSearch').hidden=true;});
+
+  // Muestra cuánto es en euros lo que escribes en otra moneda.
+  function curPreview(){const c=F('fCur').value||'EUR';const p=num(F('fPrice').value),sh=num(F('fShip').value);
+    $('#curPrev').textContent=c==='EUR'||!p?'':`≈ ${eur(toEur(p,c))}${sh?` + ${eur(toEur(sh,c))} envío`:''} (1 € = ${fmtNum(FX[c]||0,FX[c]>=100?0:3)} ${c})`;}
+  ['fPrice','fShip','fCur'].forEach(id=>F(id).addEventListener(id==='fCur'?'change':'input',curPreview));
 
   function openForm(it){
     editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
@@ -1090,6 +1118,36 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     box.addEventListener('input',e=>{if(!e.target.matches('input.typ'))return;drawChips(box,true);});
   });
   const drawAllChips=()=>document.querySelectorAll('.chipbox').forEach(drawChips);
+
+  // Productos a revisar: leídos en otra moneda, con pista de otra moneda, o con precio muy alto (posible yen, NT$…).
+  function curSuspects(){return items.filter(i=>i.status!=='discarded'&&(i.orig||guessCur(i)||(num(i.price)>=1500&&!i.curChecked)));}
+  let curRows=[];
+  function openCurReview(all){
+    curRows=(all===true?items.filter(i=>i.status!=='discarded'&&!isUnread(i)):curSuspects()).map(i=>{const o=i.orig;return{it:i,cur:o?o.currency:(guessCur(i)||'EUR'),price:o?o.price:num(i.price),ship:o?o.shipping:num(i.shipping),free:o?o.freeFrom:num(i.freeFrom),dirty:!o&&!!guessCur(i)};});
+    drawCur();$('#curDlg').hidden=false;$('#curDlg').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  function drawCur(){
+    $('#curTable').innerHTML=curRows.map((r,i)=>`<tr><td style="width:56px">${thumb(r.it)}</td><td><b>${esc(fullName(r.it))}</b><span class="k">${esc(shopOf(r.it))}${r.it.status==='bought'?' · comprado':''}</span>
+      <div class="disc" style="margin-top:6px"><input data-cp="${i}" inputmode="decimal" value="${esc(numIn(r.price))}" style="font:400 .95rem var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);width:110px">
+      <select data-cc="${i}" style="width:auto;font:400 .9rem var(--f-body);padding:7px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)">${curOpts(r.cur)}</select></div>
+      <span class="new" id="ce${i}">= ${eur(toEur(r.price,r.cur))}${r.ship?` + ${eur(toEur(r.ship,r.cur))} envío`:''}</span>${r.dirty?' <span class="chip warn">Sin corregir</span>':''}</td></tr>`).join('')||'<tr><td>No hay nada que revisar.</td></tr>';
+  }
+  $('#curTable').addEventListener('input',e=>{const t=e.target;const i=+(t.dataset.cp??t.dataset.cc);if(isNaN(i))return;const r=curRows[i];
+    if(t.dataset.cp!==undefined)r.price=num(t.value);else r.cur=t.value;r.dirty=true;
+    $('#ce'+i).textContent=`= ${eur(toEur(r.price,r.cur))}${r.ship?` + ${eur(toEur(r.ship,r.cur))} envío`:''}`;});
+  $('#curRevBtn').addEventListener('click',()=>openCurReview(false));
+  $('#curFromSettings').addEventListener('click',()=>{$('#settings').hidden=true;openCurReview(true);});
+  $('#curAll').addEventListener('click',()=>openCurReview(true));
+  $('#curClose').addEventListener('click',()=>{$('#curDlg').hidden=true;});
+  $('#curSave').addEventListener('click',async()=>{let n=0;
+    for(const r of curRows.filter(r=>r.dirty)){const it=r.it;const before=calc(it).total;
+      it.price=r.price;it.shipping=r.ship;it.freeFrom=r.free;
+      if(it.discountType==='eur'&&it.orig)it.discount=it.orig.discount||it.discount;
+      convertItem(it,r.cur);it.curChecked=true;
+      const f=before>0?calc(it).total/before:1;(it.history||[]).forEach(h=>{h.price=r2(h.price*f);if(h.total)h.total=r2(h.total*f);});
+      if(it.status==='bought'&&it.paid)it.paid=r2(it.paid*f);
+      await put('items',it);n++;}
+    $('#curDlg').hidden=true;render();setStatus(n?`Moneda revisada en ${n} ${n===1?'producto':'productos'}.`:'Sin cambios.');});
 
   $('#fxFixBtn').addEventListener('click',async()=>{
     const list=items.filter(i=>guessCur(i));let n=0;
