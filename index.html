@@ -170,6 +170,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .quick button{font:600 .85rem var(--f-body);padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
 .quick button.on{background:var(--danger);border-color:var(--danger);color:#fff}
 .quick button b{font-family:var(--f-mono);margin-left:4px}
+.miss{grid-column:1/-1;border:2px solid var(--danger);border-radius:8px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.8rem;font-weight:700;color:var(--danger)}
+.miss button{font:600 .78rem var(--f-body);padding:3px 9px;border-radius:999px;border:1px solid var(--danger);background:var(--danger-soft);color:var(--fg);cursor:pointer}
+.f input.missing,.f select.missing,.f textarea.missing,.imgedit.missing,.chipbox.missing{outline:2px solid var(--danger);outline-offset:1px;border-color:var(--danger)}
+.imgedit.missing{border-radius:8px;padding:4px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -550,6 +554,17 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
   function refsLine(it){const r=[];if(it.brand)r.push(esc(it.brand));if(it.sku)r.push('Ref. '+esc(it.sku));if(it.mpn)r.push('Fab. '+esc(it.mpn));if(it.ean)r.push('EAN '+esc(it.ean));return r.length?`<div class="refs">${r.map(x=>`<span>${x}</span>`).join('')}</div>`:'';}
+  // Datos que le faltan a un producto. Cada uno lleva el campo del formulario donde se rellena.
+  function missingList(it){const m=[];
+    if(!(num(it.price)>0))m.push(['precio','fPrice']);
+    if(!(num(it.shipping)>0)&&!(num(it.freeFrom)>0)&&!/gratis|free/i.test(it.notes||''))m.push(['envío','fShip']);
+    if(!clean(it.category)||/^otros$/i.test(clean(it.category)))m.push(['categoría','fCategory']);
+    if(!(it.images||[]).length||(typeof noPhoto!=='undefined'&&noPhoto.has(it.id)))m.push(['fotos','imgEdit']);
+    if(!clean(it.store))m.push(['tienda','fStore']);
+    if(!safeUrl(it.url))m.push(['enlace','fUrl']);
+    if(!clean(it.description))m.push(['descripción','fDesc']);
+    return m;}
+  const missBox=it=>{const m=missingList(it);return m.length?`<div class="miss">Falta: ${m.map(([t,f])=>`<button type="button" data-act="fix" data-f="${f}" data-id="${it.id}">${t}</button>`).join('')}</div>`:'';};
   function availChip(it){const a=norm(it.availability);if(!a)return '';
     if(/agotad|sin stock|no disponible|out of stock/.test(a))return '<span class="chip err">Agotado</span>';
     if(/pocas|ultimas|últimas|low/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
@@ -573,6 +588,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
         ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Mejor precio</span>':''}${flags.lowTotal?'<span class="chip">Mejor con portes</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
       <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||num(it.shipping)===0&&num(it.freeFrom)>0?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
+      ${missBox(it)}
       ${refsLine(it)}
       ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
       ${it.compat?`<div class="compat">Aplica a: ${compatList(it).map(esc).join(', ')}</div>`:''}
@@ -615,6 +631,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span></header>
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
+            ${missingList(i).length?`<div class="meta" style="color:var(--danger);font-weight:700">Falta: ${missingList(i).map(x=>x[0]).join(', ')}</div>`:''}
             <div class="meta">${isUnread(i)?'<b style="color:var(--danger)">Sin datos</b>':`${esc(catOf(i))}${(cnt.get(key(groupName(i)))||0)<2?' · solo guardado en esta tienda':isBest?' · <b style="color:var(--accent)">aquí es lo más barato</b>':' · más barato en otra tienda ('+eur(best.get(key(groupName(i))))+')'}${/agotad/.test(norm(i.availability))?' · <b style="color:var(--danger)">agotado</b>':''}`}</div></div></div><div class="total">${eur(calc(i).after)}</div>
             <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small" data-act="discard" data-id="${i.id}">Descartar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
         <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
@@ -918,6 +935,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     formImgs.forEach((v,i)=>{const d=document.createElement('div');d.className='th';
       d.innerHTML=`${imgTag(v)}${i===0?'<span class="first">Principal</span>':`<button type="button" data-first="${i}" aria-label="Hacer principal" style="right:auto;left:3px;bottom:3px;top:auto;font-size:11px">★</button>`}<button type="button" data-rm="${i}" aria-label="Quitar">×</button>`;
       box.insertBefore(d,add);});
+    if(typeof markMissing==='function'&&!$('#form').hidden)markMissing();
   }
   $('#imgEdit').addEventListener('click',e=>{
     const rm=e.target.closest('[data-rm]');if(rm){formImgs.splice(+rm.dataset.rm,1);renderImgEdit();return;}
@@ -1001,9 +1019,19 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     $('#curPrev').textContent=c==='EUR'||!p?'':`≈ ${eur(toEur(p,c))}${sh?` + ${eur(toEur(sh,c))} envío`:''} (1 € = ${fmtNum(FX[c]||0,FX[c]>=100?0:3)} ${c})`;}
   ['fPrice','fShip','fCur'].forEach(id=>F(id).addEventListener(id==='fCur'?'change':'input',curPreview));
 
+  // Recuadro rojo en los campos vacíos importantes del formulario.
+  function markMissing(){
+    const empty=id=>!clean(F(id).value);
+    F('fPrice').classList.toggle('missing',!(num(F('fPrice').value)>0));
+    F('fShip').classList.toggle('missing',!(num(F('fShip').value)>0)&&!(num(F('fFree').value)>0));
+    F('fCategory').classList.toggle('missing',empty('fCategory')||/^otros$/i.test(clean(F('fCategory').value)));
+    ['fStore','fUrl','fDesc','fProduct'].forEach(id=>F(id).classList.toggle('missing',empty(id)));
+    $('#imgEdit').classList.toggle('missing',!formImgs.length);
+  }
+  $('#form').addEventListener('input',markMissing);$('#form').addEventListener('change',markMissing);
   function openForm(it){
     editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
-    $('#form').reset();fillForm(it||{});fillCopyList();$('#copyHint').textContent='';$('#imgSearch').hidden=true;formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';
+    $('#form').reset();fillForm(it||{});fillCopyList();$('#copyHint').textContent='';$('#imgSearch').hidden=true;formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';markMissing();
     $('#form').hidden=false;$('#form').scrollIntoView({behavior:'smooth',block:'start'});
   }
   function closeForm(){$('#form').hidden=true;editingId=null;formImgs=[];renderImgEdit();}
@@ -1043,6 +1071,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const it=items.find(i=>i.id===b.dataset.id);if(!it)return;
     const act=b.dataset.act;
     if(act==='edit')return openForm(it);
+    if(act==='fix'){openForm(it);const el=F(b.dataset.f);if(el){setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'center'});if(el.focus&&el.tagName!=='DIV')el.focus();},250);}return;}
     if(act==='reread'){b.disabled=true;b.textContent='Leyendo…';await rereadReview(it);b.disabled=false;b.textContent='Volver a leer';return;}
     if(act==='dup'){openForm(null);copyFrom(it);F('fStore').focus();return;}
     if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
