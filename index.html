@@ -258,6 +258,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
     <div class="f c6"><label>Categorías (cambia el nombre para renombrarla en todos los productos; pon el de otra para unirlas)</label><div class="list" id="catEdit"></div></div>
+    <div class="f c6"><label>Marcador «Guardar en Comparador» (para tiendas que bloquean la lectura)</label>
+      <div class="actions"><button class="btn small primary" type="button" id="bmCopy">Copiar código del marcador</button></div>
+      <p class="hint" style="margin:4px 0 0">Una vez: en Chrome, ⋮ → ☆ (añadir marcador) → Editar → Nombre: <b>Guardar en Comparador</b> → en URL pega el código → Guardar.<br>Para usarlo: en la página de la tienda toca la barra de direcciones, escribe <b>Guardar</b> y elige el marcador (el de la estrella).</p>
+      <textarea id="bmCode" readonly rows="3" style="font:400 .72rem var(--f-mono);margin-top:6px"></textarea></div>
     <p class="hint full" style="margin:0">La clave y la lista se guardan solo en este móvil.</p>
   </div>
 
@@ -700,7 +704,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   // ---------- ajustes ----------
   const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
   const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')},shotModel:'claude-sonnet-5-5'};
-  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
+  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;$('#bmCode').value=bookmarklet();const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
+  $('#bmCopy').addEventListener('click',async()=>{const t=bookmarklet();$('#bmCode').value=t;
+    try{await navigator.clipboard.writeText(t);setStatus('Código copiado. Ahora crea el marcador en Chrome y pega el código en la URL.');}
+    catch(e){$('#bmCode').select();setStatus('Mantén pulsado el cuadro de texto → Seleccionar todo → Copiar.','err');}});
   $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);ls.set('impVat',String(num($('#impVat').value)));ls.set('impFee',String(num($('#impFee').value)));ls.set('impBank',String(num($('#impBank').value)));$('#settings').hidden=true;render();setStatus('Ajustes guardados.');});
 
   // ---------- Claude ----------
@@ -762,13 +769,16 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const cats=allCats().map(c=>c[0]).filter(c=>c!==NOCAT);
     return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, crea una corta y genérica en plural, por ejemplo: Pistolas, Revólveres, Escopetas, Rifles, Subfusiles, Piezas internas, Piezas externas, Cargadores, Munición, Gas y baterías, Ópticas, Accesorios, Equipamiento.`;
   }
-  async function askClaude({images,url}){
+  const PAGE_PROMPT=p=>`Este es el contenido de una página de una tienda online que el usuario tiene abierta en su navegador y ha decidido guardar (URL: ${p.u}; título: ${p.t}). Extrae los datos de compra. `+MULTI+
+    `Fotos que hay en la página (elige para "images" solo las del producto, en buena resolución):\n${(p.i||[]).join('\n')}\n\nTEXTO DE LA PÁGINA:\n${p.x}\n\n`+FIELDS;
+  async function askClaude({images,url,page}){
     if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
     for(const b of images||[])content.push({type:'image',source:{type:'base64',media_type:b.type||'image/jpeg',data:await toB64(b)}});
     const body={model:(images||[]).length?cfg.shotModel:cfg.model,max_tokens:4000,messages:[{role:'user',content}]};
     const headers={'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
-    if(url&&!(images||[]).length){
+    if(page){content.push({type:'text',text:PAGE_PROMPT(page)});}
+    else if(url&&!(images||[]).length){
       content.push({type:'text',text:URL_PROMPT(url)});
       body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:2}];
       headers['anthropic-beta']='web-fetch-2025-09-10';
@@ -901,21 +911,22 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     });
   }
 
-  async function processShared(files,sharedUrl){
+  async function processShared(files,sharedUrl,page){
     const list=[...files].filter(f=>/^image\//.test(f.type)).slice(0,4);
     if(!list.length&&!sharedUrl)return;
     tab='compare';
-    setStatus(list.length?`Leyendo ${list.length===1?'la captura':list.length+' capturas'}…`:'Leyendo la web del producto y sus fotos…','busy');
+    setStatus(page?'Leyendo la página que tenías abierta…':list.length?`Leyendo ${list.length===1?'la captura':list.length+' capturas'}…`:'Leyendo la web del producto y sus fotos…','busy');
     const shots=[];for(const f of list)shots.push(await shrink(f));
     const parts=[];for(const b of shots)parts.push(...await slices(b));
     let doc;
     try{
-      const found=await askClaude({images:parts.slice(0,10),url:sharedUrl});
+      const found=await askClaude({images:parts.slice(0,10),url:sharedUrl,page});
       const single=found.length===1;
       setStatus(single?'Guardando las fotos del producto…':`Guardando ${found.length} productos y sus fotos…`,'busy');
       const cands=[];
       for(const raw of found){
         const d=fromClaude(raw,single?sharedUrl:(clean(raw.url)?'':sharedUrl));
+        if(page&&single&&!d.imageUrls.length)d.imageUrls=(page.i||[]).slice(0,6);
         // Con captura de una sola ficha: abre también su web para traer descripción completa, fotos y referencias.
         if(single&&shots.length&&d.url&&!/amazon\./i.test(d.url)){
           setStatus('Abriendo la web del producto para traer descripción y fotos…','busy');
@@ -944,6 +955,18 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       await put('items',doc);items.push(doc);render();setStatus('Guardado sin datos: '+(err.message||err)+'. Puedes editarlo.','err');return;
     }
   }
+
+  // ---------- recibir una página enviada con el marcador «Guardar en Comparador» ----------
+  async function importFromHash(){
+    const h=location.hash;if(!h.startsWith('#import='))return;
+    history.replaceState(null,'',location.pathname);
+    let page=null;try{page=JSON.parse(decodeURIComponent(h.slice(8)));}catch(e){}
+    if(!page||!page.u){setStatus('No se ha podido recibir la página.','err');return;}
+    page.x=String(page.x||'').slice(0,30000);page.i=(page.i||[]).filter(u=>/^https?:\/\//.test(u)&&!junkImg(u)).slice(0,40);
+    await processShared([],safeUrl(page.u)||'',page);
+  }
+  window.addEventListener('hashchange',()=>importFromHash());
+  const bookmarklet=()=>`javascript:(()=>{try{const s=new Set();const m=document.querySelector('meta[property="og:image"]');if(m&&m.content)s.add(m.content);for(const i of document.images){const u=i.currentSrc||i.src;if(/^https?:/.test(u)&&(i.naturalWidth||i.width)>=200)s.add(u)}const d={u:location.href,t:document.title,x:document.body.innerText.replace(/\\n{3,}/g,'\\n\\n').slice(0,30000),i:[...s].slice(0,40)};location.href='${location.origin+location.pathname}#import='+encodeURIComponent(JSON.stringify(d))}catch(e){alert('No se pudo enviar: '+e)}})()`;
 
   let draining=false;
   async function drainInbox(){
@@ -1551,6 +1574,7 @@ Productos: ${JSON.stringify(list)}`;
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     await drainInbox();
+    await importFromHash();
     await scanPhotos();render();
     autoRegroup();
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
