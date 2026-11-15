@@ -431,6 +431,11 @@ details.hlist td{padding:2px 10px 2px 0}
 .lklist .t small{color:var(--muted);font-size:.8rem}
 .lklist .sg{flex:none;font:700 .72rem var(--f-body);background:var(--tag);color:var(--tag-fg);border-radius:999px;padding:3px 8px}
 .lklist h4{margin:8px 2px 0;font:700 .82rem var(--f-body);color:var(--muted)}
+
+.grow{display:flex;gap:8px;align-items:center}
+.grow input{flex:1;min-width:0}
+.grow .linkbtn{padding:10px 12px;border-radius:var(--r-sm)}
+#selTop[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -438,6 +443,7 @@ details.hlist td{padding:2px 10px 2px 0}
 <div class="wrap">
   <header class="appbar">
     <h1>Comparador</h1>
+    <button class="iconbtn" id="selTop" type="button" aria-pressed="false" aria-label="Seleccionar varios para unir o comparar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12.5 3 3 5-6"/></svg></button>
     <button class="iconbtn" id="checkTop" type="button" aria-label="Comprobar precios y stock de lo que ves"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/></svg></button>
     <button class="iconbtn" id="openSettings" type="button" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
@@ -559,7 +565,7 @@ details.hlist td{padding:2px 10px 2px 0}
     <div class="f c6" id="shareField" hidden><label>Compartir este producto con</label><div class="sharebox" id="fShareBox"></div><span class="hint">Si es un regalo para esa persona, nunca se le muestra aunque lo marques.</span></div>
     <div class="f c6"><label>Para quién (regalo). Vacío = para ti</label><input id="fPeople" type="hidden"><div class="chipbox" data-for="fPeople" data-kind="people"></div></div>
     <div class="f c6"><label>Etiquetas / subcategorías</label><input id="fTags" type="hidden"><div class="chipbox" data-for="fTags" data-kind="tags"></div></div>
-    <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
+    <div class="f c6"><label for="fGroup">Comparar junto con</label><div class="grow"><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><button class="linkbtn" type="button" id="fLinkBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>Es el mismo que…</button></div><datalist id="groupList"></datalist></div>
     <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
     <div class="f c2"><label for="fMpn">Ref. fabricante</label><input id="fMpn"></div>
     <div class="f c2"><label for="fEan">EAN</label><input id="fEan" inputmode="numeric"></div>
@@ -952,7 +958,7 @@ details.hlist td{padding:2px 10px 2px 0}
   }
   $('#spaceBar').addEventListener('click',e=>{const b=e.target.closest('[data-space]');if(!b)return;space=b.dataset.space;flt.cat='';flt.q='';$('#q').value='';tab=space==='mine'?'compare':'shared';render();window.scrollTo({top:0,behavior:'smooth'});});
   // Rejilla de categorías: se muestra en «Comparar» (y en lo compartido) cuando no hay categoría ni búsqueda.
-  const showGrid=()=>!flt.cat&&!flt.q&&!flt.plat&&!flt.shop&&!flt.tag&&!flt.state&&!flt.person;
+  const showGrid=()=>!selMode&&!flt.cat&&!flt.q&&!flt.plat&&!flt.shop&&!flt.tag&&!flt.state&&!flt.person;
   function catGrid(list,totalOf){
     const m=new Map();list.forEach(i=>{const c=catOf(i);if(!m.has(c))m.set(c,[]);m.get(c).push(i);});
     const cats=[...m.entries()].sort((a,b)=>a[0]===NOCAT?1:b[0]===NOCAT?-1:b[1].length-a[1].length||a[0].localeCompare(b[0],'es'));
@@ -1011,6 +1017,7 @@ details.hlist td{padding:2px 10px 2px 0}
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(!b)return;flt.sub=b.dataset.sub;render();});
   function render(){
     renderSpaces();
+    $('#selTop').setAttribute('aria-pressed',String(!!selMode));
     const pend=groups('pending');
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
@@ -2302,7 +2309,7 @@ Productos: ${JSON.stringify(list)}`;
 
 
   // ---- «Es el mismo que…»: unir dos productos de tiendas distintas ----
-  let lkIt=null;
+  let lkIt=null,lkForm=false;
   const lkToks=t=>new Set(norm(t).replace(/[^a-z0-9.\s]/g,' ').split(/\s+/).filter(w=>w.length>1&&!['de','la','el','y','con','para','en','the','and','for','a','x'].includes(w)));
   function lkScore(a,b){const A=lkToks([groupName(a),a.product,a.brand,a.sku,a.mpn,a.ean].join(' ')),B=lkToks([groupName(b),b.product,b.brand,b.sku,b.mpn,b.ean].join(' '));
     let n=0;A.forEach(t=>{if(B.has(t))n+=/\d/.test(t)?2:1;});let sc=n/Math.max(1,Math.min(A.size,B.size));
@@ -2315,13 +2322,18 @@ Productos: ${JSON.stringify(list)}`;
     const row=r=>{const img=(r.v.find(i=>(i.images||[])[0])||{}).images;return `<button type="button" data-lk="${esc(r.k)}">${img&&img[0]?`<img src="${esc(img[0])}" alt="">`:'<span class="ph"></span>'}<span class="t"><b>${esc(groupName(r.f))}</b><small>${esc([...new Set(r.v.map(shopOf))].join(', '))} · ${eur(Math.min(...r.v.map(o=>calc(o).total)))}</small></span>${r.sc>=.6&&!q?'<span class="sg">Parecido</span>':''}</button>`;};
     const top=q?[]:rows.filter(r=>r.sc>=.6).slice(0,5),rest=q?rows:rows.filter(r=>!top.includes(r));
     $('#lkList').innerHTML=(top.length?'<h4>Probablemente</h4>'+top.map(row).join('')+'<h4>Todos los demás</h4>':'')+(rest.map(row).join('')||'<span class="hint">No hay otros productos.</span>');}
-  function openLink(it){lkIt=it;$('#lkWhat').textContent=`${groupName(it)} (${[...new Set(items.filter(i=>key(groupName(i))===key(groupName(it))).map(shopOf))].join(', ')}). Elige el producto que es igual y se juntarán en una sola ficha para comparar tiendas.`;
+  function openLink(it,fromForm){lkIt=it;lkForm=!!fromForm;$('#lkWhat').textContent=fromForm?`${fullName(it)||'Este producto'}: elige el producto que es igual. Al guardar quedará en la misma ficha.`:`${groupName(it)} (${[...new Set(items.filter(i=>key(groupName(i))===key(groupName(it))).map(shopOf))].join(', ')}). Elige el producto que es igual y se juntarán en una sola ficha para comparar tiendas.`;
     $('#lkQ').value='';drawLink();$('#linkBg').hidden=$('#linkSheet').hidden=false;}
   function closeLink(){$('#linkBg').hidden=$('#linkSheet').hidden=true;lkIt=null;}
   $('#linkBg').addEventListener('click',closeLink);
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#linkSheet').hidden)closeLink();});
   $('#lkQ').addEventListener('input',drawLink);
+  $('#fLinkBtn').addEventListener('click',()=>{const src=editingId&&items.find(i=>i.id===editingId);
+    const it={...(src||{}),id:editingId||'__new',product:F('fProduct').value,variant:F('fVariant').value,brand:F('fBrand').value,sku:F('fSku').value,mpn:F('fMpn').value,ean:F('fEan').value,category:F('fCategory').value,store:F('fStore').value,group:F('fGroup').value};
+    openLink(it,true);});
+  $('#selTop').addEventListener('click',()=>{if(space!=='mine'){space='mine';tab='compare';}$('#selModeBtn').click();});
   $('#lkList').addEventListener('click',async e=>{const b=e.target.closest('[data-lk]');if(!b||!lkIt)return;
+    if(lkForm){const g=lkGroups().get(b.dataset.lk);const nm=g?groupName(g[0]):'';F('fGroup').value=nm;closeLink();setStatus(`Al guardar se unirá con «${nm}».`);return;}
     const name=groupName(lkIt),from=b.dataset.lk;let n=0;
     for(const it of items)if(key(groupName(it))===from&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);n++;}
     closeLink();render();setStatus(`Unidos en «${name}» (${n} ${n===1?'oferta movida':'ofertas movidas'}). Si te equivocas, «Más» → «Separar».`);});
