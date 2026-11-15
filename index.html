@@ -188,6 +188,15 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .person .bud{display:flex;align-items:center;gap:6px;font-size:.84rem}
 .person .bud input{width:90px;font:400 .9rem var(--f-body);padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}
 .person .over{color:var(--danger);font-weight:700}
+.authbar{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.88rem}
+.authbar b{margin-right:auto}
+.authform{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.authform input{font:400 .95rem var(--f-body);padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
+.authform .actions{grid-column:1/-1}
+.sync{font-size:.78rem;color:var(--muted)}
+.contact{display:grid;grid-template-columns:1fr 1.4fr auto;gap:6px;align-items:center}
+.contact input{font:400 .9rem var(--f-body);padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg);min-width:0}
+.sharebox{display:flex;flex-wrap:wrap;gap:10px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -196,6 +205,18 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   <div>
     <h1>Comparador de Compras</h1>
     <p class="sub">En la tienda: Compartir → Comparador. Se guardan fotos, descripción, referencias y precio.</p>
+  </div>
+
+  <div class="authbar" id="authBar" hidden>
+    <b id="authTxt"></b>
+    <button class="btn small primary" type="button" id="loginGoogle">Entrar con Google</button>
+    <button class="btn small" type="button" id="loginMailBtn">Con correo</button>
+    <button class="btn small" type="button" id="logoutBtn" hidden>Salir</button>
+    <div class="authform" id="mailForm" hidden>
+      <input id="mailEmail" type="email" placeholder="Correo" autocomplete="username">
+      <input id="mailPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+      <div class="actions"><button class="btn small primary" type="button" id="mailLogin">Entrar</button><button class="btn small" type="button" id="mailSignup">Crear cuenta</button><button class="btn small" type="button" id="mailReset">He olvidado la contraseña</button></div>
+    </div>
   </div>
 
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
@@ -264,6 +285,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c2"><label for="impVat">IVA importación %</label><input id="impVat" inputmode="decimal"></div>
     <div class="f c2"><label for="impFee">Gestión aduana €</label><input id="impFee" inputmode="decimal"></div>
     <div class="f c2"><label for="impBank">Comisión banco %</label><input id="impBank" inputmode="decimal"></div>
+    <div class="f c6" id="shareSettings" hidden><label>Compartir con (nombre y correo de su cuenta)</label>
+      <div class="list" id="contactsList"></div>
+      <div class="actions"><button class="btn small" type="button" id="addContact">+ Añadir persona</button></div>
+      <span class="hint">Solo ve lo que marques en cada producto (o lo nuevo, si marcas «compartir lo nuevo»). Los regalos para esa persona nunca se le muestran.</span></div>
     <label class="selbox full"><input type="checkbox" id="watchOn"> Vigilar precios: al abrir la app, comprobar solos los productos con enlace</label>
     <div class="f c3"><label for="watchDays">Cada cuántos días</label><input id="watchDays" inputmode="numeric"></div>
     <div class="f c3"><label for="watchMax">Máximo por apertura</label><input id="watchMax" inputmode="numeric"></div>
@@ -294,6 +319,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c3"><label for="fCategory">Categoría</label><input id="fCategory" list="catList" placeholder="Pistolas, Piezas internas…"><datalist id="catList"></datalist></div>
     <div class="f c3"><label for="fPlatform">Modelo / plataforma</label><input id="fPlatform" list="platList" placeholder="Hi-Capa 5.1, Glock 17, AK…"><datalist id="platList"></datalist></div>
     <div class="f c6"><label>Aplica a (modelos o tipos con los que sirve)</label><input id="fCompat" type="hidden"><div class="chipbox" data-for="fCompat" data-kind="applies"></div></div>
+    <div class="f c6" id="shareField" hidden><label>Compartir este producto con</label><div class="sharebox" id="fShareBox"></div><span class="hint">Si es un regalo para esa persona, nunca se le muestra aunque lo marques.</span></div>
     <div class="f c6"><label>Para quién (regalo). Vacío = para ti</label><input id="fPeople" type="hidden"><div class="chipbox" data-for="fPeople" data-kind="people"></div></div>
     <div class="f c6"><label>Etiquetas / subcategorías</label><input id="fTags" type="hidden"><div class="chipbox" data-for="fTags" data-kind="tags"></div></div>
     <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
@@ -360,6 +386,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <button role="tab" id="tab-done" aria-selected="false">Comprados</button>
     <button role="tab" id="tab-discarded" aria-selected="false">Descartados</button>
     <button role="tab" id="tab-gifts" aria-selected="false">🎁 Regalos</button>
+    <button role="tab" id="tab-shared" aria-selected="false" hidden>👥 Compartido</button>
   </div>
   <section id="view"></section>
 </div>
@@ -410,15 +437,20 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
   async function tx(store,mode,fn){const db=await openDB();return new Promise((res,rej)=>{const t=db.transaction(store,mode);const req=fn(t.objectStore(store));t.oncomplete=()=>res(req&&req.result);t.onerror=()=>rej(t.error);});}
   const getAll=s=>tx(s,'readonly',o=>o.getAll());
-  const put=(s,v)=>tx(s,'readwrite',o=>o.put(v));
-  const del=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
+  const putLocal=(s,v)=>tx(s,'readwrite',o=>o.put(v));
+  const delLocal=(s,k)=>tx(s,'readwrite',o=>o.delete(k));
+  // Cada cambio en un producto se guarda en el móvil y, si has iniciado sesión, también en la nube.
+  const put=(s,v)=>{if(s==='items'){v.updatedAt=Date.now();if(window.__cloud)window.__cloud.put(v);}return putLocal(s,v);};
+  const del=(s,k)=>{if(s==='items'&&window.__cloud)window.__cloud.del(k);return delLocal(s,k);};
+  const isBlob=v=>typeof Blob!=='undefined'&&v instanceof Blob;
 
   let items=[],tab='compare',editingId=null;
 
   // ---------- imágenes (Blob guardado o URL de la tienda) ----------
   const blobUrls=new WeakMap();
-  function src(v){if(typeof v==='string')return v;if(!blobUrls.has(v))blobUrls.set(v,URL.createObjectURL(v));return blobUrls.get(v);}
-  const imgTag=(v,attrs)=>`<img src="${esc(src(v))}" alt="" loading="lazy" referrerpolicy="no-referrer" ${attrs||''}>`;
+  // Una imagen puede ser: URL (texto), Blob guardado, o {ref} si aún se está descargando de la nube.
+  function src(v){if(typeof v==='string')return v;if(!isBlob(v))return '';if(!blobUrls.has(v))blobUrls.set(v,URL.createObjectURL(v));return blobUrls.get(v);}
+  const imgTag=(v,attrs)=>{const u=src(v);return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
   async function grabImage(u){
     try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
       const r=await fetch(u,{mode:'cors',signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
@@ -607,10 +639,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(o=>!isUnread(o));return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
-    ['compare','shops','buy','done','discarded','gifts'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
+    ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
     drawSelBar();
-    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():renderDiscarded());
+    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():tab==='shared'?renderShared():renderDiscarded());
     const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
@@ -698,7 +730,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histHtml(it)}
-      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${safeUrl(it.url)||(it.images||[]).some(v=>typeof v!=='string')?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
+      <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
   }
   function renderCompare(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -790,7 +822,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${(()=>{const alts=items.filter(a=>a.status==='alt'&&a.altOf===i.id);if(!alts.length)return '';
         return `<details class="hist"><summary>Alternativas que miraste (${alts.length})</summary><div class="list" style="margin-top:6px">${alts.map(a=>{const d=calc(a).total-paid;
           return `<div class="who" style="justify-content:space-between;gap:8px"><div class="who">${thumb(a)}<div style="min-width:0"><div class="name" style="font-size:.86rem">${safeUrl(a.url)?`<a href="${esc(a.url)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(a))}</a>`:esc(fullName(a))}</div><div class="meta">${esc(shopOf(a))} · ${eur(calc(a).total)}${isUnread(a)?'':` (${d>=0?'+':'−'}${eur(Math.abs(d))})`}</div></div></div><button class="btn small" data-act="unbuy" data-id="${a.id}">A pendientes</button></div>`;}).join('')}</div></details>`;})()}
-      <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)||(i.images||[]).some(v=>typeof v!=='string')?`<button class="btn small" data-act="reread" data-id="${i.id}">Volver a leer</button>`:''}${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
+      <div class="row-actions"><button class="btn small primary" data-act="rebuy" data-id="${i.id}">Volver a comprar</button>${safeUrl(i.url)||(i.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${i.id}">Volver a leer</button>`:''}${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="unbuy" data-id="${i.id}">Volver a pendiente</button><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}<div class="grand"><span>Gastado</span><b>${eur(sum)}</b></div></div>`;
   }
 
   // ---------- estado ----------
@@ -1040,7 +1072,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       let chosen=cands;
       if(!single){setStatus('');chosen=await pickProducts(cands);if(!chosen.length){setStatus('No se ha guardado nada.');return;}}
       const saved=[];
-      for(const it of chosen){it.group=autoGroup(it);await put('items',it);items.push(it);saved.push(it);}
+      for(const it of chosen){it.group=autoGroup(it);if(me&&!it.shareWith)it.shareWith=[...(profile.defShare||[])];await put('items',it);items.push(it);saved.push(it);}
       render();
       if(single){const it=saved[0],c=calc(it),n=(it.images||[]).length;
         setStatus(`Guardado: ${fullName(it)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${it.incomplete?' (revisa: falta algún dato)':''}`);}
@@ -1103,7 +1135,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
     F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
-    F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');F('fPeople').value=peopleList(it).join(', ');
+    F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');F('fPeople').value=peopleList(it).join(', ');drawShareBox(it);
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
   }
   // ---------- copiar datos de otro producto ----------
@@ -1215,7 +1247,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   });
   $('#form').addEventListener('submit',async e=>{
     e.preventDefault();
-    const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});
+    const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});if(me)d.shareWith=formShare();
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
     convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
@@ -1258,7 +1290,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(act==='bought'){openBuy(it);return;}
     await put('items',it);render();
   });
-  ['compare','shops','buy','done','discarded','gifts'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
+  ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
@@ -1274,7 +1306,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   // ---------- copia de seguridad ----------
   $('#exportBtn').addEventListener('click',async()=>{
     setStatus('Preparando la copia…','busy');
-    const out=[];for(const it of items){const imgs=[];for(const b of it.images||[])imgs.push(typeof b==='string'?{url:b}:{type:b.type,data:await toB64(b)});out.push({...it,images:imgs});}
+    const out=[];for(const it of items){const imgs=[];for(const b of (it.images||[]).filter(v=>typeof v==='string'||isBlob(v)))imgs.push(typeof b==='string'?{url:b}:{type:b.type,data:await toB64(b)});out.push({...it,images:imgs});}
     const blob=new Blob([JSON.stringify({v:2,items:out})],{type:'application/json'});
     const file=new File([blob],'comparador-copia.json',{type:'application/json'});
     try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia Comparador'});setStatus('Copia compartida.');return;}}catch(e){}
@@ -1502,7 +1534,7 @@ Ofertas: ${JSON.stringify(data)}`;
   async function rereadReview(it){
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     setStatus(`Volviendo a leer ${fullName(it)}…`,'busy');
-    let d=null,err=null,how='';const shots=(it.images||[]).filter(v=>typeof v!=='string');
+    let d=null,err=null,how='';const shots=(it.images||[]).filter(v=>isBlob(v));
     if(safeUrl(it.url)){try{d=fromClaude((await askClaude({url:it.url}))[0],it.url);how='la web';}catch(e){err=e;}}
     if(!d&&shots.length){try{const parts=[];for(const x of shots.slice(0,3))parts.push(...await slices(x));
       const found=await askClaude({images:parts.slice(0,10),url:safeUrl(it.url)});
@@ -1549,7 +1581,7 @@ Ofertas: ${JSON.stringify(data)}`;
   });
 
   async function rereadItem(it){
-    const shots=(it.images||[]).filter(v=>typeof v!=='string');
+    const shots=(it.images||[]).filter(v=>isBlob(v));
     let d=null,err=null;
     if(shots.length){
       try{const parts=[];for(const b of shots.slice(0,3))parts.push(...await slices(b));
@@ -1574,7 +1606,7 @@ Ofertas: ${JSON.stringify(data)}`;
     setStatus(`Leídos ${ok} de ${list.length}.${blocked?` ${blocked} son de tiendas que bloquean la lectura: abre cada uno en Editar, añade una captura con «+ Fotos» y pulsa «Leer de las capturas».`:''}`,ok===list.length?'':'err');
   });
   $('#readShots').addEventListener('click',async()=>{
-    const shots=formImgs.filter(v=>typeof v!=='string');
+    const shots=formImgs.filter(v=>isBlob(v));
     if(!shots.length){$('#readHint').textContent='Añade antes una captura con «+ Fotos».';return;}
     const b=$('#readShots');b.disabled=true;$('#readHint').textContent='Leyendo las capturas…';
     try{
@@ -1655,7 +1687,7 @@ Productos: ${JSON.stringify(list)}`;
         if(!it.description&&w.description)it.description=w.description;
       }
       if(!added.length){
-        const shot=(it.images||[]).find(v=>typeof v!=='string');
+        const shot=(it.images||[]).find(v=>isBlob(v));
         if(shot){
           const parts=await slices(shot);
           const found=await askClaude({images:parts.slice(0,10)});
@@ -1678,9 +1710,204 @@ Productos: ${JSON.stringify(list)}`;
     setStatus(`Listo: fotos añadidas a ${ok} de ${list.length} productos.${ok<list.length?' A los que faltan puedes añadirles fotos desde Editar.':''}`,ok?'':'err');
   });
 
+  // =====================================================================
+  // ---------- nube: cuentas, sincronización entre dispositivos y compartir ----------
+  // Firebase (Auth + Firestore). Cada usuario: users/{uid}/items/{id} y sus fotos en .../items/{id}/images/{img}.
+  // profiles/{uid}: contactos con los que comparte. Un producto compartido lleva visibleTo=[correos] (sin los destinatarios del regalo).
+  const FIREBASE_CONFIG=null; // se rellena con los datos del proyecto de Firebase
+  const FB_VER='10.12.2';
+  let fb=null,fs=null,me=null,profile={contacts:[],defShare:[]},unsubs=[],sharedOwners=new Map();
+  const imgDB=()=>new Promise((res,rej)=>{const r=indexedDB.open('comparador-img',1);r.onupgradeneeded=()=>r.result.createObjectStore('imgs');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+  async function imgGet(k){const db=await imgDB();return new Promise(res=>{const q=db.transaction('imgs').objectStore('imgs').get(k);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null);});}
+  async function imgSet(k,v){const db=await imgDB();return new Promise(res=>{const t=db.transaction('imgs','readwrite');t.objectStore('imgs').put(v,k);t.oncomplete=res;t.onerror=res;});}
+  const blobRefs=new WeakMap(); // Blob → Map(itemId → imgId) para no volver a subir la misma foto
+  function loadScript(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+  const lc=e=>clean(e).toLowerCase();
+  const contactsByName=()=>{const m=new Map();(profile.contacts||[]).forEach(c=>{if(c.name&&c.email)m.set(norm(c.name),lc(c.email));});return m;};
+  // Correos que pueden ver este producto: los marcados, menos los destinatarios del regalo.
+  function visibleTo(it){const cm=contactsByName();const gift=new Set(peopleList(it).map(norm));
+    return [...new Set((it.shareWith||[]).filter(n=>!gift.has(norm(n))).map(n=>cm.get(norm(n))).filter(Boolean))];}
+  // Comprime una foto para que quepa en un documento (máx. ~700 KB en base64).
+  async function packImage(b){
+    let blob=b;for(let max=1600;max>=400;max-=300){if(blob.size<520000)break;
+      try{const bmp=await createImageBitmap(b);const s=Math.min(1,max/Math.max(bmp.width,bmp.height));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*s);cv.height=Math.round(bmp.height*s);cv.getContext('2d').drawImage(bmp,0,0,cv.width,cv.height);
+        blob=await new Promise(r=>cv.toBlob(r,'image/jpeg',0.8))||blob;}catch(e){break;}}
+    return {d:await toB64(blob),t:blob.type||'image/jpeg'};
+  }
+  const itemRef=(uid,id)=>fs.collection('users').doc(uid).collection('items').doc(id);
+  const pending=new Map();let pendTimer=null;
+  function setSync(t){const el=$('#syncTxt');if(el)el.textContent=t;}
+  // Sube un producto (con sus fotos nuevas) a la nube.
+  async function cloudSave(it){
+    const ref=itemRef(me.uid,it.id);const imgs=[];
+    for(const v of it.images||[]){
+      if(typeof v==='string'){imgs.push({u:v});continue;}
+      if(v&&v.ref){imgs.push({id:v.ref.id,it:v.ref.it});continue;}
+      if(!isBlob(v))continue;
+      let m=blobRefs.get(v);if(!m){m=new Map();blobRefs.set(v,m);}
+      let id=m.get(it.id);
+      if(!id){id=uid();const p=await packImage(v);await ref.collection('images').doc(id).set(p);m.set(it.id,id);imgSet(me.uid+'/'+it.id+'/'+id,v);}
+      imgs.push({id,it:it.id});
+    }
+    const data=JSON.parse(JSON.stringify({...it,images:[]}));Object.keys(data).forEach(k=>{if(k.startsWith('_'))delete data[k];});data.images=imgs;data.visibleTo=visibleTo(it);data.updatedAt=it.updatedAt||Date.now();
+    await ref.set(data);
+    // borra de la nube las fotos que ya no usa
+    const sig=imgs.map(x=>x.id||'').join(',');if(it._sig!==undefined&&it._sig!==sig){const snap=await ref.collection('images').get();const keep=new Set(imgs.map(x=>x.id).filter(Boolean));snap.forEach(d=>{if(!keep.has(d.id))d.ref.delete();});}
+    it._sig=sig;
+  }
+  let flushing=false;
+  async function flush(){
+    if(flushing){clearTimeout(pendTimer);pendTimer=setTimeout(flush,600);return;}
+    flushing=true;try{await flush0();}finally{flushing=false;}
+  }
+  async function flush0(){
+    const list=[...pending.entries()];pending.clear();
+    for(const [id,op] of list){try{if(op==='del'){const ref=itemRef(me.uid,id);const sn=await ref.collection('images').get();sn.forEach(d=>d.ref.delete());await ref.delete();}else{const it=items.find(i=>i.id===id);if(it)await cloudSave(it);}}catch(e){console.warn(e);pending.set(id,op);}}
+    setSync(pending.size?`☁ ${pending.size} pendientes de subir`:'☁ Sincronizado');
+    if(pending.size){clearTimeout(pendTimer);pendTimer=setTimeout(flush,15000);}
+  }
+  window.__cloud=null;
+  const cloudApi={put(v){if(!me)return;pending.set(v.id,'put');setSync('☁ Guardando…');clearTimeout(pendTimer);pendTimer=setTimeout(flush,700);},
+    del(id){if(!me)return;pending.set(id,'del');clearTimeout(pendTimer);pendTimer=setTimeout(flush,700);}};
+
+  // Convierte un documento de la nube en producto, con las fotos que ya estén en el móvil.
+  async function fromCloud(d,owner){
+    const it={...d};delete it.visibleTo;
+    it.images=await Promise.all((d.images||[]).map(async r=>{if(r.u)return r.u;const k=owner+'/'+(r.it||d.id)+'/'+r.id;const b=await imgGet(k);
+      if(b){let m=blobRefs.get(b);if(!m){m=new Map();blobRefs.set(b,m);}m.set(d.id,r.id);return b;}return {ref:{id:r.id,it:r.it||d.id,owner}};}));
+    it._sig=(d.images||[]).map(x=>x.id||'').join(',');
+    return it;
+  }
+  // Descarga en segundo plano las fotos que faltan.
+  let reTimer=null;const reRender=()=>{clearTimeout(reTimer);reTimer=setTimeout(render,250);};
+  async function fetchImages(it,owner,local){
+    let changed=false;
+    for(let i=0;i<(it.images||[]).length;i++){const v=it.images[i];if(!v||!v.ref)continue;
+      try{const sn=await itemRef(v.ref.owner,v.ref.it).collection('images').doc(v.ref.id).get();if(!sn.exists)continue;const p=sn.data();
+        const bin=atob(p.d);const u8=new Uint8Array(bin.length);for(let j=0;j<bin.length;j++)u8[j]=bin.charCodeAt(j);const b=new Blob([u8],{type:p.t||'image/jpeg'});
+        imgSet(v.ref.owner+'/'+v.ref.it+'/'+v.ref.id,b);let m=blobRefs.get(b);if(!m){m=new Map();blobRefs.set(b,m);}m.set(it.id,v.ref.id);it.images[i]=b;changed=true;}catch(e){}}
+    if(changed){if(local)await putLocal('items',it);reRender();}
+  }
+  function listenMine(){
+    unsubs.push(fs.collection('users').doc(me.uid).collection('items').onSnapshot(async snap=>{
+      for(const ch of snap.docChanges()){
+        if(ch.doc.metadata.hasPendingWrites)continue;
+        const d=ch.doc.data();d.id=ch.doc.id;
+        if(ch.type==='removed'){items=items.filter(i=>i.id!==d.id);await delLocal('items',d.id);continue;}
+        const loc=items.find(i=>i.id===d.id);
+        if(loc&&(loc.updatedAt||0)>(d.updatedAt||0)){cloudApi.put(loc);continue;}
+        if(loc&&(loc.updatedAt||0)===(d.updatedAt||0))continue;
+        const it=await fromCloud(d,me.uid);
+        if(loc)Object.assign(loc,it);else items.push(it);
+        await putLocal('items',loc||it);fetchImages(loc||it,me.uid,true);
+      }
+      reRender();
+    },e=>setSync('☁ Error de sincronización: '+e.message)));
+  }
+  // Lo que otros comparten conmigo (solo lectura).
+  function listenShared(){
+    if(!me.email)return;
+    unsubs.push(fs.collection('profiles').where('sharedWith','array-contains',lc(me.email)).onSnapshot(snap=>{
+      const owners=new Set();
+      snap.forEach(p=>{const uidO=p.id;owners.add(uidO);if(sharedOwners.has(uidO)){sharedOwners.get(uidO).name=p.data().name||p.data().email;return;}
+        const o={name:p.data().name||p.data().email,items:new Map(),unsub:null};sharedOwners.set(uidO,o);
+        o.unsub=fs.collection('users').doc(uidO).collection('items').where('visibleTo','array-contains',lc(me.email)).onSnapshot(async s2=>{
+          for(const ch of s2.docChanges()){const d=ch.doc.data();d.id=ch.doc.id;if(ch.type==='removed'){o.items.delete(d.id);continue;}
+            const it=await fromCloud(d,uidO);o.items.set(d.id,it);fetchImages(it,uidO,false);}
+          $('#tab-shared').hidden=![...sharedOwners.values()].some(x=>x.items.size);reRender();},()=>{});});
+      for(const [k,o] of sharedOwners)if(!owners.has(k)){o.unsub&&o.unsub();sharedOwners.delete(k);}
+      $('#tab-shared').hidden=![...sharedOwners.values()].some(x=>x.items.size);reRender();
+    },()=>{}));
+  }
+  function renderShared(){
+    const owners=[...sharedOwners.values()].filter(o=>o.items.size);
+    if(!owners.length)return `<div class="empty">Nadie ha compartido nada contigo todavía.</div>`;
+    return `<div class="list">${owners.map(o=>{const list=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i));
+      return `<article class="person"><header><h3>👥 ${esc(o.name)}</h3><span class="hint">${list.length} productos</span></header>
+        ${list.map(i=>{const u=safeUrl(i.url);return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${(i.images||[]).length?imgTag(i.images[0],'class="pic"'):''}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
+          <div class="meta">${i.status==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b> · ':''}${esc(shopOf(i))} · ${esc(catOf(i))}</div></div></div><div class="total">${eur(calc(i).total)}</div></div>`;}).join('')}</article>`;}).join('')}</div>`;
+  }
+  // ---- perfil y contactos ----
+  async function saveProfile(){
+    if(!me)return;profile.contacts=(profile.contacts||[]).filter(c=>c.name||c.email);
+    await fs.collection('profiles').doc(me.uid).set({email:lc(me.email),name:me.displayName||me.email,contacts:profile.contacts,
+      sharedWith:[...new Set(profile.contacts.map(c=>lc(c.email)).filter(Boolean))],defShare:profile.defShare||[]});
+    for(const it of items)if((it.shareWith||[]).length)cloudApi.put(it); // recalcula a quién se ve
+  }
+  function drawContacts(){
+    $('#shareSettings').hidden=!me;if(!me)return;
+    $('#contactsList').innerHTML=(profile.contacts||[]).map((c,i)=>`<div class="contact"><input data-cn="${i}" value="${esc(c.name||'')}" placeholder="Nombre (Davinia)"><input data-ce="${i}" type="email" value="${esc(c.email||'')}" placeholder="correo@gmail.com">
+      <button class="btn small danger" type="button" data-cdel="${i}">Quitar</button>
+      <label class="selbox" style="grid-column:1/-1;font-weight:400"><input type="checkbox" data-cdef="${i}" ${(profile.defShare||[]).some(n=>norm(n)===norm(c.name))?'checked':''}> Compartir con ${esc(c.name||'esta persona')} todo lo nuevo que guarde</label></div>`).join('')||'<span class="hint">Aún no compartes con nadie.</span>';
+  }
+  $('#addContact').addEventListener('click',()=>{profile.contacts=[...(profile.contacts||[]),{name:'',email:''}];drawContacts();});
+  $('#contactsList').addEventListener('change',async e=>{const t=e.target;
+    if(t.dataset.cn!==undefined)profile.contacts[+t.dataset.cn].name=clean(t.value);
+    if(t.dataset.ce!==undefined)profile.contacts[+t.dataset.ce].email=lc(t.value);
+    if(t.dataset.cdef!==undefined){const n=profile.contacts[+t.dataset.cdef].name;profile.defShare=(profile.defShare||[]).filter(x=>norm(x)!==norm(n));if(t.checked&&n)profile.defShare.push(n);}
+    await saveProfile();setStatus('Compartir actualizado.');});
+  $('#contactsList').addEventListener('click',async e=>{const b=e.target.closest('[data-cdel]');if(!b)return;const c=profile.contacts[+b.dataset.cdel];
+    profile.contacts.splice(+b.dataset.cdel,1);profile.defShare=(profile.defShare||[]).filter(x=>norm(x)!==norm(c.name));drawContacts();await saveProfile();setStatus('Ya no compartes con '+(c.name||c.email)+'.');});
+  // casillas «Compartir con» del formulario
+  function drawShareBox(it){
+    const cs=(profile.contacts||[]).filter(c=>c.name&&c.email);$('#shareField').hidden=!me||!cs.length;
+    const on=it&&it.id?(it.shareWith||[]):(profile.defShare||[]);
+    $('#fShareBox').innerHTML=cs.map(c=>`<label class="selbox" style="font-weight:400"><input type="checkbox" data-sw="${esc(c.name)}" ${on.some(n=>norm(n)===norm(c.name))?'checked':''}> ${esc(c.name)}</label>`).join('');
+  }
+  const formShare=()=>[...document.querySelectorAll('#fShareBox [data-sw]')].filter(x=>x.checked).map(x=>x.dataset.sw);
+
+  // ---- inicio de sesión ----
+  function drawAuth(){
+    if(!FIREBASE_CONFIG){$('#authBar').hidden=true;return;}
+    $('#authBar').hidden=false;
+    $('#loginGoogle').hidden=$('#loginMailBtn').hidden=!!me;$('#logoutBtn').hidden=!me;if(me)$('#mailForm').hidden=true;
+    $('#authTxt').innerHTML=me?`${esc(me.email||'')}<br><span class="sync" id="syncTxt">☁ Sincronizado</span>`:'Inicia sesión para tener tus datos en todos tus dispositivos y compartir';
+    drawContacts();
+  }
+  async function onLogin(user){
+    me=user;window.__cloud=cloudApi;drawAuth();
+    const owner=ls.get('cloudOwner','');
+    if(owner&&owner!==me.uid){items=[];for(const i of await getAll('items'))await delLocal('items',i.id);}
+    else if(!owner){for(const it of items){if(!it.updatedAt)it.updatedAt=Date.now();cloudApi.put(it);}} // primera vez: sube lo que había en este dispositivo
+    ls.set('cloudOwner',me.uid);
+    try{const p=await fs.collection('profiles').doc(me.uid).get();profile=p.exists?{contacts:[],defShare:[],...p.data()}:{contacts:[],defShare:[]};
+      if(!p.exists)await saveProfile();}catch(e){}
+    drawContacts();listenMine();listenShared();render();
+  }
+  async function onLogout(){
+    unsubs.forEach(u=>{try{u();}catch(e){}});unsubs=[];for(const o of sharedOwners.values())o.unsub&&o.unsub();sharedOwners.clear();
+    me=null;window.__cloud=null;$('#tab-shared').hidden=true;
+    // Al salir se borra la copia de este dispositivo (sigue en la nube).
+    for(const i of await getAll('items'))await delLocal('items',i.id);items=[];ls.set('cloudOwner','');
+    try{indexedDB.deleteDatabase('comparador-img');}catch(e){}
+    drawAuth();render();
+  }
+  async function initCloud(){
+    if(!FIREBASE_CONFIG)return;drawAuth();
+    try{
+      await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-app-compat.js`);
+      await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-auth-compat.js`);
+      await loadScript(`https://www.gstatic.com/firebasejs/${FB_VER}/firebase-firestore-compat.js`);
+      fb=firebase.initializeApp(FIREBASE_CONFIG);fs=firebase.firestore();
+      if(window.__FS_EMULATOR){fs.useEmulator('127.0.0.1',window.__FS_EMULATOR);firebase.auth().useEmulator('http://127.0.0.1:'+window.__AUTH_EMULATOR);}
+      try{await fs.enablePersistence({synchronizeTabs:true});}catch(e){}
+      firebase.auth().getRedirectResult().catch(e=>setStatus('No se pudo iniciar sesión: '+e.message,'err'));
+      firebase.auth().onAuthStateChanged(u=>{if(u&&(!me||me.uid!==u.uid))onLogin(u);else if(!u&&me)onLogout();else drawAuth();});
+    }catch(e){$('#authTxt').textContent='No se pudo conectar con la nube (sin conexión). Tus datos siguen en este dispositivo.';}
+  }
+  const authErr=e=>({'auth/invalid-credential':'correo o contraseña incorrectos','auth/wrong-password':'contraseña incorrecta','auth/user-not-found':'no existe esa cuenta','auth/email-already-in-use':'ya existe una cuenta con ese correo','auth/weak-password':'la contraseña debe tener al menos 6 caracteres','auth/invalid-email':'correo no válido'}[e.code]||e.message);
+  $('#loginGoogle').addEventListener('click',async()=>{const p=new firebase.auth.GoogleAuthProvider();
+    try{await firebase.auth().signInWithPopup(p);}catch(e){if(/popup|environment|cancelled/.test(e.code||''))firebase.auth().signInWithRedirect(p);else setStatus('No se pudo iniciar sesión: '+authErr(e),'err');}});
+  $('#loginMailBtn').addEventListener('click',()=>{$('#mailForm').hidden=!$('#mailForm').hidden;});
+  $('#mailLogin').addEventListener('click',async()=>{try{await firebase.auth().signInWithEmailAndPassword(clean($('#mailEmail').value),$('#mailPass').value);}catch(e){setStatus('No se pudo entrar: '+authErr(e),'err');}});
+  $('#mailSignup').addEventListener('click',async()=>{try{const c=await firebase.auth().createUserWithEmailAndPassword(clean($('#mailEmail').value),$('#mailPass').value);await c.user.sendEmailVerification();setStatus('Cuenta creada. Te he enviado un correo para verificarla (hace falta para ver lo que te compartan).');}catch(e){setStatus('No se pudo crear la cuenta: '+authErr(e),'err');}});
+  $('#mailReset').addEventListener('click',async()=>{try{await firebase.auth().sendPasswordResetEmail(clean($('#mailEmail').value));setStatus('Te he enviado un correo para cambiar la contraseña.');}catch(e){setStatus('No se pudo: '+authErr(e),'err');}});
+  $('#logoutBtn').addEventListener('click',()=>firebase.auth().signOut());
+
   // ---------- arranque ----------
   (async()=>{
     items=await getAll('items').catch(()=>[]);
+    initCloud();
     try{await Promise.race([loadFx(),new Promise(r=>setTimeout(r,4000))]);}catch(e){}
     render();
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
