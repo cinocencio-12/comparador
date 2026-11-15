@@ -2422,6 +2422,11 @@ Productos: ${JSON.stringify(list)}`;
     render();
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
+    // Si hay una versión nueva publicada, se recarga sola (una vez).
+    const APP_V='2026-11-16b';
+    async function checkVersion(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=(await r.json()).v;
+      if(v&&v!==APP_V&&sessionStorage.getItem('reloadedFor')!==v){sessionStorage.setItem('reloadedFor',v);location.replace(location.pathname+'?v='+encodeURIComponent(v));}}catch(e){}}
+    checkVersion();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkVersion();});
     await drainInbox();
     await importFromHash();
     await scanPhotos();render();

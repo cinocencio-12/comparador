@@ -1,8 +1,11 @@
+// v2026-11-16b
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 function db(){return new Promise((ok,ko)=>{const r=indexedDB.open('comparador',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('items'))d.createObjectStore('items',{keyPath:'id'});if(!d.objectStoreNames.contains('inbox'))d.createObjectStore('inbox',{keyPath:'id'});};r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});}
 self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
+  // La página siempre se pide nueva a la red (sin caché), para que las actualizaciones lleguen al momento.
+  if(e.request.method==='GET'&&e.request.mode==='navigate'&&u.origin===location.origin){e.respondWith(fetch(e.request,{cache:'no-store'}).catch(()=>fetch(e.request)));return;}
   if(e.request.method!=='POST'||!u.pathname.endsWith('/share'))return;
   e.respondWith((async()=>{
     try{
