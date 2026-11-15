@@ -399,6 +399,24 @@ details.hlist table{border-collapse:collapse;margin-top:4px;font-variant-numeric
 details.hlist td{padding:2px 10px 2px 0}
 #checkTop.spin svg{animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Hoja de compartir */
+.sheet-bg{position:fixed;inset:0;background:rgba(15,18,28,.45);z-index:60}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:61;background:var(--surface);border-radius:22px 22px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom,0px) + 16px);max-height:88vh;overflow:auto;box-shadow:0 -10px 40px rgba(15,18,28,.25);max-width:640px;margin:0 auto;animation:up .2s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.5}to{transform:none;opacity:1}}
+.sheet .grab{width:40px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 10px}
+.sheet h2{margin:0;font:850 1.3rem var(--f-display);font-variation-settings:"wdth" 80}
+.sheet .hint{margin:4px 0 10px}
+.shpeople{display:flex;flex-direction:column;gap:6px;margin:6px 0 12px}
+.shpeople label{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);background:var(--bg);cursor:pointer}
+.shpeople label .av{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font:800 .9rem var(--f-display);flex:none}
+.shpeople label span.t{flex:1;min-width:0}
+.shpeople label small{display:block;color:var(--muted);font-size:.8rem;overflow:hidden;text-overflow:ellipsis}
+.shpeople input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent)}
+.shadd{display:flex;gap:8px;margin-bottom:12px}
+.shadd input{flex:1;min-width:0;border:0;border-radius:var(--r-sm);background:var(--bg);padding:11px 12px;font-size:.98rem;color:var(--fg)}
+.shfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+.shfoot .btn{flex:1;justify-content:center}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -599,6 +617,20 @@ details.hlist td{padding:2px 10px 2px 0}
   <section id="view"></section>
 </div>
 
+<div class="sheet-bg" id="shareBg" hidden></div>
+<section class="sheet" id="shareSheet" role="dialog" aria-modal="true" aria-labelledby="shTitle" hidden>
+  <div class="grab"></div>
+  <h2 id="shTitle">Compartir</h2>
+  <p class="hint" id="shWhat"></p>
+  <div id="shLogin" hidden><p>Para compartir con otra persona tienes que entrar con tu cuenta.</p><button class="btn primary" type="button" id="shLoginBtn">Entrar con Google</button></div>
+  <div id="shBody">
+    <div class="shpeople" id="shPeople"></div>
+    <form class="shadd" id="shAdd"><input id="shMail" type="email" inputmode="email" autocomplete="email" placeholder="Añadir por correo: davinia@12segundos.es" aria-label="Correo de la persona"><button class="btn" type="submit">Añadir</button></form>
+    <label class="selbox" style="font-weight:500"><input type="checkbox" id="shGroup" checked> Todas las tiendas de este producto</label>
+    <p class="hint">La otra persona lo verá en «De Carlos» al entrar con ese correo. Si es un regalo para ella, no se le muestra.</p>
+  </div>
+  <div class="shfoot"><button class="btn" type="button" id="shNative">Enviar enlace…</button><button class="btn primary" type="button" id="shSave">Guardar</button></div>
+</section>
 <button class="fab" id="homeBtn" type="button" aria-label="Volver arriba y ver todo">Ver todo</button>
 <div class="selbar" id="selBar" hidden><b id="selCount">0 seleccionados</b>
   <button class="btn small" id="selCompare" type="button">Comparar</button>
@@ -1056,7 +1088,7 @@ details.hlist td{padding:2px 10px 2px 0}
       ${specsHtml(it)}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histBox(it)}
-      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
+      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
   }
   function renderCompare(gs){
     if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
@@ -1648,6 +1680,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(act==='edit')return openForm(it);
     if(act==='fix'){openForm(it);const el=F(b.dataset.f);if(el){setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'center'});if(el.focus&&el.tagName!=='DIV')el.focus();},250);}return;}
     if(act==='reread'){b.disabled=true;b.textContent='Leyendo…';await rereadReview(it);b.disabled=false;b.textContent='Volver a leer';return;}
+    if(act==='share')return openShare(it);
     if(act==='dup'){openForm(null);copyFrom(it);F('fStore').focus();return;}
     if(act==='photos'){b.disabled=true;b.textContent='Buscando…';const ok=await fillPhotos(it);await scanPhotos();render();setStatus(ok?`Fotos añadidas: ${fullName(it)}`:`No he encontrado fotos para ${fullName(it)}. Añádelas desde Editar.`,ok?'':'err');return;}
     if(act==='del'){
@@ -2244,6 +2277,35 @@ Productos: ${JSON.stringify(list)}`;
   }
   const formShare=()=>[...document.querySelectorAll('#fShareBox [data-sw]')].filter(x=>x.checked).map(x=>x.dataset.sw);
 
+
+  // ---- hoja «Compartir» de cada producto ----
+  let shIt=null;
+  const nameFromMail=m=>{const l=lc(m).split('@')[0].split(/[._-]/)[0]||m;return l.charAt(0).toUpperCase()+l.slice(1);};
+  function drawSharePeople(on){const cs=(profile.contacts||[]).filter(c=>c.name&&c.email);
+    $('#shPeople').innerHTML=cs.length?cs.map(c=>`<label><span class="av">${esc(initials(c.name))}</span><span class="t">${esc(c.name)}<small>${esc(c.email)}</small></span><input type="checkbox" data-shn="${esc(c.name)}" ${on.some(n=>norm(n)===norm(c.name))?'checked':''}></label>`).join(''):'<span class="hint">Escribe abajo el correo de la persona.</span>';}
+  function openShare(it){shIt=it;
+    $('#shWhat').textContent=fullName(it)+(it.store?' · '+shopOf(it):'');
+    $('#shLogin').hidden=!!me;$('#shBody').hidden=!me;$('#shSave').hidden=!me;
+    if(me)drawSharePeople(it.shareWith||[]);
+    $('#shNative').hidden=!(navigator.share&&safeUrl(it.url));
+    $('#shareBg').hidden=$('#shareSheet').hidden=false;}
+  function closeShare(){$('#shareBg').hidden=$('#shareSheet').hidden=true;shIt=null;}
+  $('#shareBg').addEventListener('click',closeShare);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#shareSheet').hidden)closeShare();});
+  $('#shLoginBtn').addEventListener('click',()=>{closeShare();$('#loginGoogle').click();});
+  $('#shAdd').addEventListener('submit',async e=>{e.preventDefault();const m=lc($('#shMail').value);
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){setStatus('Ese correo no es válido.','err');return;}
+    if(me&&lc(me.email)===m){setStatus('Ese es tu propio correo.','err');return;}
+    const cur=[...document.querySelectorAll('#shPeople [data-shn]')].filter(x=>x.checked).map(x=>x.dataset.shn);
+    let c=(profile.contacts||[]).find(x=>lc(x.email)===m);
+    if(!c){c={name:nameFromMail(m),email:m};let n=c.name,k=2;while((profile.contacts||[]).some(x=>norm(x.name)===norm(n)))n=c.name+' '+(k++);c.name=n;profile.contacts=[...(profile.contacts||[]),c];await saveProfile();drawContacts();}
+    $('#shMail').value='';drawSharePeople([...cur,c.name]);});
+  $('#shSave').addEventListener('click',async()=>{if(!shIt)return;
+    const on=[...document.querySelectorAll('#shPeople [data-shn]')].filter(x=>x.checked).map(x=>x.dataset.shn);
+    const list=$('#shGroup').checked?items.filter(i=>key(groupName(i))===key(groupName(shIt))&&(i.status||'pending')===(shIt.status||'pending')):[shIt];
+    for(const i of list){i.shareWith=on;await put('items',i);}
+    closeShare();render();setStatus(on.length?`Compartido con ${on.join(', ')}${list.length>1?` (${list.length} tiendas)`:''}.`:'Ya no lo compartes con nadie.');});
+  $('#shNative').addEventListener('click',async()=>{if(!shIt)return;const it=shIt;try{await navigator.share({title:fullName(it),text:`${fullName(it)} — ${eur(calc(it).total)} en ${shopOf(it)}`,url:safeUrl(it.url)});}catch(e){}});
   // ---- inicio de sesión ----
   function drawAuth(){
     if(!FIREBASE_CONFIG){$('#authBar').hidden=true;return;}
