@@ -331,6 +331,38 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
 .selbar{border-top:0;box-shadow:0 -6px 24px rgba(20,24,40,.18)}
 @media (min-width:700px){.addrow{grid-template-columns:auto auto 1fr}.summary .tagbig{flex:0 1 auto;min-width:300px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* Espacios: mis compras / compartido */
+.spacebar{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-top:2px}
+.spacebar::-webkit-scrollbar{display:none}
+.spacebar button{flex:none;display:flex;align-items:center;gap:10px;border:0;border-radius:var(--r-md);background:var(--surface);color:var(--fg);padding:10px 14px 10px 10px;font:650 .95rem var(--f-body);cursor:pointer;box-shadow:inset 0 0 0 1px var(--line)}
+.spacebar button .av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:800 .85rem var(--f-display);background:var(--accent-soft);color:var(--accent)}
+.spacebar button .av svg{width:17px;height:17px}
+.spacebar button small{display:block;font-weight:500;font-size:.75rem;color:var(--muted)}
+.spacebar button[aria-pressed="true"]{background:var(--fg);color:var(--bg);box-shadow:none}
+.spacebar button[aria-pressed="true"] small{color:inherit;opacity:.7}
+.spacebar button[aria-pressed="true"] .av{background:var(--tag);color:var(--tag-fg)}
+.spacebar button:disabled{opacity:.55;cursor:default}
+/* Rejilla de categorías */
+.catgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:560px){.catgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cattile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:10px;text-align:left;border:0;border-radius:var(--r-lg);background:var(--surface);color:var(--fg);padding:14px 14px 13px;cursor:pointer;min-height:132px;overflow:hidden}
+.cattile .ic{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:var(--h-soft);color:var(--h)}
+.cattile .ic svg{width:28px;height:28px}
+.cattile b{font:780 1.02rem/1.2 var(--f-display);font-variation-settings:"wdth" 88;overflow-wrap:anywhere}
+.cattile small{font-size:.8rem;color:var(--muted);margin-top:-6px}
+.cattile .n{position:absolute;top:12px;right:12px;font:800 .85rem var(--f-display);color:var(--muted)}
+.cattile.all{background:var(--fg);color:var(--bg)}
+.cattile.all small,.cattile.all .n{color:inherit;opacity:.7}
+.cattile.all .ic{background:var(--tag);color:var(--tag-fg)}
+.cattile:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.cattile:active{transform:scale(.98)}
+.catback{display:flex;align-items:center;gap:12px;margin:2px 0 4px}
+.catback .ic{width:44px;height:44px;border-radius:13px;display:flex;align-items:center;justify-content:center;background:var(--h-soft);color:var(--h);flex:none}
+.catback .ic svg{width:26px;height:26px}
+.catback h2{margin:0;font:850 1.4rem/1.1 var(--f-display);font-variation-settings:"wdth" 78;flex:1;min-width:0;overflow-wrap:anywhere}
+.catback h2 small{display:block;font:500 .82rem var(--f-body);color:var(--muted);margin-top:2px}
+body.shared-space .summary,body.shared-space .addrow,body.shared-space .tabs,body.shared-space #quick,body.shared-space #moreF{display:none!important}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -340,6 +372,7 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
     <h1>Comparador</h1>
     <button class="iconbtn" id="openSettings" type="button" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
+  <nav class="spacebar" id="spaceBar" aria-label="De quién son las compras"></nav>
 
   <div class="authbar" id="authBar" hidden>
     <b id="authTxt"></b>
@@ -683,7 +716,7 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
     {const pend=items.filter(i=>(i.status||'pending')==='pending');const keep=flt.state;
       for(const k of ['missing','nocat','nophoto']){flt.state=k;const n=pend.filter(stateOk).length;$('#qn-'+k).textContent=n;}
       flt.state=keep;document.querySelectorAll('#quick [data-qs]').forEach(b=>b.classList.toggle('on',b.dataset.qs===flt.state));}
-    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent,flt.person&&(flt.person===ME?'Para mí':'Para '+flt.person)].filter(Boolean);
+    const on=[flt.q&&`«${flt.q}»`,(tab==='compare'||tab==='shared')?'':flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent,flt.person&&(flt.person===ME?'Para mí':'Para '+flt.person)].filter(Boolean);
     $('#activeFlt').hidden=!on.length;
     $('#activeFltTxt').textContent=on.length?'Filtrando: '+on.join(' · '):'';
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
@@ -700,7 +733,7 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
   $('#fState').addEventListener('change',e=>{flt.state=e.target.value;render();});
   $('#fPerson').addEventListener('change',e=>{flt.person=e.target.value;render();});
   $('#quick').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;flt.state=flt.state===b.dataset.qs?'':b.dataset.qs;tab='compare';render();$('#view').scrollIntoView({behavior:'smooth',block:'start'});});
-  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state=flt.person='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
+  function goHome(){allMode=false;space='mine';flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state=flt.person='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
   $('#showAll').addEventListener('click',goHome);
   $('#homeBtn').addEventListener('click',goHome);
   document.querySelector('h1').addEventListener('click',goHome);document.querySelector('h1').style.cursor='pointer';
@@ -768,7 +801,69 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
     c.closest('.offer')&&c.closest('.offer').classList.toggle('sel',c.checked);drawSelBar();if(cmpOpen)render();});
 
   // ---------- render ----------
+
+  // ---------- espacios (mis compras / compartido) y categorías con icono ----------
+  let space='mine';
+  const ICONS={
+    pistol:'<path d="M2.5 7.5h16l1.5 1.5v2.5h-5.5l-1 2.5h-2.6l-1.2 5H5.4l1.4-7.5H2.5z"/><path d="M11.2 11.5v2"/>',
+    rifle:'<path d="M2 10.5h12l1.5-1.5H22v3h-4.5l-1.5 1.5h-3l-1 3.5H9.5l.8-3.5H5L2 14z"/><path d="M8 10.5V8.5h3v2"/>',
+    revolver:'<path d="M3 8h12l1-1h3v3h-3"/><circle cx="12" cy="11" r="2.4"/><path d="M9.6 11.5 8 19H4.6l1.6-7.5"/><path d="M3 8v3h3"/>',
+    mag:'<path d="M8.5 3h7l-1.2 18H9.8z"/><path d="M9.5 8h5M9.6 12h4.8M9.8 16h4.4"/>',
+    ammo:'<circle cx="7" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><circle cx="11.5" cy="16" r="3"/>',
+    power:'<rect x="5" y="6" width="14" height="14" rx="2"/><path d="M9 3h6v3H9zM12.5 10l-2.5 4h4l-2.5 4"/>',
+    optic:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="2"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/>',
+    gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+    tool:'<path d="M14.7 6.3a4 4 0 0 0-5.3 5.3L3.5 17.5l3 3 5.9-5.9a4 4 0 0 0 5.3-5.3l-2.4 2.4-2.9-.7-.7-2.9z"/>',
+    vest:'<path d="M8.5 3 4 6v15h6v-6h4v6h6V6l-4.5-3-1.8 4h-3.4z"/>',
+    brick:'<rect x="3" y="9" width="18" height="11" rx="1.5"/><rect x="6" y="5.5" width="4" height="3.5" rx="1"/><rect x="14" y="5.5" width="4" height="3.5" rx="1"/>',
+    tech:'<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M11 18h2"/>',
+    home:'<path d="M3 11 12 3.5 21 11v10h-6v-6H9v6H3z"/>',
+    leaf:'<path d="M5 20c0-9.5 6-15 15-15 0 9.5-5.5 15-15 15z"/><path d="M5 20l8-8"/>',
+    book:'<path d="M4 4.5h7a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H4zM20 4.5h-5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h5z"/>',
+    gift:'<rect x="3.5" y="8.5" width="17" height="4" rx="1"/><path d="M5 12.5V20h14v-7.5M12 8.5V20M12 8.5C10 4 6.5 5 7.5 7.5c.5 1 4.5 1 4.5 1s4-.1 4.5-1c1-2.5-2.5-3.5-4.5 1"/>',
+    car:'<path d="M3 16v-4l2.5-5h13L21 12v4z"/><circle cx="7.5" cy="16.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>',
+    shirt:'<path d="M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3a3 3 0 0 1-8 0z"/>',
+    bag:'<path d="M5 8h14l-1.2 13H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
+    all:'<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>',
+    none:'<path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><circle cx="12" cy="17.5" r=".6" fill="currentColor"/><circle cx="12" cy="12" r="9"/>',
+    me:'<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+    users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c1-3.5 3.5-5.5 6.5-5.5s5.5 2 6.5 5.5"/><path d="M15.5 4.8a3.5 3.5 0 0 1 0 6.4M18 14.8c1.7.8 2.9 2.5 3.5 5.2"/>'};
+  const CAT_RULES=[[/revólver|revolver/i,'revolver'],[/pistol/i,'pistol'],[/rifle|fusil|escopet|subfusil|carabin|sniper|francotir|aeg\b|ametrall/i,'rifle'],[/cargador/i,'mag'],
+    [/munici|\bbbs?\b|bolas|balines|perdigon/i,'ammo'],[/gas|bater|co2|cargador de bater|energ/i,'power'],[/óptic|optic|visor|mira|red dot|linterna/i,'optic'],
+    [/interna|engranaj|gearbox|hop/i,'gear'],[/extern|accesori|herramient|repuesto|pieza/i,'tool'],[/equip|chaleco|táctic|tactic|funda|cartuchera|protecc/i,'vest'],
+    [/ropa|camis|pantal|zapat|calzado|bota/i,'shirt'],[/lego|juguet|juego|puzzle|construcc/i,'brick'],[/electr|móvil|movil|ordenador|tablet|informát|tecnolog|audio/i,'tech'],
+    [/hogar|casa|cocina|mueble|decor/i,'home'],[/jard|huerto|planta|semilla|riego/i,'leaf'],[/libro|cómic|comic/i,'book'],[/regalo/i,'gift'],[/coche|moto|auto/i,'car']];
+  const HUES=[['#2B44D6','#E7EAFB'],['#0F7A5A','#DDF3EA'],['#B5401F','#FBE6DD'],['#7A3EC8','#EFE5FB'],['#9A6B00','#FBF0D2'],['#0B6E8F','#DCF0F7'],['#B32563','#FBE2EC']];
+  const HUES_D=[['#9AA7FF','#252C52'],['#5ED3A6','#173329'],['#FF9A78','#3D2219'],['#C6A2FF','#2E2349'],['#F5C64F','#3A2F12'],['#6CCDEB','#13303A'],['#FF8DBA','#3B1A29']];
+  function catIcon(c){if(c===NOCAT)return 'none';for(const [re,k] of CAT_RULES)if(re.test(c))return k;return 'bag';}
+  function svgI(k){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[k]||ICONS.bag}</svg>`;}
+  function hueOf(c){let h=0;for(const ch of String(c))h=(h*31+ch.charCodeAt(0))>>>0;const dark=matchMedia('(prefers-color-scheme: dark)').matches;const [a,b]=(dark?HUES_D:HUES)[h%HUES.length];return `--h:${a};--h-soft:${b}`;}
+  function owners(){try{return [...sharedOwners.entries()].filter(([,o])=>o.items.size);}catch(e){return [];}}
+  function initials(n){return clean(n).split(/\s+|@/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('')||'?';}
+  function renderSpaces(){
+    const os=owners();if(space!=='mine'&&!os.some(([k])=>k===space))space='mine';
+    document.body.classList.toggle('shared-space',space!=='mine');
+    const mine=items.filter(i=>(i.status||'pending')==='pending').length;
+    $('#spaceBar').innerHTML=`<button type="button" data-space="mine" aria-pressed="${space==='mine'}"><span class="av">${svgI('me')}</span><span>Mis compras<small>${mine} pendientes</small></span></button>`+
+      (os.length?os.map(([k,o])=>{const n=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt').length;return `<button type="button" data-space="${esc(k)}" aria-pressed="${space===k}"><span class="av">${esc(initials(o.name))}</span><span>De ${esc(clean(o.name).split(/\s|@/)[0])}<small>${n} compartidos</small></span></button>`;}).join('')
+      :`<button type="button" disabled><span class="av">${svgI('users')}</span><span>Compartido<small>nadie aún</small></span></button>`);
+  }
+  $('#spaceBar').addEventListener('click',e=>{const b=e.target.closest('[data-space]');if(!b)return;space=b.dataset.space;flt.cat='';flt.q='';$('#q').value='';tab=space==='mine'?'compare':'shared';render();window.scrollTo({top:0,behavior:'smooth'});});
+  // Rejilla de categorías: se muestra en «Comparar» (y en lo compartido) cuando no hay categoría ni búsqueda.
+  const showGrid=()=>!flt.cat&&!flt.q&&!flt.plat&&!flt.shop&&!flt.tag&&!flt.state&&!flt.person;
+  function catGrid(list,totalOf){
+    const m=new Map();list.forEach(i=>{const c=catOf(i);if(!m.has(c))m.set(c,[]);m.get(c).push(i);});
+    const cats=[...m.entries()].sort((a,b)=>a[0]===NOCAT?1:b[0]===NOCAT?-1:b[1].length-a[1].length||a[0].localeCompare(b[0],'es'));
+    const tot=v=>v.reduce((s,i)=>s+totalOf(i),0);
+    return `<div class="catgrid"><button type="button" class="cattile all" data-cat="*"><span class="ic">${svgI('all')}</span><b>Todo</b><small>${eur(tot(list))}</small><span class="n">${list.length}</span></button>`+
+      cats.map(([c,v])=>`<button type="button" class="cattile" style="${hueOf(c)}" data-cat="${esc(c)}"><span class="ic">${svgI(catIcon(c))}</span><b>${esc(c)}</b><small>${eur(tot(v))}</small><span class="n">${v.length}</span></button>`).join('')+`</div>`;
+  }
+  function catBack(n){if(!flt.cat)return '';return `<div class="catback" style="${hueOf(flt.cat)}"><button class="iconbtn" type="button" data-cat="" aria-label="Volver a categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ic">${svgI(catIcon(flt.cat))}</span><h2>${esc(flt.cat)}<small>${n} ${n===1?'producto':'productos'}</small></h2></div>`;}
+  let allMode=false;
+  $('#view').addEventListener('click',e=>{const t=e.target.closest('[data-cat]');if(!t)return;const c=t.dataset.cat;
+    if(c==='*'){allMode=true;flt.cat='';}else{allMode=false;flt.cat=c;}saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});});
   function render(){
+    renderSpaces();
     const pend=groups('pending');
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
@@ -870,10 +965,16 @@ form.add h2,.settings h2,.picker h2{font:800 1.25rem var(--f-display);font-varia
       <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button>${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<details class="more-a"><summary>Más</summary><div class="menu">${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
   }
   function renderCompare(gs){
+    if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
+      return catGrid(gs.map(g=>g.offers[0]),i=>bestOf.get(i.id)||0);}
+    const back=flt.cat?catBack(gs.length):(allMode&&showGrid()?`<div class="catback" style="${hueOf('Todo')}"><button class="iconbtn" type="button" data-cat="" aria-label="Volver a categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ic">${svgI('all')}</span><h2>Todo<small>${gs.length} productos</small></h2></div>`:'');
+    return back+renderCompare0(gs);
+  }
+  function renderCompare0(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
     let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
-      const head=g.cat!==last?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
+      const head=g.cat!==last&&!flt.cat?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
       const valid=g.offers.filter(o=>!isUnread(o));const single=valid.length<2;
       const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null,lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):null;
       const line=lp?`<div class="bestline"><span>Mejor precio: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}</span><span>Mejor total (portes e importación): <b>${eur(calc(lt).total)}</b> en ${esc(shopOf(lt))}</span></div>`:'';
@@ -1983,9 +2084,11 @@ Productos: ${JSON.stringify(list)}`;
     },()=>{}));
   }
   function renderShared(){
-    const owners=[...sharedOwners.values()].filter(o=>o.items.size);
+    const owners=[...sharedOwners.entries()].filter(([k,o])=>o.items.size&&(space==='mine'||k===space)).map(([,o])=>o);
     if(!owners.length)return `<div class="empty">Nadie ha compartido nada contigo todavía.</div>`;
-    return `<div class="list">${owners.map(o=>{const list=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i));
+    if(space!=='mine'&&showGrid()&&!allMode){const all=[...owners[0].items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt');if(all.length)return catGrid(all,i=>calc(i).total);}
+    const backS=flt.cat?catBack([...owners[0].items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i)).length):'';
+    return backS+`<div class="list">${owners.map(o=>{const list=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i));
       return `<article class="person"><header><h3>👥 ${esc(o.name)}</h3><span class="hint">${list.length} productos</span></header>
         ${list.map(i=>{const u=safeUrl(i.url);return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${(i.images||[]).length?imgTag(i.images[0],'class="pic"'):''}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
           <div class="meta">${i.status==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b> · ':''}${esc(shopOf(i))} · ${esc(catOf(i))}</div></div></div><div class="total">${eur(calc(i).total)}</div></div>`;}).join('')}</article>`;}).join('')}</div>`;
