@@ -71,6 +71,12 @@ h1{font-family:var(--f-display);font-weight:700;font-size:1.6rem;letter-spacing:
 details.desc{grid-column:1/-1;font-size:.88rem}
 details.desc summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.82rem}
 details.desc p{margin:6px 0 0;white-space:pre-line;overflow-wrap:anywhere}
+table.specs{width:100%;border-collapse:collapse;margin-top:6px;font-size:.84rem}
+table.specs th{text-align:left;font-weight:500;color:var(--muted);padding:3px 8px 3px 0;width:48%;vertical-align:top}
+table.specs td{padding:3px 0;overflow-wrap:anywhere}
+table.specs tr+tr th,table.specs tr+tr td{border-top:1px solid rgba(127,127,127,.18)}
+.specgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:8px}
+.specgrid label{font-size:.75rem}
 .row-actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .diff{font-size:.78rem;color:var(--muted);font-family:var(--f-mono);text-align:right}
 .list{display:flex;flex-direction:column;gap:10px}
@@ -334,6 +340,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c3"><label for="fShip">Envío</label><div class="disc"><input id="fShip" inputmode="decimal" placeholder="0"><select id="fShipCur" aria-label="Moneda del envío" style="width:96px"></select></div></div>
     <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
     <div class="f c6"><label for="fDesc">Descripción</label><textarea id="fDesc"></textarea></div>
+    <details class="f c6" id="specBox" hidden><summary><b>Ficha técnica (armas y réplicas)</b> <span class="hint">· se rellena sola al leer la web</span></summary><div class="specgrid" id="specGrid"></div></details>
     <div class="f c6"><label for="fNotes">Notas</label><input id="fNotes"></div>
     <div class="f c6"><label>Imágenes (la primera es la principal)</label>
       <div class="f" style="margin-bottom:6px"><input id="fCopyImg" list="copyList" placeholder="Copiar solo las fotos de otro producto: escribe y elige…" autocomplete="off" aria-label="Copiar fotos desde otro producto"></div>
@@ -613,6 +620,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${row('Refs',i=>[i.sku&&'Ref. '+esc(i.sku),i.mpn&&'Fab. '+esc(i.mpn),i.ean&&'EAN '+esc(i.ean)].filter(Boolean).join('<br>')||'—')}
       ${row('Categoría',i=>esc(catOf(i))+(i.platform?'<br>'+esc(i.platform):''))}
       ${row('Comparado como',i=>esc(groupName(i)))}
+      ${SPECS.filter(([k])=>list.some(i=>i.specs&&i.specs[k])).map(([k,l])=>row(esc(l),i=>esc((i.specs||{})[k]||'—'))).join('')}
       ${row('Descripción',i=>`<div style="max-height:160px;overflow:auto;white-space:pre-line">${esc(i.description||'—')}</div>`)}
     </table></div>`;
   }
@@ -728,6 +736,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${it.orig?`<div class="compat">Precio original: <b>${fmtCur(it.orig.price,it.orig.currency)}</b>${it.orig.shipping?` + ${fmtCur(it.orig.shipping,it.orig.shipCurrency||it.orig.currency)} envío`:''} · cambio 1 € = ${fmtNum(it.orig.rate,it.orig.rate>=100?0:3)} ${it.orig.currency}${it.orig.shipCurrency&&it.orig.shipCurrency!==it.orig.currency?` · 1 € = ${fmtNum(it.orig.shipRate,it.orig.shipRate>=100?0:3)} ${it.orig.shipCurrency}`:''}</div>`:''}
       ${gal}
       ${it.description?`<details class="desc"><summary>Descripción</summary><p>${esc(it.description)}</p></details>`:''}
+      ${specsHtml(it)}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histHtml(it)}
       <div class="row-actions"><button class="btn small" data-act="bought" data-id="${it.id}">Comprado aquí</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}<button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}${noPhoto.has(it.id)?`<button class="btn small primary" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></div>`;
@@ -838,6 +847,18 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     catch(e){$('#bmCode').select();setStatus('Mantén pulsado el cuadro de texto → Seleccionar todo → Copiar.','err');}});
   $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);ls.set('watchOn',$('#watchOn').checked?'1':'0');ls.set('watchDays',String(num($('#watchDays').value)||2));ls.set('watchMax',String(num($('#watchMax').value)||6));ls.set('impVat',String(num($('#impVat').value)));ls.set('impFee',String(num($('#impFee').value)));ls.set('impBank',String(num($('#impBank').value)));$('#settings').hidden=true;render();setStatus('Ajustes guardados.');});
 
+  // ---------- ficha técnica de armas / réplicas ----------
+  const SPECS=[['system','Sistema','1x 12 g CO₂, Green gas, Muelle, Eléctrica…'],['fps','Velocidad (FPS)','443 fps'],['ms','Velocidad de salida (m/s)','135 m/s'],['joules','Potencia (J)','2 J'],
+    ['blowback','Blowback','Sí / No'],['caliber','Calibre','6 mm BB, 4,5 mm acero…'],['hopup','Hop-up','Ajustable / Fijo / No'],['fireMode','Modo de disparo','Semi, Full…'],
+    ['material','Material','Metal'],['body','Material cuerpo/receiver','Metal'],['length','Longitud','216 mm'],['weight','Peso','818 g'],['barrel','Cañón interior','100 mm'],
+    ['magCap','Capacidad del cargador','15 rds'],['magType','Tipo de cargador','Mid-cap, Hi-cap…'],['magMaterial','Material del cargador','Metal'],
+    ['bbWeight','BBs recomendadas','0,20 g'],['shotsPerFill','Disparos por carga/cápsula','≈40'],['safety','Seguro','Palanca'],['holster','Tipo de funda','A, D'],['color','Color','Negro'],['included','Incluye','1 cargador, llave…']];
+  const WEAPON_RE=/pistol|rev[oó]lver|escopet|rifle|fusil|carabin|francotirad|sniper|r[eé]plica|\barmas?\b|aeg|aep|gbb|smg|ametrallad|lanzagranad|airgun|aire comprimido|co2/i;
+  function cleanSpecs(o){const r={};if(!o||typeof o!=='object')return r;SPECS.forEach(([k])=>{let v=o[k];if(typeof v==='boolean')v=v?'Sí':'No';v=clean(v==null?'':String(v));if(v&&!/^(n\/?a|-|—|null|undefined)$/i.test(v))r[k]=v;});return r;}
+  const hasSpecs=it=>!!(it&&it.specs&&Object.keys(it.specs).length);
+  function specsHtml(it){if(!hasSpecs(it))return '';return `<details class="desc"><summary>Ficha técnica</summary><table class="specs">${SPECS.filter(([k])=>it.specs[k]).map(([k,l])=>`<tr><th>${esc(l)}</th><td>${esc(it.specs[k])}</td></tr>`).join('')}</table></details>`;}
+  function mergeSpecs(dst,src){const a=cleanSpecs(dst),b=cleanSpecs(src);Object.keys(b).forEach(k=>{if(!a[k])a[k]=b[k];});return a;}
+
   // ---------- Claude ----------
   const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con esta forma: {"products":[ ...un objeto por producto... ]}
 Cada objeto de producto lleva estas claves:
@@ -863,6 +884,7 @@ Cada objeto de producto lleva estas claves:
  "freeFrom": importe mínimo para envío gratis si aparece, si no 0,
  "description": descripción del producto en español, fiel a la tienda, con las características y especificaciones clave (máx. 900 caracteres, puedes usar saltos de línea),
  "images": lista de URLs absolutas de las fotos del producto (galería principal, en la mayor resolución disponible, máx. 8; nada de logos, iconos ni otros productos),
+ "specs": SOLO si el producto es un arma o réplica (airsoft, aire comprimido, CO2, balines, etc.: pistolas, revólveres, rifles, escopetas, subfusiles…), un objeto con su ficha técnica tal como la da la tienda (especificaciones, características, tabla técnica o descripción), con unidades y en español: {"system": sistema de propulsión ("1x 12 g CO₂", "Green gas", "Muelle", "Eléctrica"…), "fps": velocidad en FPS, "ms": velocidad de salida en m/s, "joules": potencia/energía en julios, "blowback": "Sí"/"No", "caliber": calibre ("6 mm BB", "4,5 mm acero"…), "hopup": hop-up, "fireMode": modos de disparo, "material", "body": material del cuerpo/receiver, "length": longitud, "weight": peso, "barrel": longitud del cañón interior, "magCap": capacidad del cargador, "magType": tipo de cargador (Low/Mid/Hi-cap), "magMaterial": material del cargador, "bbWeight": peso de BB/munición recomendado, "shotsPerFill": disparos por cápsula o carga, "safety": seguro, "holster": tipo de funda, "color", "included": qué incluye la caja}. Omite las claves que no aparezcan (no las inventes ni las calcules). Para cualquier otro producto, {},
  "availability": disponibilidad tal como la indica la tienda, corta: "En stock", "Agotado", "Pocas unidades", "Bajo pedido", "Reserva"… "" si no aparece,
  "notes": una frase con otros datos útiles: precio anterior tachado, fin de la oferta, plazo de entrega. "" si nada,
  "shot": (solo con capturas) índice empezando en 0 de la captura donde aparece este producto,
@@ -903,7 +925,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
     for(const b of images||[])content.push({type:'image',source:{type:'base64',media_type:b.type||'image/jpeg',data:await toB64(b)}});
-    const body={model:(images||[]).length?cfg.shotModel:cfg.model,max_tokens:4000,messages:[{role:'user',content}]};
+    const body={model:(images||[]).length?cfg.shotModel:cfg.model,max_tokens:8000,messages:[{role:'user',content}]};
     const headers={'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
     if(page){content.push({type:'text',text:PAGE_PROMPT(page)});}
     else if(url&&!(images||[]).length){
@@ -1000,7 +1022,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
       availability:clean(d.availability),currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
-      category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
+      specs:cleanSpecs(d.specs),category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
   // Une lo leído en la web con lo leído en la captura: precio y variante de la captura; el resto, lo más completo.
@@ -1011,6 +1033,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(d.shipping===0&&w.shipping>0)d.shipping=w.shipping;
     if(!d.freeFrom&&w.freeFrom)d.freeFrom=w.freeFrom;
     if(!d.variant&&w.variant)d.variant=w.variant;
+    d.specs=mergeSpecs(d.specs,w.specs);
     if(w.notes&&!d.notes.includes(w.notes))d.notes=[d.notes,w.notes].filter(Boolean).join(' ');
     d.imageUrls=[...w.imageUrls,...d.imageUrls];
     d.incomplete=!(d.price>0);
@@ -1137,7 +1160,14 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
     F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');F('fPeople').value=peopleList(it).join(', ');drawShareBox(it);
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
+    fillSpecs(it.specs);
   }
+  function drawSpecGrid(){$('#specGrid').innerHTML=SPECS.map(([k,l,ph])=>`<div class="f"><label for="sp_${k}">${esc(l)}</label><input id="sp_${k}" placeholder="${esc(ph)}"></div>`).join('');}
+  drawSpecGrid();
+  function fillSpecs(sp){sp=sp||{};SPECS.forEach(([k])=>{F('sp_'+k).value=sp[k]||'';});specVis();}
+  function readSpecs(){const o={};SPECS.forEach(([k])=>{o[k]=F('sp_'+k).value;});return cleanSpecs(o);}
+  function specVis(){const filled=SPECS.some(([k])=>clean(F('sp_'+k).value));const box=$('#specBox');box.hidden=!(filled||WEAPON_RE.test(F('fCategory').value+' '+F('fPlatform').value));if(filled)box.open=true;}
+  F('fCategory').addEventListener('input',specVis);F('fPlatform').addEventListener('input',specVis);
   // ---------- copiar datos de otro producto ----------
   const COPY_KEYS=['product','variant','brand','mpn','ean','category','platform','compat','tags','description'];
   const copyLabel=i=>`${fullName(i)} · ${shopOf(i)}`;
@@ -1145,6 +1175,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function copyFrom(src){
     COPY_KEYS.forEach(k=>{const id={product:'fProduct',variant:'fVariant',brand:'fBrand',mpn:'fMpn',ean:'fEan',category:'fCategory',platform:'fPlatform',compat:'fCompat',tags:'fTags',description:'fDesc'}[k];F(id).value=Array.isArray(src[k])?src[k].join(', '):(src[k]||'');});
     F('fGroup').value=groupName(src);
+    if(hasSpecs(src))fillSpecs(mergeSpecs(readSpecs(),src.specs));
     const add=(src.images||[]).filter(v=>!formImgs.includes(v));formImgs=[...formImgs,...add];renderImgEdit();drawAllChips();
     $('#copyHint').textContent=`Copiado de ${copyLabel(src)}. Rellena tienda, enlace, precio, portes y código.`;
   }
@@ -1250,6 +1281,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});if(me)d.shareWith=formShare();
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
     convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;
+    d.specs=readSpecs();
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
     if(!d.product)return;
     if(!d.group)d.group=fullName(d);
@@ -1521,6 +1553,7 @@ Ofertas: ${JSON.stringify(data)}`;
     if(d.discountType)it.discountType=d.discountType;if(d.code&&!it.code)it.code=d.code;
     if((d.description||'').length>(it.description||'').length)it.description=d.description;
     if(d.compat&&!it.compat)it.compat=d.compat;
+    if(hasSpecs(d))it.specs=mergeSpecs(it.specs,d.specs);
     if(safeUrl(d.url)&&!safeUrl(it.url))it.url=d.url;
     it.notes=clean(d.notes);it.incomplete=!!d.incomplete;
     if(!clean(it.group)||/^Sin leer/.test(it.group))it.group=autoGroup(it);
@@ -1530,7 +1563,7 @@ Ofertas: ${JSON.stringify(data)}`;
     ['price','Precio','m'],['discount','Descuento','m'],['code','Cupón'],['shipping','Envío','m'],['freeFrom','Envío gratis desde','m'],['availability','Disponibilidad'],
     ['category','Categoría'],['platform','Modelo / plataforma'],['compat','Aplica a'],['description','Descripción']];
   let rrItem=null,rrRead=null,rrRows=[],rrImgs=[];
-  const rrVal=(k,v,m)=>m?(num(v)>0?eur(num(v)):'—'):(k==='description'?esc(clean(v).slice(0,220))+(clean(v).length>220?'…':''):esc(clean(v)||'—'));
+  const rrVal=(k,v,m)=>k==='specs'?esc(SPECS.filter(([x])=>v&&v[x]).map(([x,l])=>l+': '+v[x]).join(' · ')||'—'):m?(num(v)>0?eur(num(v)):'—'):(k==='description'?esc(clean(v).slice(0,220))+(clean(v).length>220?'…':''):esc(clean(v)||'—'));
   async function rereadReview(it){
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     setStatus(`Volviendo a leer ${fullName(it)}…`,'busy');
@@ -1551,6 +1584,8 @@ Ofertas: ${JSON.stringify(data)}`;
       if(empty&&!/^Sin leer/.test(it.product||'')){auto.push(label);rrRows.push({k,label,m,cur,nv,on:true,empty:true});}
       else rrRows.push({k,label,m,cur,nv,on:empty||k==='price'||k==='shipping'||k==='freeFrom'||k==='availability'||/^Sin leer/.test(it.product||''),empty});
     }
+    if(hasSpecs(d)){const ms=mergeSpecs(it.specs,d.specs);const nAdd=Object.keys(ms).length-Object.keys(cleanSpecs(it.specs)).length;
+      if(nAdd>0)rrRows.push({k:'specs',label:'Ficha técnica',m:false,cur:it.specs,nv:ms,on:true,empty:!hasSpecs(it)});}
     const imgs=await grabImages(d.imageUrls);rrImgs=imgs.filter(v=>!(it.images||[]).includes(v));
     setStatus('');
     if(!rrRows.length&&!rrImgs.length){setStatus(`${fullName(it)}: todo coincide con ${how}. No hay nada que cambiar.`);return;}
