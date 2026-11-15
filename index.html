@@ -174,6 +174,20 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
 .miss button{font:600 .78rem var(--f-body);padding:3px 9px;border-radius:999px;border:1px solid var(--danger);background:var(--danger-soft);color:var(--fg);cursor:pointer}
 .f input.missing,.f select.missing,.f textarea.missing,.imgedit.missing,.chipbox.missing{outline:2px solid var(--danger);outline-offset:1px;border-color:var(--danger)}
 .imgedit.missing{border-radius:8px;padding:4px}
+.trend{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.8rem}
+.trend svg{flex:none}
+.trend .up{color:var(--danger);font-weight:700}.trend .down{color:#1F8A5B;font-weight:700}
+.alertbox{grid-column:1/-1;border:2px solid var(--danger);background:var(--danger-soft);border-radius:8px;padding:6px 8px;font-size:.8rem;font-weight:600}
+.okbox{grid-column:1/-1;border:2px solid #1F8A5B;border-radius:8px;padding:6px 8px;font-size:.8rem;font-weight:600}
+.chip.gift{background:#C2410C;color:#fff;text-transform:none;letter-spacing:0;font-size:.74rem}
+.person{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.person header{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.person h3{margin:0;font:700 1.1rem var(--f-display)}
+.person .sum{padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84rem;border-bottom:1px solid var(--line)}
+.person .sum b{font-family:var(--f-mono)}
+.person .bud{display:flex;align-items:center;gap:6px;font-size:.84rem}
+.person .bud input{width:90px;font:400 .9rem var(--f-body);padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}
+.person .over{color:var(--danger);font-weight:700}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -250,6 +264,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c2"><label for="impVat">IVA importación %</label><input id="impVat" inputmode="decimal"></div>
     <div class="f c2"><label for="impFee">Gestión aduana €</label><input id="impFee" inputmode="decimal"></div>
     <div class="f c2"><label for="impBank">Comisión banco %</label><input id="impBank" inputmode="decimal"></div>
+    <label class="selbox full"><input type="checkbox" id="watchOn"> Vigilar precios: al abrir la app, comprobar solos los productos con enlace</label>
+    <div class="f c3"><label for="watchDays">Cada cuántos días</label><input id="watchDays" inputmode="numeric"></div>
+    <div class="f c3"><label for="watchMax">Máximo por apertura</label><input id="watchMax" inputmode="numeric"></div>
+    <p class="hint full" style="margin:0">Cada comprobación cuesta unos céntimos. Las tiendas que bloquean la lectura se saltan.</p>
     <p class="hint full" style="margin:0">Se suman al total de las tiendas de fuera de la UE (la comisión del banco solo si se paga en otra moneda). Son estimaciones.</p>
     <div class="actions full">
       <button class="btn primary" id="saveSettings" type="button">Guardar</button>
@@ -276,6 +294,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <div class="f c3"><label for="fCategory">Categoría</label><input id="fCategory" list="catList" placeholder="Pistolas, Piezas internas…"><datalist id="catList"></datalist></div>
     <div class="f c3"><label for="fPlatform">Modelo / plataforma</label><input id="fPlatform" list="platList" placeholder="Hi-Capa 5.1, Glock 17, AK…"><datalist id="platList"></datalist></div>
     <div class="f c6"><label>Aplica a (modelos o tipos con los que sirve)</label><input id="fCompat" type="hidden"><div class="chipbox" data-for="fCompat" data-kind="applies"></div></div>
+    <div class="f c6"><label>Para quién (regalo). Vacío = para ti</label><input id="fPeople" type="hidden"><div class="chipbox" data-for="fPeople" data-kind="people"></div></div>
     <div class="f c6"><label>Etiquetas / subcategorías</label><input id="fTags" type="hidden"><div class="chipbox" data-for="fTags" data-kind="tags"></div></div>
     <div class="f c6"><label for="fGroup">Comparar junto con</label><input id="fGroup" list="groupList" placeholder="Mismo nombre = se comparan juntos"><datalist id="groupList"></datalist></div>
     <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
@@ -314,6 +333,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <select id="fPlat" aria-label="Modelo o plataforma"></select>
     <select id="fTag" aria-label="Etiqueta"></select>
     <select id="fShop" aria-label="Tienda"></select>
+    <select id="fPerson" aria-label="Para quién" style="grid-column:1/-1"></select>
     <select id="fState" aria-label="Estado" style="grid-column:1/-1">
       <option value="">Todos los estados</option>
       <option value="nophoto">Sin foto del producto</option>
@@ -321,6 +341,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       <option value="nocat">Sin clasificar (sin categoría)</option>
       <option value="out">Agotados</option>
       <option value="single">Solo en una tienda</option>
+      <option value="rising">Precio subiendo (ojo con falsos descuentos)</option>
+      <option value="lowest">En su precio más bajo</option>
     </select>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
@@ -337,6 +359,7 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     <button role="tab" id="tab-buy" aria-selected="false">Listo para comprar</button>
     <button role="tab" id="tab-done" aria-selected="false">Comprados</button>
     <button role="tab" id="tab-discarded" aria-selected="false">Descartados</button>
+    <button role="tab" id="tab-gifts" aria-selected="false">🎁 Regalos</button>
   </div>
   <section id="view"></section>
 </div>
@@ -437,10 +460,13 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   const splitList=v=>(Array.isArray(v)?v:String(v||'').split(/[,;]/)).map(clean).filter(Boolean);
   const compatList=it=>splitList(it.compat);
   const tagList=it=>splitList(it.tags);
+  const ME='Yo';
+  const peopleList=it=>splitList(it.people).filter(p=>norm(p)!==norm(ME));
+  const allPeople=()=>{const m=new Map();items.forEach(i=>peopleList(i).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,p);}));return [...m.values()].sort((a,b)=>a.localeCompare(b,'es'));};
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
   const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
-  const flt={q:'',cat:'',plat:'',shop:'',tag:'',state:''}; // cada vez que abres la app empieza sin filtros
+  const flt={q:'',cat:'',plat:'',shop:'',tag:'',state:'',person:''}; // cada vez que abres la app empieza sin filtros
   const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
   function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);localStorage.setItem('ftag',flt.tag);}catch(e){}}
@@ -450,10 +476,15 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     if(flt.state==='missing')return isUnread(it)||!!it.incomplete||!(num(it.shipping)>0||num(it.freeFrom)>0);
     if(flt.state==='nocat')return !clean(it.category)||/^otros$/i.test(clean(it.category));
     if(flt.state==='out')return /agotad|sin stock|no disponible/.test(norm(it.availability));
+    if(flt.state==='rising')return trendInfo(it).rising;
+    if(flt.state==='lowest')return trendInfo(it).lowest;
     if(flt.state==='single'){const k=key(groupName(it));return items.filter(o=>(o.status||'pending')==='pending'&&key(groupName(o))===k).length<2;}
     return true;
   }
+  function personOk(it){if(!flt.person)return true;const ps=peopleList(it);
+    if(flt.person===ME)return !ps.length;return ps.some(p=>norm(p)===norm(flt.person));}
   function matches(it){
+    if(!personOk(it))return false;
     if(!stateOk(it))return false;
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
@@ -480,10 +511,12 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const nu=items.filter(i=>(i.status||'pending')==='pending'&&isUnread(i)).length;
     $('#retryBtn').hidden=!nu||!cfg.key;$('#retryBtn').textContent=`Volver a leer ${nu} sin datos`;
     $('#fState').value=flt.state;
+    {const pp=allPeople();const cnt=p=>items.filter(i=>(i.status||'pending')!=='discarded'&&peopleList(i).some(x=>norm(x)===norm(p))).length;
+      $('#fPerson').innerHTML=`<option value="">🎁 Para todos</option><option value="${ME}" ${flt.person===ME?'selected':''}>Para mí</option>`+pp.map(p=>`<option value="${esc(p)}" ${norm(p)===norm(flt.person)?'selected':''}>Para ${esc(p)} (${cnt(p)})</option>`).join('');}
     {const pend=items.filter(i=>(i.status||'pending')==='pending');const keep=flt.state;
       for(const k of ['missing','nocat','nophoto']){flt.state=k;const n=pend.filter(stateOk).length;$('#qn-'+k).textContent=n;}
       flt.state=keep;document.querySelectorAll('#quick [data-qs]').forEach(b=>b.classList.toggle('on',b.dataset.qs===flt.state));}
-    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent].filter(Boolean);
+    const on=[flt.q&&`«${flt.q}»`,flt.cat,flt.plat,flt.tag&&('#'+flt.tag),flt.shop,flt.state&&$('#fState').selectedOptions[0].textContent,flt.person&&(flt.person===ME?'Para mí':'Para '+flt.person)].filter(Boolean);
     $('#activeFlt').hidden=!on.length;
     $('#activeFltTxt').textContent=on.length?'Filtrando: '+on.join(' · '):'';
     $('#catList').innerHTML=cats.filter(c=>c[0]!==NOCAT).map(c=>`<option value="${esc(c[0])}">`).join('');
@@ -498,8 +531,9 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   $('#fShop').addEventListener('change',e=>{flt.shop=e.target.value;saveFlt();render();});
   $('#fTag').addEventListener('change',e=>{flt.tag=e.target.value;saveFlt();render();});
   $('#fState').addEventListener('change',e=>{flt.state=e.target.value;render();});
+  $('#fPerson').addEventListener('change',e=>{flt.person=e.target.value;render();});
   $('#quick').addEventListener('click',e=>{const b=e.target.closest('[data-qs]');if(!b)return;flt.state=flt.state===b.dataset.qs?'':b.dataset.qs;tab='compare';render();$('#view').scrollIntoView({behavior:'smooth',block:'start'});});
-  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
+  function goHome(){flt.q=flt.cat=flt.plat=flt.shop=flt.tag=flt.state=flt.person='';selMode=false;sel.clear();cmpOpen=false;$('#q').value='';tab='compare';saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});}
   $('#showAll').addEventListener('click',goHome);
   $('#homeBtn').addEventListener('click',goHome);
   document.querySelector('h1').addEventListener('click',goHome);document.querySelector('h1').style.cursor='pointer';
@@ -573,10 +607,10 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(o=>!isUnread(o));return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
-    ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
+    ['compare','shops','buy','done','discarded','gifts'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     const v=$('#view');
     drawSelBar();
-    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():renderDiscarded());
+    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():renderDiscarded());
     const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';
@@ -597,6 +631,41 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     if(/pocas|ultimas|últimas|low/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
     if(/pedido|reserva|preorder/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
     return `<span class="chip ok">${esc(it.availability)}</span>`;}
+  // ---------- tendencia de precio ----------
+  // Avisa de subidas antes de campañas (Black Friday, Navidad) y de "descuentos" que no bajan del mínimo de los últimos 30 días.
+  const DAY=864e5;
+  function trendInfo(it){
+    const h=(it.history||[]).filter(x=>x.price>0).map(x=>({t:new Date(x.at).getTime(),p:x.price})).filter(x=>x.t).sort((a,b)=>a.t-b.t);
+    const now=num(it.price)>0?calc(it).after:(h.length?h[h.length-1].p:0);
+    const r={h,now,rising:false,lowest:false,fake:false,min30:0,max:0,min:0,pct:0,from:null};
+    if(h.length<2||!now)return r;
+    r.min=Math.min(...h.map(x=>x.p));r.max=Math.max(...h.map(x=>x.p));
+    const last=h[h.length-1].t;
+    const w30=h.filter(x=>x.t>=last-30*DAY&&x.t<last);r.min30=w30.length?Math.min(...w30.map(x=>x.p)):0;
+    const w45=h.filter(x=>x.t>=last-45*DAY);const lo45=w45.reduce((a,b)=>b.p<a.p?b:a,w45[0]);
+    r.pct=lo45&&lo45.p>0?(now-lo45.p)/lo45.p*100:0;r.from=lo45;
+    r.rising=r.pct>=8;
+    r.lowest=now<=r.min+0.005&&r.max-r.min>0.005;
+    // bajó respecto al máximo reciente, pero sigue por encima del mínimo de 30 días → descuento engañoso
+    const prev=h[h.length-2];r.fake=prev&&now<prev.p-0.005&&r.min30>0&&now>r.min30+0.005;
+    return r;
+  }
+  function spark(h){
+    if(h.length<2)return '';const W=110,H=26,P=3;const ps=h.map(x=>x.p),lo=Math.min(...ps),hi=Math.max(...ps),t0=h[0].t,t1=h[h.length-1].t||t0+1;
+    const X=t=>P+(t1===t0?0:(t-t0)/(t1-t0))*(W-2*P),Y=p=>hi===lo?H/2:P+(1-(p-lo)/(hi-lo))*(H-2*P);
+    const d=h.map((x,i)=>(i?'L':'M')+X(x.t).toFixed(1)+' '+Y(x.p).toFixed(1)).join(' ');const e=h[h.length-1];
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--accent)" stroke-width="1.8"/><circle cx="${X(e.t)}" cy="${Y(e.p)}" r="2.6" fill="var(--accent)"/></svg>`;
+  }
+  function trendHtml(it){
+    const r=trendInfo(it);if(r.h.length<2)return '';
+    const d=t=>new Date(t).toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit'});
+    const first=r.h[0].p,ch=(r.now-first)/first*100;
+    let html=`<div class="trend">${spark(r.h)}<span class="${ch>0.5?'up':ch<-0.5?'down':''}">${ch>0.5?'▲':ch<-0.5?'▼':'='} ${fmtNum(Math.abs(ch),0)} % desde ${d(r.h[0].t)}</span><span>mín ${eur(r.min)} · máx ${eur(r.max)}</span></div>`;
+    if(r.rising)html+=`<div class="alertbox">⚠ Ha subido un ${fmtNum(r.pct,0)} % desde ${eur(r.from.p)} (${d(r.from.t)}). Ojo: si ahora le ponen «descuento» puede ser falso.</div>`;
+    else if(r.fake)html+=`<div class="alertbox">⚠ Ha bajado, pero sigue por encima del mínimo de los últimos 30 días (${eur(r.min30)}). Descuento poco real.</div>`;
+    else if(r.lowest)html+=`<div class="okbox">✓ Precio más bajo registrado.</div>`;
+    return html;
+  }
   function histHtml(it){
     const h=(it.history||[]).filter(x=>x.price>0);if(h.length<1)return it.checkedAt?`<div class="hist">Comprobado ${new Date(it.checkedAt).toLocaleDateString('es-ES')}</div>`:'';
     const lo=h.reduce((a,b)=>b.price<a.price?b:a),hi=h.reduce((a,b)=>b.price>a.price?b:a),d=x=>new Date(x.at).toLocaleDateString('es-ES');
@@ -620,6 +689,8 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
       ${(it.category||it.platform)?`<div class="store">${it.category?`<span class="chip cat">${esc(it.category)}</span>`:''}${it.platform?`<span class="chip plat">${esc(it.platform)}</span>`:''}</div>`:''}
       ${it.compat?`<div class="compat">Aplica a: ${compatList(it).map(esc).join(', ')}</div>`:''}
       ${tagList(it).length?`<div class="store">${tagList(it).map(t=>`<span class="chip tag">${esc(t)}</span>`).join('')}</div>`:''}
+      ${peopleList(it).length?`<div class="store">${peopleList(it).map(p=>`<span class="chip gift">🎁 ${esc(p)}</span>`).join('')}</div>`:''}
+      ${trendHtml(it)}
       <div class="break"><span>${eur(c.price)}</span><span>${discTxt}</span><span>${shipTxt}</span>${c.imp?`<span>+${eur(c.imp)} importación</span>`:''}</div>
       ${impLine(c)}
       ${it.orig?`<div class="compat">Precio original: <b>${fmtCur(it.orig.price,it.orig.currency)}</b>${it.orig.shipping?` + ${fmtCur(it.orig.shipping,it.orig.shipCurrency||it.orig.currency)} envío`:''} · cambio 1 € = ${fmtNum(it.orig.rate,it.orig.rate>=100?0:3)} ${it.orig.currency}${it.orig.shipCurrency&&it.orig.shipCurrency!==it.orig.currency?` · 1 € = ${fmtNum(it.orig.shipRate,it.orig.shipRate>=100?0:3)} ${it.orig.shipCurrency}`:''}</div>`:''}
@@ -678,6 +749,31 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
     const save=worst-total;
     return `<div class="list">${rows}<div class="grand"><span>Total con envíos${save>0.005?`<br><span class="hint">Ahorras ${eur(save)} frente a lo más caro</span>`:''}</span><b>${eur(total)}</b></div></div>`;
   }
+  // ---------- regalos por persona ----------
+  const budgets=()=>{try{return JSON.parse(localStorage.getItem('budgets')||'{}');}catch(e){return {};}};
+  function renderGifts(){
+    const pp=allPeople().filter(p=>!flt.person||flt.person===ME||norm(p)===norm(flt.person));
+    if(!pp.length)return `<div class="empty">Aún no hay regalos. En <b>Editar</b> de un producto, en «Para quién», añade a la persona (por ejemplo Davinia o Younes) y aparecerá aquí.</div>`;
+    const bud=budgets();
+    return `<div class="list">${pp.map(p=>{
+      const mine=items.filter(i=>i.status!=='discarded'&&i.status!=='alt'&&peopleList(i).some(x=>norm(x)===norm(p)));
+      const pend=mine.filter(i=>(i.status||'pending')==='pending'),bought=mine.filter(i=>i.status==='bought');
+      // de lo pendiente, cuenta una vez cada producto (la oferta más barata del grupo)
+      const g=new Map();pend.forEach(i=>{if(isUnread(i))return;const k=key(groupName(i));const t=calc(i).total;if(!g.has(k)||t<g.get(k).t)g.set(k,{i,t});});
+      const pendTot=[...g.values()].reduce((a,b)=>a+b.t,0),spent=bought.reduce((a,i)=>a+(num(i.paid)||calc(i).total),0);
+      const b=num(bud[norm(p)]);const over=b>0&&spent+pendTot>b;
+      const row=(i,st)=>`<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div>
+        <div class="meta">${st==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b>':'Pendiente'} · ${esc(shopOf(i))}${st!=='bought'&&trendInfo(i).rising?' · <b style="color:var(--danger)">precio subiendo</b>':''}</div></div></div>
+        <div class="total">${eur(st==='bought'?(num(i.paid)||calc(i).total):calc(i).total)}</div>
+        <div class="row-actions">${st==='bought'?'':`<button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button>`}<button class="btn small" data-act="edit" data-id="${i.id}">Editar</button></div></div>`;
+      return `<article class="person"><header><h3>🎁 ${esc(p)}</h3><label class="bud">Presupuesto <input data-bud="${esc(norm(p))}" inputmode="decimal" value="${esc(numIn(b))}" placeholder="€"></label></header>
+        <div class="sum"><span>Comprado: <b>${eur(spent)}</b> (${bought.length})</span><span>Pendiente: <b>${eur(pendTot)}</b> (${g.size})</span><span class="${over?'over':''}">Total: <b>${eur(spent+pendTot)}</b>${b>0?` de ${eur(b)}${over?' · te pasas '+eur(spent+pendTot-b):' · quedan '+eur(b-spent-pendTot)}`:''}</span></div>
+        ${[...g.values()].map(x=>row(x.i,'pending')).join('')}${bought.map(i=>row(i,'bought')).join('')}
+        <div style="padding:10px 14px"><button class="btn small primary" type="button" data-addfor="${esc(p)}">+ Añadir regalo para ${esc(p)}</button></div></article>`;}).join('')}</div>`;
+  }
+  $('#view').addEventListener('change',e=>{const t=e.target.closest('[data-bud]');if(!t)return;const b=budgets();b[t.dataset.bud]=num(t.value);try{localStorage.setItem('budgets',JSON.stringify(b));}catch(err){}setTimeout(render,0);});
+  $('#view').addEventListener('click',e=>{const t=e.target.closest('[data-addfor]');if(!t)return;openForm(null);F('fPeople').value=t.dataset.addfor;drawAllChips();});
+
   function renderDiscarded(){
     const list=items.filter(i=>i.status==='discarded'&&matches(i)).sort((a,b)=>(b.discardedAt||'').localeCompare(a.discardedAt||''));
     if(!list.length)return `<div class="empty">Lo que descartes aparecerá aquí. Puedes recuperarlo cuando quieras.</div>`;
@@ -704,11 +800,11 @@ form.add h2,.settings h2{grid-column:1/-1;margin:0;font:700 1.05rem var(--f-disp
   // ---------- ajustes ----------
   const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
   const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')},shotModel:'claude-sonnet-5-5'};
-  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;$('#bmCode').value=bookmarklet();const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
+  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;{const w=watchCfg();$('#watchOn').checked=w.on;$('#watchDays').value=w.days;$('#watchMax').value=w.max;}$('#bmCode').value=bookmarklet();const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
   $('#bmCopy').addEventListener('click',async()=>{const t=bookmarklet();$('#bmCode').value=t;
     try{await navigator.clipboard.writeText(t);setStatus('Código copiado. Ahora crea el marcador en Chrome y pega el código en la URL.');}
     catch(e){$('#bmCode').select();setStatus('Mantén pulsado el cuadro de texto → Seleccionar todo → Copiar.','err');}});
-  $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);ls.set('impVat',String(num($('#impVat').value)));ls.set('impFee',String(num($('#impFee').value)));ls.set('impBank',String(num($('#impBank').value)));$('#settings').hidden=true;render();setStatus('Ajustes guardados.');});
+  $('#saveSettings').addEventListener('click',()=>{ls.set('apiKey',$('#apiKey').value.trim());ls.set('model',$('#model').value);ls.set('watchOn',$('#watchOn').checked?'1':'0');ls.set('watchDays',String(num($('#watchDays').value)||2));ls.set('watchMax',String(num($('#watchMax').value)||6));ls.set('impVat',String(num($('#impVat').value)));ls.set('impFee',String(num($('#impFee').value)));ls.set('impBank',String(num($('#impBank').value)));$('#settings').hidden=true;render();setStatus('Ajustes guardados.');});
 
   // ---------- Claude ----------
   const FIELDS=`Responde SOLO con un objeto JSON, sin texto alrededor, con esta forma: {"products":[ ...un objeto por producto... ]}
@@ -985,7 +1081,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -1007,7 +1103,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
     F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();
     if(!it.group)F('fGroup').value=it.product?groupName(it):'';
-    F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');
+    F('fCompat').value=compatList(it).join(', ');F('fTags').value=tagList(it).join(', ');F('fPeople').value=peopleList(it).join(', ');
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
   }
   // ---------- copiar datos de otro producto ----------
@@ -1162,7 +1258,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(act==='bought'){openBuy(it);return;}
     await put('items',it);render();
   });
-  ['compare','shops','buy','done','discarded'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
+  ['compare','shops','buy','done','discarded','gifts'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
@@ -1194,6 +1290,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function chipSuggest(kind){
     const m=new Map();const add=v=>{v=clean(v);const k=norm(v);if(v&&!m.has(k))m.set(k,v);};
     if(kind==='applies'){APPLY_DEF.forEach(add);items.forEach(i=>{splitList(i.platform).forEach(add);compatList(i).forEach(add);});}
+    else if(kind==='people'){allPeople().forEach(add);}
     else{items.forEach(i=>tagList(i).forEach(add));TAG_DEF.forEach(add);}
     return [...m.values()].sort((x,y)=>x.localeCompare(y,'es'));
   }
@@ -1274,6 +1371,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   // ---------- comprobar precio y disponibilidad ----------
   // Vuelve a leer la web de la oferta y guarda el precio en el histórico.
   async function checkItem(it){
+    it.checkErr='';
     if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
     const before=calc(it).total;
     if(!(it.history||[]).length&&num(it.price)>0)it.history=[{at:it.createdAt||new Date().toISOString(),price:calc(it).after,total:calc(it).total,avail:it.availability||''}];
@@ -1288,7 +1386,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       await put('items',it);
       const after=calc(it).total,diff=after-before;
       return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${num(d.price)>0?eur(after)+(Math.abs(diff)>0.005?` (${diff<0?'baja':'sube'} ${eur(Math.abs(diff))})`:' (sin cambios)'):'precio no encontrado'}${it.availability?' · '+it.availability:''}.`};
-    }catch(e){it.checkedAt=new Date().toISOString();await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
+    }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
   }
   $('#checkAllBtn').addEventListener('click',async()=>{
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
@@ -1341,6 +1439,20 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   $('#regroupBtn').addEventListener('click',()=>regroup(false));
   // Agrupa sola, como mucho una vez al día y solo si hay productos nuevos desde la última vez.
+  // Vigilar precios: al abrir la app comprueba unos pocos productos cuya última comprobación es antigua.
+  const watchCfg=()=>{const g=(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v;}catch(e){return d;}};return{on:g('watchOn','1')==='1',days:num(g('watchDays','2'))||2,max:num(g('watchMax','6'))||6};};
+  let watching=false;
+  async function autoWatch(){
+    const w=watchCfg();if(!w.on||!cfg.key||watching)return;
+    const due=items.filter(i=>(i.status||'pending')==='pending'&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
+      .sort((a,b)=>(a.checkedAt||'').localeCompare(b.checkedAt||'')).slice(0,w.max);
+    if(!due.length)return;watching=true;let ups=0,downs=0;
+    for(let i=0;i<due.length;i++){setStatus(`Vigilando precios ${i+1} de ${due.length}…`,'busy');const b=calc(due[i]).after;const r=await checkItem(due[i]);
+      if(r.ok){const d=calc(due[i]).after-b;if(d>0.005)ups++;if(d<-0.005)downs++;}}
+    watching=false;render();
+    const alerts=items.filter(i=>(i.status||'pending')==='pending'&&trendInfo(i).rising).length;
+    setStatus(`Precios vigilados: ${due.length} comprobados · ${downs} bajan · ${ups} suben${alerts?` · ${alerts} con subida reciente (filtro «Precio subiendo»)`:''}.`);
+  }
   async function autoRegroup(){
     if(!cfg.key)return;const n=items.filter(i=>(i.status||'pending')==='pending'&&!isUnread(i)).length;if(n<2)return;
     let last={};try{last=JSON.parse(localStorage.getItem('regroup')||'{}');}catch(e){}
@@ -1576,7 +1688,7 @@ Productos: ${JSON.stringify(list)}`;
     await drainInbox();
     await importFromHash();
     await scanPhotos();render();
-    autoRegroup();
+    autoRegroup().finally(()=>autoWatch());
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
   })();
 })();
