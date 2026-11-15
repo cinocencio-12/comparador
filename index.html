@@ -1025,8 +1025,28 @@ details.hlist td{padding:2px 10px 2px 0}
   function subChips(list){if(!flt.cat)return '';const m=new Map();list.forEach(i=>{const s=clean(i.sub);if(s)m.set(s,(m.get(s)||0)+1);});if(!m.size)return '';
     return `<div class="subchips"><button type="button" data-sub="" aria-pressed="${!flt.sub}">Todas</button>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<button type="button" data-sub="${esc(k)}" aria-pressed="${norm(flt.sub)===norm(k)}">${esc(k)} <b>${n}</b></button>`).join('')}</div>`;}
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(!b)return;flt.sub=b.dataset.sub;render();});
+
+  // ---------- botón «atrás» del móvil: vuelve un paso dentro de la app en vez de salir ----------
+  const vis=id=>{const e=document.getElementById(id);return e&&!e.hidden;};
+  function navDeep(){return vis('linkSheet')||vis('shareSheet')||vis('form')||vis('settings')||selMode||cmpOpen||!!flt.sub||!!flt.cat||allMode||!!flt.q||!!flt.state||space!=='mine'||tab!=='compare';}
+  function navEnsure(){try{if(navDeep()&&!(history.state&&history.state.cmp))history.pushState({cmp:1},'');}catch(e){}}
+  function navBack(){
+    if(vis('linkSheet')){closeLink();return true;}
+    if(vis('shareSheet')){closeShare();return true;}
+    if(vis('form')){closeForm();return true;}
+    if(vis('settings')){$('#settings').hidden=true;return true;}
+    if(selMode){$('#selModeBtn').click();return true;}
+    if(cmpOpen){cmpOpen=false;render();return true;}
+    if(flt.sub){flt.sub='';render();return true;}
+    if(flt.cat||allMode){flt.cat='';allMode=false;saveFlt();render();return true;}
+    if(flt.q||flt.state){flt.q='';flt.state='';$('#q').value='';render();return true;}
+    if(space!=='mine'){space='mine';tab='compare';render();return true;}
+    if(tab!=='compare'){tab='compare';render();return true;}
+    return false;}
+  window.addEventListener('popstate',()=>{if(navBack()){window.scrollTo({top:0});setTimeout(navEnsure,0);}else history.back();});
   function render(){
     renderSpaces();
+    setTimeout(navEnsure,0);
     $('#selTop').setAttribute('aria-pressed',String(!!selMode));
     const pend=groups('pending');
     $('#sProducts').textContent=pend.length;
@@ -1127,7 +1147,7 @@ details.hlist td{padding:2px 10px 2px 0}
       ${specsHtml(it)}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histBox(it)}
-      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small" data-link="${it.id}">Unir</button><details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Separar</button>`}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
+      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small" data-link="${it.id}">Unir</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Desunir</button>`}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
   }
   function renderCompare(gs){
     if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
@@ -1236,7 +1256,7 @@ details.hlist td{padding:2px 10px 2px 0}
   // ---------- ajustes ----------
   const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
   const cfg={get key(){return ls.get('apiKey','')},get model(){return ls.get('model','claude-haiku-4-5-20251001')},shotModel:'claude-sonnet-5-5'};
-  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;$('#apiKey').value=cfg.key;$('#model').value=cfg.model;{const w=watchCfg();$('#watchOn').checked=w.on;$('#watchDays').value=w.days;$('#watchMax').value=w.max;}$('#bmCode').value=bookmarklet();const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
+  $('#openSettings').addEventListener('click',()=>{const s=$('#settings');s.hidden=!s.hidden;setTimeout(navEnsure,0);$('#apiKey').value=cfg.key;$('#model').value=cfg.model;{const w=watchCfg();$('#watchOn').checked=w.on;$('#watchDays').value=w.days;$('#watchMax').value=w.max;}$('#bmCode').value=bookmarklet();const c=impCfg();$('#impVat').value=numIn(c.vat)||'0';$('#impFee').value=numIn(c.fee)||'0';$('#impBank').value=numIn(c.bank)||'0';});
   $('#bmCopy').addEventListener('click',async()=>{const t=bookmarklet();$('#bmCode').value=t;
     try{await navigator.clipboard.writeText(t);setStatus('Código copiado. Ahora crea el marcador en Chrome y pega el código en la URL.');}
     catch(e){$('#bmCode').select();setStatus('Mantén pulsado el cuadro de texto → Seleccionar todo → Copiar.','err');}});
@@ -1675,6 +1695,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
   $('#form').addEventListener('input',markMissing);$('#form').addEventListener('change',markMissing);
   function openForm(it){
+    setTimeout(navEnsure,0);
     editingId=it?it.id:null;$('#formTitle').textContent=it?'Editar':'Nuevo';
     $('#form').reset();fillForm(it||{});fillCopyList();$('#copyHint').textContent='';$('#imgSearch').hidden=true;formImgs=[...((it&&it.images)||[])];renderImgEdit();drawAllChips();$('#readHint').textContent='';markMissing();
     $('#form').hidden=false;$('#form').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1728,7 +1749,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       for(const a of items.filter(a=>a.status==='alt'&&a.altOf===it.id)){a.status='discarded';a.discardedAt=new Date().toISOString();a.discardReason='alternativa de una compra borrada';await put('items',a);}
       await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
-    if(act==='split'){it.group=fullName(it)+' · '+shopOf(it);await put('items',it);render();setStatus(`Separado: ${fullName(it)} (${shopOf(it)}) ya no se compara con las demás.`);return;}
+    if(act==='split'){it.group=fullName(it)+' · '+shopOf(it);await put('items',it);render();setStatus(`Desunido: ${fullName(it)} (${shopOf(it)}) ya va en su propia ficha.`);return;}
     if(act==='check'){b.disabled=true;b.textContent='Comprobando…';const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
     if(act==='rebuy'){
       const copy=JSON.parse(JSON.stringify({...it,images:[]}));copy.images=it.images||[];
@@ -1963,7 +1984,7 @@ Ofertas: ${JSON.stringify(data)}`;
         if(ids.length>1)joined++;
         for(const id of ids){const it=items.find(i=>i.id===id);if(it&&it.group!==clean(g.name)){it.group=clean(g.name);await put('items',it);changed++;}}}
       try{localStorage.setItem('regroup',JSON.stringify({t:Date.now(),n:items.length}));}catch(e){}
-      render();setStatus(`Agrupados: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, usa «Separar» o «Seleccionar» → «Unir».`);
+      render();setStatus(`Agrupados: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, usa «Desunir» o «Unir».`);
     }catch(e){if(!silent)setStatus('No se pudo agrupar: '+(e.message||e),'err');else setStatus('');}
     finally{b.disabled=false;}
   }
@@ -2336,7 +2357,7 @@ Productos: ${JSON.stringify(list)}`;
     html+=vis.map(r=>row(r)).join('')||'<span class="hint">Nada con esas palabras.</span>';
     $('#lkList').innerHTML=html;
     const n=lkSel.size+(lkIt?1:0);$('#lkGo').disabled=n<2;$('#lkGo').textContent=n<2?(lkIt?'Marca uno o más':'Marca al menos dos'):`Unir ${n} como el mismo`;}
-  function openLink(it,fromForm){lkIt=it||null;lkForm=!!fromForm;lkSel.clear();
+  function openLink(it,fromForm){lkIt=it||null;setTimeout(navEnsure,0);lkForm=!!fromForm;lkSel.clear();
     $('#lkTitle').textContent=it?'Es el mismo que…':'Unir productos iguales';
     $('#lkWhat').textContent=it?'Marca uno o varios que sean el mismo artículo en otras tiendas. Quedarán en una sola ficha.':'Marca los que sean el mismo artículo en tiendas distintas. Filtra por palabra para encontrarlos.';
     $('#lkQ').value='';drawLink();$('#linkBg').hidden=$('#linkSheet').hidden=false;}
@@ -2352,7 +2373,7 @@ Productos: ${JSON.stringify(list)}`;
     let n=0;const ks=new Set(keys);
     for(const it of items)if(ks.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);n++;}
     if(lkForm)F('fGroup').value=name;
-    closeLink();render();setStatus(`Unidos en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, «Más» → «Separar».`);});
+    closeLink();render();setStatus(`Unidos en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, pulsa «Desunir» en la oferta.`);});
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-link]');if(!b)return;const it=items.find(i=>i.id===b.dataset.link);if(it)openLink(it);});
   $('#qJoin').addEventListener('click',()=>openLink(null));
   $('#selTop').addEventListener('click',()=>{if(space!=='mine'){space='mine';tab='compare';}$('#selModeBtn').click();});
@@ -2364,7 +2385,7 @@ Productos: ${JSON.stringify(list)}`;
   const nameFromMail=m=>{const l=lc(m).split('@')[0].split(/[._-]/)[0]||m;return l.charAt(0).toUpperCase()+l.slice(1);};
   function drawSharePeople(on){const cs=(profile.contacts||[]).filter(c=>c.name&&c.email);
     $('#shPeople').innerHTML=cs.length?cs.map(c=>`<label><span class="av">${esc(initials(c.name))}</span><span class="t">${esc(c.name)}<small>${esc(c.email)}</small></span><input type="checkbox" data-shn="${esc(c.name)}" ${on.some(n=>norm(n)===norm(c.name))?'checked':''}></label>`).join(''):'<span class="hint">Escribe abajo el correo de la persona.</span>';}
-  function openShare(it){shIt=it;
+  function openShare(it){shIt=it;setTimeout(navEnsure,0);
     $('#shWhat').textContent=fullName(it)+(it.store?' · '+shopOf(it):'');
     $('#shLogin').hidden=!!me;$('#shBody').hidden=!me;$('#shSave').hidden=!me;
     if(me)drawSharePeople(it.shareWith||[]);
@@ -2444,7 +2465,7 @@ Productos: ${JSON.stringify(list)}`;
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     // Si hay una versión nueva publicada, se recarga sola (una vez).
-    const APP_V='2026-11-16c';
+    const APP_V='2026-11-16d';
     async function checkVersion(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=(await r.json()).v;
       if(v&&v!==APP_V&&sessionStorage.getItem('reloadedFor')!==v){sessionStorage.setItem('reloadedFor',v);location.replace(location.pathname+'?v='+encodeURIComponent(v));}}catch(e){}}
     checkVersion();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkVersion();});
