@@ -1714,7 +1714,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- nube: cuentas, sincronización entre dispositivos y compartir ----------
   // Firebase (Auth + Firestore). Cada usuario: users/{uid}/items/{id} y sus fotos en .../items/{id}/images/{img}.
   // profiles/{uid}: contactos con los que comparte. Un producto compartido lleva visibleTo=[correos] (sin los destinatarios del regalo).
-  const FIREBASE_CONFIG=null; // se rellena con los datos del proyecto de Firebase
+  const FIREBASE_CONFIG={apiKey:"AIzaSyCp21tWKey_zpHe3eCOMyVAuFge6YMlUMY",authDomain:"comparador12.firebaseapp.com",projectId:"comparador12",storageBucket:"comparador12.firebasestorage.app",messagingSenderId:"894121894602",appId:"1:894121894602:web:7e945ab07a4c4e7b428a33"};
   const FB_VER='10.12.2';
   let fb=null,fs=null,me=null,profile={contacts:[],defShare:[]},unsubs=[],sharedOwners=new Map();
   const imgDB=()=>new Promise((res,rej)=>{const r=indexedDB.open('comparador-img',1);r.onupgradeneeded=()=>r.result.createObjectStore('imgs');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
