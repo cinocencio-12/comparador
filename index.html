@@ -725,8 +725,11 @@ body.nav-prod .homesearch{display:none}
 .gobig.none{background:var(--warn-soft);color:var(--warn);box-shadow:none;font-size:.88rem}
 .orow .tt{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
 .gostore{font:750 .76rem var(--f-body);color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 10px;text-decoration:none;white-space:nowrap}
-img.broken{visibility:hidden}
-.pgal img.broken{visibility:visible;object-position:-9999px 0;background:var(--glass) url("icons/icon-192.png") center/56px no-repeat;opacity:.5}
+img[data-bad]{object-fit:contain!important;padding:14%;box-sizing:border-box;opacity:.35;background:var(--glass)!important}
+.badbox{margin:10px 0 0;padding:12px 14px;border-radius:16px;background:var(--warn-soft);color:var(--fg);box-shadow:0 0 0 1px color-mix(in srgb,var(--warn) 40%,transparent)}
+.badbox b{display:block;color:var(--warn);font:800 .98rem var(--f-display)}
+.badbox small{display:block;color:var(--muted);margin:2px 0 8px}
+.badbox .pacts{margin:0}
 .rvdup.v2{grid-template-columns:1fr 1fr;align-items:start;gap:10px}
 .rvdup.v2 .dside{display:flex;flex-direction:column;gap:8px;min-width:0}
 .rvdup.v2 .dside img,.rvdup.v2 .dside .ph,.rvdup.v2 .dside .thumb{width:100%!important;height:auto!important;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:#fff}
@@ -1185,7 +1188,19 @@ body.nav-home .hello{display:block}
   const blobUrls=new WeakMap();
   // Una imagen puede ser: URL (texto), Blob guardado, o {ref} si aún se está descargando de la nube.
   function src(v){if(typeof v==='string')return v;if(!isBlob(v))return '';if(!blobUrls.has(v))blobUrls.set(v,URL.createObjectURL(v));return blobUrls.get(v);}
-  const imgTag=(v,attrs)=>{const u=src(v);return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('broken')" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
+  // Fotos de la web que ya no cargan: se recuerdan para pedir otra
+  const BAD=(()=>{try{return new Set(JSON.parse(localStorage.getItem('badImg')||'[]'));}catch(e){return new Set();}})();
+  const isBad=v=>typeof v==='string'&&BAD.has(v);
+  let badT=null;
+  window.__bad=function(img){const u=img.getAttribute('src')||'';img.onerror=null;img.setAttribute('data-bad','1');img.removeAttribute('srcset');img.src='icons/icon-192.png';
+    if(!/^https?:/.test(u)||BAD.has(u))return;BAD.add(u);try{localStorage.setItem('badImg',JSON.stringify([...BAD].slice(-500)));}catch(e){}
+    clearTimeout(badT);badT=setTimeout(async()=>{try{await scanPhotos();}catch(e){}if(prodKey)render();},600);};
+  // Al abrir la app, comprueba en segundo plano las fotos de la web de lo pendiente
+  function probeImgs(){const urls=new Set();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>(i.images||[]).forEach(v=>{if(typeof v==='string'&&/^https?:/.test(v)&&!BAD.has(v))urls.add(v);}));
+    let n=0;const fail=u=>{if(BAD.has(u))return;BAD.add(u);n++;try{localStorage.setItem('badImg',JSON.stringify([...BAD].slice(-500)));}catch(e){}clearTimeout(badT);badT=setTimeout(async()=>{try{await scanPhotos();}catch(e){}render();if(n)setStatus(`${n} ${n===1?'foto ya no carga':'fotos ya no cargan'} (la tienda la cambió). Las tienes en Revisión → Sin fotografías.`);},1500);};
+    [...urls].forEach((u,k)=>setTimeout(()=>{const im=new Image();im.referrerPolicy='no-referrer';im.onerror=()=>fail(u);im.src=u;},k*60));}
+  setTimeout(()=>{try{if(navigator.onLine!==false)probeImgs();}catch(e){}},4000);
+  const imgTag=(v,attrs)=>{const u=src(v);if(isBad(v))return `<img src="icons/icon-192.png" alt="Foto no disponible" data-bad="1" ${attrs||''}>`;return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="__bad(this)" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
   async function grabImage(u){
     try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
       const r=await fetch(u,{mode:'cors',signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
@@ -1738,7 +1753,9 @@ body.nav-home .hello{display:block}
     const imgs=[];offers.forEach(o=>(o.images||[]).forEach((v,i)=>{if(!imgs.some(x=>x[0]===v))imgs.push([v,o.id,i]);}));
     const [lbl,lcls]=costLbl(lt);const shops=new Set(offers.map(shopOf)).size;
     const back=`<div class="pfback"><button class="iconbtn" type="button" id="pfBack" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="crumb">${esc(catOf(f))}${clean(f.sub)?' · '+esc(f.sub):''}</span></div>`;
-    const gal=`<div class="pgal">${imgs.length?imgs.map(([v,id,i])=>imgTag(v,`data-lb="${id}" data-i="${i}"`)).join(''):`<div class="noimg">${svgI(catIcon(catOf(f)))}</div>`}</div>`;
+    const badN=imgs.filter(([v])=>isBad(v)).length;const goodImgs=imgs.filter(([v])=>!isBad(v));
+    const badBox=badN?`<div class="badbox"><b>${badN===imgs.length?'La foto no carga':`${badN} ${badN===1?'foto no carga':'fotos no cargan'}`}</b><small>La tienda la ha cambiado o borrado. Busca otra o súbela tú.</small><div class="pacts"><button class="btn small primary" type="button" data-fixph="${lt.id}">Buscar foto en internet</button><button class="btn small" type="button" data-fixph="${lt.id}" data-g="1">Google Imágenes</button><button class="btn small" type="button" data-fixph="${lt.id}" data-up="1">Subir o pegar foto</button><button class="btn small" type="button" data-rmbad="1">Quitar ${badN===1?'la rota':'las rotas'}</button></div></div>`:'';
+    const gal=`<div class="pgal">${goodImgs.length?goodImgs.map(([v,id,i])=>imgTag(v,`data-lb="${id}" data-i="${i}"`)).join(''):`<div class="noimg">${svgI(catIcon(catOf(f)))}</div>`}</div>`+badBox;
     const head=`<div class="phead"><div><span class="k">Mejor coste total</span><b class="big">${valid.length?eur(calc(lt).total):'—'}</b><span class="lbl ${lcls}">${lbl}</span></div><div class="side"><span class="chip">${shops} ${shops===1?'tienda':'tiendas'}</span>${availChip(lt)}</div></div>
       <div class="pmeta">${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
     const withUrl=offers.filter(o=>safeUrl(o.url)).length;
@@ -1771,7 +1788,12 @@ body.nav-home .hello{display:block}
     const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
     return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
   }
-  document.addEventListener('click',async e=>{if(e.target.closest('#pfBack')){closeProd();return;}
+  document.addEventListener('click',async e=>{const fx=e.target.closest('[data-fixph]');if(fx){const it=items.find(i=>i.id===fx.dataset.fixph);if(!it)return;
+      openForm(it);formImgs=formImgs.filter(v=>!isBad(v));renderImgEdit();const w=$('#webImgs');revealField(w);setTimeout(()=>{w.scrollIntoView({behavior:'smooth',block:'center'});
+        if(fx.dataset.g)$('#gImgs').click();else if(fx.dataset.up)setStatus('Pulsa «Pegar imagen o enlace» o añade una foto desde la galería, y luego Guardar.');else if(cfg.key)w.click();else setStatus('Para buscar fotos en internet hace falta la clave de API en Ajustes. Mientras, usa «Google Imágenes».','err');},250);
+      setStatus('He quitado la foto rota del formulario. Elige otra y pulsa Guardar.');return;}
+    if(e.target.closest('[data-rmbad]')){let n=0;for(const o of prodItems()){const im=(o.images||[]).filter(v=>!isBad(v));if(im.length!==(o.images||[]).length){n+=(o.images||[]).length-im.length;o.images=im;await put('items',o);}}await scanPhotos();render();setStatus(`${n} ${n===1?'foto rota quitada':'fotos rotas quitadas'}. Puedes buscar otra en Revisión → Sin fotografías.`);return;}
+    if(e.target.closest('#pfBack')){closeProd();return;}
     const b=e.target.closest('#pfCheck');if(!b)return;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;
     for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${shopOf(list[i])}…`,'busy');await checkItem(list[i]);}
@@ -3014,7 +3036,7 @@ Productos: ${JSON.stringify(list)}`;
   async function isShot(v){if(typeof v==='string')return false;try{const b=await createImageBitmap(v);return b.height>b.width*1.4;}catch(e){return false;}}
   async function scanPhotos(){
     noPhoto.clear();
-    for(const it of items){const im=it.images||[];let lacks=!im.length;if(!lacks){lacks=true;for(const v of im){if(!(await isShot(v))){lacks=false;break;}}}if(lacks&&(it.url||im.length))noPhoto.add(it.id);}
+    for(const it of items){const im=it.images||[];let lacks=!im.length;if(!lacks){lacks=true;for(const v of im){if(!isBad(v)&&!(await isShot(v))){lacks=false;break;}}}if(lacks&&(it.url||im.length))noPhoto.add(it.id);}
     const n=noPhoto.size;$('#photoBar').hidden=!n||!cfg.key;
     $('#photoTxt').textContent=`${n} ${n===1?'producto no tiene':'productos no tienen'} foto del producto.`;
   }
@@ -3041,7 +3063,7 @@ Productos: ${JSON.stringify(list)}`;
       }
     }catch(e){}
     if(!added.length)return false;
-    it.images=[...added,...(it.images||[])];await put('items',it);return before!==it.images.length;
+    it.images=[...added,...(it.images||[]).filter(v=>!isBad(v))];await put('items',it);return before!==it.images.length;
   }
   $('#photoGo').addEventListener('click',async()=>{
     const list=items.filter(i=>noPhoto.has(i.id));let ok=0,i=0;
@@ -3338,7 +3360,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16s';
+    const APP_V='2026-11-16u';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
