@@ -706,6 +706,17 @@ body.nav-prod .homesearch{display:none}
 .bnav button svg{width:46px}
 .bnav .badge{position:absolute;top:2px;right:calc(50% - 26px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font:700 .66rem/18px var(--f-body);font-style:normal;text-align:center}
 .selbar{flex-wrap:wrap}
+
+/* Categorías con foto (de tus propios productos) */
+.cattile.photo{position:relative;flex-direction:column;align-items:flex-start;justify-content:flex-end;min-height:128px;padding:12px;overflow:hidden;background:#222;color:#fff;box-shadow:none}
+.cattile.photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#fff}
+.cattile.photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.72) 100%)}
+.cattile.photo .ic{position:absolute;top:10px;left:10px;width:34px;height:34px;border-radius:11px;z-index:1;background:var(--h-soft);color:var(--h);box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.cattile.photo .ic svg{width:19px;height:19px}
+.cattile.photo .tx{position:relative;z-index:1}
+.cattile.photo b{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.cattile.photo small{color:rgba(255,255,255,.85)}
+.apar{grid-column:1/-1}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -798,7 +809,8 @@ body.nav-prod .homesearch{display:none}
       <div class="mods" id="modList"></div>
       <button class="btn small" type="button" id="modReset">Restablecer</button>
     </div>
-    <div class="f c6"><label for="apiKey">Clave de API de Anthropic</label><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off"></div>
+    <div class="f c6"><label for="apiKey">Clave de API de Anthropic</label><div class="grow"><input id="apiKey" type="password" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"><button class="btn small" type="button" id="keyDel">Quitar</button></div>
+      <span class="hint">Se guarda solo en este móvil: no va a la nube, ni a las copias de seguridad, ni a las personas con quien compartes. Cada persona usa su propia clave. Pon un límite de gasto mensual en console.anthropic.com.</span></div>
     <div class="f c6"><label for="model">Modelo para leer webs (las capturas usan siempre Sonnet)</label>
       <select id="model">
         <option value="claude-haiku-4-5-20251001">Haiku 4.5 (rápido y barato)</option>
@@ -820,9 +832,10 @@ body.nav-prod .homesearch{display:none}
     <div class="actions full">
       <button class="btn primary" id="saveSettings" type="button">Guardar</button>
       <button class="btn" id="curFromSettings" type="button">Revisar monedas</button>
-      <button class="btn" id="exportBtn" type="button">Copia de seguridad</button>
+      <button class="btn" id="exportBtn" type="button">Copia de seguridad comprobada</button>
       <label class="btn" for="importFile">Restaurar copia</label><input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
+    <p class="hint full" id="backupInfo" style="margin:0"></p>
     <div class="f c6"><label>Categorías (cambia el nombre para renombrarla en todos los productos; pon el de otra para unirlas)</label><div class="list" id="catEdit"></div></div>
     <div class="f c6"><label>Marcador «Guardar en Comparador» (para tiendas que bloquean la lectura)</label>
       <div class="actions"><button class="btn small primary" type="button" id="bmCopy">Copiar código del marcador</button></div>
@@ -1307,7 +1320,9 @@ body.nav-prod .homesearch{display:none}
     const cats=[...m.entries()].sort((a,b)=>a[0]===NOCAT?1:b[0]===NOCAT?-1:b[1].length-a[1].length||a[0].localeCompare(b[0],'es'));
     const tot=v=>v.reduce((s,i)=>s+totalOf(i),0);
     return `<div class="catgrid"><button type="button" class="cattile all" data-cat="*"><span class="ic">${svgI('all')}</span><span class="tx"><b>Todo</b><small>${list.length} ${list.length===1?'artículo':'artículos'}</small></span></button>`+
-      cats.map(([c,v])=>`<button type="button" class="cattile" style="${hueOf(c)}" data-cat="${esc(c)}"><span class="ic">${svgI(catIcon(c))}</span><span class="tx"><b>${esc(c)}</b><small>${v.length} ${v.length===1?'artículo':'artículos'}</small></span></button>`).join('')+`</div>`;
+      cats.map(([c,v])=>{const ph=(v.find(i=>(i.images||[]).length&&src(i.images[0]))||{}).images;const u=ph?src(ph[0]):'';
+        return u?`<button type="button" class="cattile photo" style="${hueOf(c)}" data-cat="${esc(c)}"><img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer"><span class="ic">${svgI(catIcon(c))}</span><span class="tx"><b>${esc(c)}</b><small>${v.length} ${v.length===1?'artículo':'artículos'}</small></span></button>`:
+        `<button type="button" class="cattile" style="${hueOf(c)}" data-cat="${esc(c)}"><span class="ic">${svgI(catIcon(c))}</span><span class="tx"><b>${esc(c)}</b><small>${v.length} ${v.length===1?'artículo':'artículos'}</small></span></button>`;}).join('')+`</div>`;
   }
   function catBack(n){if(!flt.cat)return '';return `<div class="catback" style="${hueOf(flt.cat)}"><button class="iconbtn" type="button" data-cat="" aria-label="Volver a categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ic">${svgI(catIcon(flt.cat))}</span><h2>${esc(flt.cat)}<small>${n} ${n===1?'producto':'productos'}</small></h2></div>`;}
   let allMode=false;
@@ -2449,17 +2464,31 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   $('#lb').addEventListener('touchend',e=>{if(tx0==null)return;const dx=e.changedTouches[0].clientX-tx0;tx0=null;if(Math.abs(dx)>40)(dx>0?$('#lbPrev'):$('#lbNext')).click();});
 
   // ---------- copia de seguridad ----------
+  function drawBackupInfo(){const el=$('#backupInfo');if(!el)return;let b=null;try{b=JSON.parse(localStorage.getItem('lastBackup')||'null');}catch(e){}
+    const days=b?Math.floor((Date.now()-b.at)/864e5):null;
+    el.innerHTML=b?`Última copia comprobada: ${new Date(b.at).toLocaleDateString('es-ES')} (${b.n} productos, ${b.f} fotos)${days>=14?' · <b style="color:var(--warn)">haz una nueva</b>':''}.`:`<b style="color:var(--warn)">Aún no has hecho ninguna copia de seguridad.</b> ${(()=>{try{return me}catch(e){return null}})()?'Tus productos también están en la nube con tu cuenta, pero conviene tener una copia propia.':'Sin cuenta, tus productos solo están en este móvil.'}`;}
+  drawBackupInfo();
+  $('#keyDel').addEventListener('click',()=>{ls.set('apiKey','');$('#apiKey').value='';setStatus('Clave borrada de este móvil.');});
+
   $('#exportBtn').addEventListener('click',async()=>{
     setStatus('Preparando la copia…','busy');
     const out=[];for(const it of items){const imgs=[];for(const b of (it.images||[]).filter(v=>typeof v==='string'||isBlob(v)))imgs.push(typeof b==='string'?{url:b}:{type:b.type,data:await toB64(b)});out.push({...it,images:imgs});}
-    const blob=new Blob([JSON.stringify({v:2,items:out})],{type:'application/json'});
+    const json=JSON.stringify({v:2,at:new Date().toISOString(),items:out});
+    // Comprobación: se vuelve a leer la copia y se cuentan productos y fotos antes de entregarla.
+    let chk;try{chk=JSON.parse(json);}catch(e){setStatus('La copia ha salido corrupta. No se ha guardado.','err');return;}
+    const nI=(chk.items||[]).length,nF=(chk.items||[]).reduce((a,i)=>a+(i.images||[]).filter(x=>x.data||x.url).length,0),expF=items.reduce((a,i)=>a+(i.images||[]).filter(v=>typeof v==='string'||isBlob(v)).length,0);
+    if(nI!==items.length||nF!==expF){setStatus(`La copia no cuadra (${nI} de ${items.length} productos, ${nF} de ${expF} fotos). No se ha guardado.`,'err');return;}
+    try{localStorage.setItem('lastBackup',JSON.stringify({at:Date.now(),n:nI,f:nF}));}catch(e){}drawBackupInfo();
+    const blob=new Blob([json],{type:'application/json'});
     const file=new File([blob],'comparador-copia.json',{type:'application/json'});
-    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia Comparador'});setStatus('Copia compartida.');return;}}catch(e){}
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='comparador-copia.json';a.click();setStatus('Copia descargada.');
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia Comparador'});setStatus(`Copia comprobada y compartida: ${nI} productos y ${nF} fotos.`);return;}}catch(e){}
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`comparador-copia-${new Date().toISOString().slice(0,10)}.json`;a.click();setStatus(`Copia comprobada y descargada: ${nI} productos y ${nF} fotos.`);
   });
   $('#importFile').addEventListener('change',async e=>{
     const f=e.target.files[0];e.target.value='';if(!f)return;
-    try{const j=JSON.parse(await f.text());for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{if(im.url)return im.url;const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
+    try{const j=JSON.parse(await f.text());const nIn=(j.items||[]).length;const nNew=(j.items||[]).filter(x=>!items.some(i=>i.id===x.id)).length;
+      if(!confirm(`La copia tiene ${nIn} productos (${nNew} que no tienes ahora). Se añaden y se actualizan; no se borra nada de lo que ya tienes. ¿Restaurar?`))return;
+      for(const it of j.items||[]){it.images=(it.images||[]).map(im=>{if(im.url)return im.url;const bin=atob(im.data);const u8=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u8[i]=bin.charCodeAt(i);return new Blob([u8],{type:im.type||'image/jpeg'});});await put('items',it);}
       items=await getAll('items');render();setStatus('Copia restaurada.');}catch(err){setStatus('No se pudo restaurar: '+err.message,'err');}
   });
 
@@ -3148,7 +3177,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16o';
+    const APP_V='2026-11-16p';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
