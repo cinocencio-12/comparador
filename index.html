@@ -1270,6 +1270,14 @@ body.nav-home .hello{display:block}
   const NOCAT='Sin categoría';
   const norm=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   const catOf=it=>clean(it.category)||NOCAT;
+  // Un artículo vinculado en varias tiendas va en una sola categoría: gana la concreta frente a «Otros»/vacía
+  const GENERIC=/^(otros?|otras?|varios|varias|miscel[aá]nea|general|sin clasificar|sin categor[ií]a)$/i;
+  let harmT=null;
+  function harmonizeCats(){clearTimeout(harmT);harmT=setTimeout(async()=>{const G=new Map();items.filter(i=>i.status!=='discarded').forEach(i=>{const k=key(groupName(i));if(!G.has(k))G.set(k,[]);G.get(k).push(i);});
+    let n=0;for(const v of G.values()){if(v.length<2)continue;const good=v.filter(i=>clean(i.category)&&!GENERIC.test(clean(i.category)));if(!good.length)continue;
+      const cnt=new Map();good.forEach(i=>cnt.set(i.category,(cnt.get(i.category)||0)+1));const best=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0][0];const ref=good.find(i=>i.category===best);
+      for(const i of v){if(!clean(i.category)||GENERIC.test(clean(i.category))){i.category=best;if(!clean(i.sub)&&clean(ref.sub))i.sub=ref.sub;await put('items',i);n++;}}}
+    if(n)render();},800);}
   const splitList=v=>(Array.isArray(v)?v:String(v||'').split(/[,;]/)).map(clean).filter(Boolean);
   const compatList=it=>splitList(it.compat);
   const tagList=it=>splitList(it.tags);
@@ -1852,7 +1860,7 @@ body.nav-home .hello{display:block}
     const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;
     for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${shopOf(list[i])}…`,'busy');await checkItem(list[i]);}
     render();setStatus(`Comprobadas ${list.length} ${list.length===1?'oferta':'ofertas'}.`);});
-  function render(){
+  function render(){harmonizeCats();
     renderSpaces();
     setTimeout(navEnsure,0);
     $('#selTop').setAttribute('aria-pressed',String(!!selMode));
@@ -2177,7 +2185,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   function catHint(){
     const cats=allCats().map(c=>c[0]).filter(c=>c!==NOCAT);
-    return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, usa una de esta lista de categorías con sus subcategorías: ${Object.entries(TAXONOMY).map(([c,v])=>c+' ('+v.join(', ')+')').join('; ')}. Si nada encaja, crea una corta y genérica en plural. Los sets de LEGO van en "LEGO" (con su tema como subcategoría); el resto de juguetes, en "Juguetes". Todo lo de huerto y jardín (semillas, plantas, riego…) en "Huerto"; todo lo de golf en "Golf". Los videojuegos, consolas y sus accesorios van en "Videojuegos", con la plataforma como subcategoría (Nintendo Switch 2, Nintendo Switch, Xbox Series X|S, PlayStation 5…). Gadgets, frikadas, caprichos y regalos de broma van en "Chorradas". La ropa, el calzado y los complementos de moda van en Ropa, Calzado o Complementos (no en Equipamiento, salvo que sea táctico).\nEn "sub" pon la subcategoría de esa lista que mejor encaje ("" si ninguna).`;
+    return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, usa una de esta lista de categorías con sus subcategorías: ${Object.entries(TAXONOMY).map(([c,v])=>c+' ('+v.join(', ')+')').join('; ')}. Si nada encaja, crea una corta y genérica en plural. Nunca uses «Otros», «Varios» ni «General». Los sets de LEGO van en "LEGO" (con su tema como subcategoría); el resto de juguetes, en "Juguetes". Todo lo de huerto y jardín (semillas, plantas, riego…) en "Huerto"; todo lo de golf en "Golf". Los videojuegos, consolas y sus accesorios van en "Videojuegos", con la plataforma como subcategoría (Nintendo Switch 2, Nintendo Switch, Xbox Series X|S, PlayStation 5…). Gadgets, frikadas, caprichos y regalos de broma van en "Chorradas". La ropa, el calzado y los complementos de moda van en Ropa, Calzado o Complementos (no en Equipamiento, salvo que sea táctico).\nEn "sub" pon la subcategoría de esa lista que mejor encaje ("" si ninguna).`;
   }
   const PAGE_PROMPT=p=>`Este es el contenido de una página de una tienda online que el usuario tiene abierta en su navegador y ha decidido guardar (URL: ${p.u}; título: ${p.t}). Extrae los datos de compra. `+MULTI+
     `Fotos que hay en la página (elige para "images" solo las del producto, en buena resolución):\n${(p.i||[]).join('\n')}\n\nTEXTO DE LA PÁGINA:\n${p.x}\n\n`+FIELDS;
@@ -3059,7 +3067,7 @@ Ofertas: ${JSON.stringify(data)}`;
         const list=batch.map(it=>({id:it.id,nombre:it.product,variante:it.variant,marca:it.brand,descripcion:clean(it.description).slice(0,300)}));
         const prompt=`Clasifica estos productos de compras. Para cada uno devuelve su categoría, su modelo/plataforma y los modelos compatibles que se deduzcan del nombre o la descripción.
 Responde SOLO JSON: {"items":[{"id":..., "category":..., "sub":..., "platform":..., "compatible":[...]}]}
-- "category": tipo de producto en español, corto, genérico y en plural.
+- "category": tipo de producto en español, corto, genérico y en plural (nunca «Otros», «Varios» ni «General»).
 - "platform": modelo o plataforma al que pertenece o para el que es (p. ej. "Hi-Capa 5.1", "Glock 17", "CAM870", "M4"); "" si no aplica.
 - "compatible": modelos compatibles que se indiquen; [] si no se indica. No inventes.${catHint()}
 Productos: ${JSON.stringify(list)}`;
@@ -3422,7 +3430,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16z';
+    const APP_V='2026-11-17a';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
