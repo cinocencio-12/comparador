@@ -79,7 +79,7 @@
   let watching=false;
   async function autoWatch(){
     const w=watchCfg();if(!w.on||!cfg.key||watching)return;
-    const due=items.filter(i=>(i.status||'pending')==='pending'&&hasAlert(i)&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
+    const due=items.filter(i=>(i.status||'pending')==='pending'&&hasAlert(i)&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!i.noAuto&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
       .sort((a,b)=>(hasAlert(b)-hasAlert(a))||(a.checkedAt||'').localeCompare(b.checkedAt||'')).slice(0,w.max);
     if(!due.length)return;watching=true;let ups=0,downs=0;
     for(let i=0;i<due.length;i++){setStatus(`Vigilando precios ${i+1} de ${due.length}…`,'busy');const b=calc(due[i]).after;const r=await checkItem(due[i]);

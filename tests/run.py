@@ -22,6 +22,9 @@ EXTRA = [  # casos concretos que han dado guerra
     {"id": "f1", "product": "Acetech Quark R", "store": "Rangertienda", "url": "https://r.es/q", "price": 33, "shipping": 4.95, "discount": 0, "discountType": "eur", "category": "Pistolas", "status": "pending", "group": "Quark R Ranger", "images": [], "history": [{"at": "2026-10-01T10:00:00Z", "price": 35, "total": 39.95}], "checkedAt": "2026-10-01T10:00:00Z"},
     {"id": "f2", "product": "Acetech Quark R", "store": "Rangertienda", "url": "https://r.es/q2", "price": 34, "shipping": 4.95, "discount": 0, "discountType": "eur", "category": "Pistolas", "status": "pending", "group": "Quark R Ranger", "images": []},
     {"id": "rot", "product": "Foto rota de prueba", "store": "Tienda", "url": "https://t.es/r", "price": 10, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Lanzacohetes", "status": "pending", "images": ["http://127.0.0.1:1/no-existe.jpg"]},
+    {"id": "blk", "product": "M3 Harris Bipode", "store": "VSGun", "url": "https://vsgun.es/b", "price": 30, "shipping": 5, "discount": 0, "discountType": "eur", "category": "Accesorios", "status": "pending", "images": [], "checkErr": "blocked"},
+    {"id": "cd1", "product": "Speedloader Dan Wesson", "store": "Adeportes", "url": "https://a.es/s", "price": 12, "shipping": 4, "discount": 0, "discountType": "eur", "category": "Cargadores", "status": "pending", "group": "Speedloader Dan Wesson", "images": []},
+    {"id": "cd2", "product": "Speedloader Dan Wesson 715", "store": "Tienda B", "url": "https://b.es/s", "price": 11, "shipping": 4, "discount": 0, "discountType": "eur", "category": "Accesorios", "status": "pending", "group": "Speedloader Dan Wesson", "images": []},
 ]
 
 
@@ -150,6 +153,16 @@ async def p_revision(a):
     n = await a.pg.inner_text('#navRevN')
     comprobar(n == '+🥚' or n.isdigit(), f'globo raro: {n}')
     await a.foto('revision')
+    await a.pg.click('[data-nav=review]'); await a.pg.wait_for_timeout(300)
+    await a.pg.click('[data-rv=catdiff]'); await a.pg.wait_for_timeout(300)
+    cds = await a.pg.evaluate("[...document.querySelectorAll('.rvrow')].filter(r=>/Speedloader/.test(r.textContent)).map(r=>r.querySelectorAll('.cdiff .cd').length)")
+    comprobar(cds == [2], f'Categorías distintas no enseña las dos categorías: {cds}')
+    await a.pg.evaluate("[...document.querySelectorAll('.rvrow')].find(r=>/Speedloader/.test(r.textContent)).querySelector('[data-setcat]').click()"); await a.pg.wait_for_timeout(500)
+    comprobar((await a.item('cd1'))['category'] == (await a.item('cd2'))['category'], 'no unifica la categoría desde Revisión')
+    await a.pg.click('#rvBack'); await a.pg.wait_for_timeout(200); await a.pg.click('[data-rv=err]'); await a.pg.wait_for_timeout(300)
+    await a.pg.click('[data-clrerr=blk]'); await a.pg.wait_for_timeout(400)
+    blk = await a.item('blk')
+    comprobar(not blk.get('checkErr') and blk.get('noAuto') == '1', '«Los datos están bien» no quita el aviso')
 
 
 async def p_listas(a):

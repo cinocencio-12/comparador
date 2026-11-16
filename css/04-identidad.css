@@ -106,3 +106,7 @@ body.nav-home .hello{display:block}
 .cloudbtn[data-st=err] i::after{content:"×";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 11px/1 var(--f-body)}
 @keyframes cpulse{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.cloudbtn[data-st=busy] i{animation:none}}
+.cdiff{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.84rem;color:var(--muted)}
+.cdiff .cd{background:var(--danger-soft);color:var(--danger);border-radius:999px;padding:4px 10px;font-weight:700}
+.cdiff .cd small{font-weight:500;opacity:.85}
+.cdiff .pacts{width:100%;margin:2px 0 0}
