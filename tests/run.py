@@ -155,6 +155,27 @@ async def p_listas(a):
     comprobar(await a.n('.prog') >= 1, 'falta la barra de progreso de regalos')
 
 
+async def p_paneles(a):
+    await a.abrir(extra=EXTRA)
+    import glob, re
+    nombres = set()
+    for f in glob.glob(os.path.join(RAIZ, 'js', '*.js')):
+        for m in re.finditer(r'^  (?:const|let|var|async function|function)\s+([A-Za-z_$][\w$]*)', open(f, encoding='utf-8').read(), re.M):
+            nombres.add(m.group(1))
+    p2 = await a.pg.context.new_page(); await p2.goto('about:blank')
+    choques = await p2.evaluate("ns=>ns.filter(n=>n in window)", sorted(nombres)); await p2.close()
+    comprobar(not choques, 'nombres que pisan funciones del navegador: ' + ', '.join(choques))
+    await a.pg.click('#openSettings'); await a.pg.wait_for_timeout(200)
+    comprobar(await a.pg.evaluate("!document.getElementById('settings').hidden"), 'Ajustes no se abre')
+    await a.pg.click('#openSettings'); await a.pg.wait_for_timeout(100)
+    await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200)
+    comprobar(await a.pg.evaluate("!document.getElementById('addSheet').hidden"), 'Añadir no se abre')
+    await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
+    comprobar(await a.pg.evaluate("!document.getElementById('form').hidden"), 'el formulario nuevo no se abre')
+    await a.pg.fill('#fProduct', 'Bolsa 4000 BBs'); await a.pg.fill('#fPrice', '20'); await a.pg.wait_for_timeout(100)
+    comprobar('€/1000' in await a.pg.inner_text('#unitsHint'), 'el editor no calcula el precio por unidad')
+
+
 PRUEBAS = {k[2:]: v for k, v in globals().items() if k.startswith('p_')}
 
 

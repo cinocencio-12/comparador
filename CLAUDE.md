@@ -1,6 +1,8 @@
 
 ## Publicar
-- En cada cambio de index.html, sube la versión a la vez en `APP_V` (index.html) y en `version.json`: así la app del móvil se recarga sola con lo nuevo.
+- El código está por partes en `css/` y `js/` (mapa en `js/LEEME.md`); nada de volver a un archivo único (Carlos no quiere código monolítico).
+- Antes de publicar: `python3 tests/run.py` en verde y `python3 tools/bump.py` (sube `APP_V`, `version.json` y los `?v=` a la vez, para que el móvil se recargue con lo nuevo).
+- Cada arreglo o función nueva lleva su prueba en `tests/run.py`, con datos de prueba (`tests/datos.json`), nunca datos reales.
 
 ## Comparador 2.0
 - El brief aprobado por Carlos está en `docs/Comparador_2_0_Brief_Integral.pdf`: leerlo antes de tocar la interfaz.
