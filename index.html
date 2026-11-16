@@ -718,6 +718,7 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.subchips.facs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .ccpick{position:fixed;inset:0;z-index:60;background:rgba(10,6,25,.6);display:flex;align-items:flex-end;justify-content:center}
 .ccpick .in{background:var(--surface);color:var(--fg);width:100%;max-width:640px;max-height:82vh;overflow:auto;border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
 .ccpick .hd{display:flex;align-items:center;justify-content:space-between;gap:10px}.ccpick .hd b{font:850 1.15rem var(--f-display)}
@@ -1278,6 +1279,7 @@ body.nav-home .hello{display:block}
       const cnt=new Map();good.forEach(i=>cnt.set(i.category,(cnt.get(i.category)||0)+1));const best=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0][0];const ref=good.find(i=>i.category===best);
       for(const i of v){if(!clean(i.category)||GENERIC.test(clean(i.category))){i.category=best;if(!clean(i.sub)&&clean(ref.sub))i.sub=ref.sub;await put('items',i);n++;}}}
     if(n)render();},800);}
+  const AUTOHARM=false;
   const splitList=v=>(Array.isArray(v)?v:String(v||'').split(/[,;]/)).map(clean).filter(Boolean);
   const compatList=it=>splitList(it.compat);
   const tagList=it=>splitList(it.tags);
@@ -1309,6 +1311,7 @@ body.nav-home .hello{display:block}
     if(!stateOk(it))return false;
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.sub&&norm(it.sub)!==norm(flt.sub))return false;
+    if(flt.fac){const a=new Set(ammoAttrs(it));if(!splitList(flt.fac).every(x=>a.has(x)))return false;}
     if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
     if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p||norm(c)==='todos'))return false;}
     if(flt.tag&&!tagList(it).some(t=>norm(t)===norm(flt.tag)))return false;
@@ -1521,7 +1524,7 @@ body.nav-home .hello{display:block}
   document.addEventListener('contextmenu',e=>{const t=e.target.closest('.cattile[data-cat]');if(!t||t.dataset.cat==='*')return;e.preventDefault();openCatPick(t.dataset.cat);});
   let allMode=false;
   $('#view').addEventListener('click',e=>{const t=e.target.closest('[data-cat]');if(!t)return;const c=t.dataset.cat;if(navTab==='home'){navTab='explore';tab=space==='mine'?'compare':'shared';}
-    flt.sub='';if(c==='*'){allMode=true;flt.cat='';}else{allMode=false;flt.cat=c;}saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});});
+    flt.sub='';flt.fac='';if(c==='*'){allMode=true;flt.cat='';}else{allMode=false;flt.cat=c;}saveFlt();render();window.scrollTo({top:0,behavior:'smooth'});});
 
   // Muestra de color aproximada a partir del nombre.
   const COLORS={negro:'#1b1b1b',blanco:'#fafafa',crudo:'#efe8d8',beige:'#d9c7a7',camel:'#c19a6b',marron:'#7a4b2a',chocolate:'#5a3520',gris:'#8d9096',plata:'#c7cbd1',plateado:'#c7cbd1',dorado:'#d4af37',oro:'#d4af37',rojo:'#d0302a',granate:'#7d1d2b',burdeos:'#6d1a2a',rosa:'#f2a5bd',fucsia:'#d6247a',morado:'#6b3fa0',lila:'#b79ad8',malva:'#b784a7',azul:'#2f5bd3','azul marino':'#1d2a55',marino:'#1d2a55',celeste:'#8cc7f0',turquesa:'#2ab5b0',verde:'#2f8f4e',kaki:'#8a8455',caqui:'#8a8455',oliva:'#6b6b2f',mostaza:'#d4a017',amarillo:'#f4d03f',naranja:'#f08a24',coral:'#f47c6b',teja:'#b8543a',denim:'#4a6a95',vaquero:'#4a6a95'};
@@ -1564,14 +1567,33 @@ body.nav-home .hello{display:block}
     const box=b.closest('.histbox');box.querySelectorAll('[data-hr]').forEach(x=>x.setAttribute('aria-pressed',x===b));box.querySelector('.hwrap').innerHTML=histChart(it,it._hr);});
   $('#view').addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('.histbox'))return;const it=findAny(d.dataset.hopen);if(it)it._hopen=d.open;},true);
   // Sub-categorías dentro de una categoría
-  function subChips(list){if(!flt.cat)return '';const m=new Map();list.forEach(i=>{const s=clean(i.sub);if(s)m.set(s,(m.get(s)||0)+1);});if(!m.size)return '';
-    return `<div class="subchips"><button type="button" data-sub="" aria-pressed="${!flt.sub}">Todas</button>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<button type="button" data-sub="${esc(k)}" aria-pressed="${norm(flt.sub)===norm(k)}">${esc(k)} <b>${n}</b></button>`).join('')}</div>`;}
+  // Munición: atributos combinables (bio, trazadora, color, peso) en vez de más subcategorías
+  const AMMO_CAT=/munici|bbs?\b|bolas|balines/i;
+  const BBCOL={azul:'Azul',blue:'Azul',verde:'Verde',green:'Verde',amarill:'Amarilla',yellow:'Amarilla',roj:'Roja',red:'Roja',blanc:'Blanca',white:'Blanca',naranja:'Naranja',orange:'Naranja',negr:'Negra',black:'Negra'};
+  function ammoAttrs(i){const sp=i.specs||{};const t=norm([i.product,i.variant,i.description&&'',i.tags,i.sub,i.color].join(' '));const out=[];
+    const bio=sp.bbBio?/^s/i.test(sp.bbBio):/\bbio|biodegrad|organic|orgánic/.test(t);out.push(bio?'Bio':'No bio');
+    const tr=sp.bbTracer?/^s/i.test(sp.bbTracer):/tracer|trazador/.test(t);if(tr)out.push('Trazadora');
+    const cs=norm(i.color||'')+' '+t;for(const [k,v] of Object.entries(BBCOL))if(new RegExp('\\b'+k).test(cs)){out.push(v);break;}
+    const g=(clean(sp.bbGrams)||(t.match(/\b0[.,]\d{2}\s?g/)||[''])[0]).replace('.',',').replace(/\s/g,'');if(g)out.push(g.replace(/g$/,' g'));
+    return out;}
+  function facChips(list){if(!flt.cat||!AMMO_CAT.test(flt.cat))return '';const m=new Map();list.forEach(i=>ammoAttrs(i).forEach(a=>m.set(a,(m.get(a)||0)+1)));if(m.size<2)return '';
+    const on=new Set(splitList(flt.fac||''));const order=['Bio','No bio','Trazadora'];
+    const ks=[...m.keys()].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);if(ia>=0||ib>=0)return (ia<0?9:ia)-(ib<0?9:ib);const ga=/g$/.test(a),gb=/g$/.test(b);return ga!==gb?(ga?1:-1):a.localeCompare(b,'es');});
+    return `<div class="subchips facs">${ks.map(k=>`<button type="button" data-fac="${esc(k)}" aria-pressed="${on.has(k)}">${esc(k)} <b>${m.get(k)}</b></button>`).join('')}${on.size?'<button type="button" data-fac="">Quitar filtros</button>':''}</div>`;}
+  $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-fac]');if(!b)return;const on=new Set(splitList(flt.fac||''));const k=b.dataset.fac;if(!k)on.clear();else if(on.has(k))on.delete(k);else{if(k==='Bio')on.delete('No bio');if(k==='No bio')on.delete('Bio');on.add(k);}flt.fac=[...on].join(', ');render();});
+  function subChips(list){if(!flt.cat)return '';const fc=facChips(list);const m=new Map();list.forEach(i=>{const s=clean(i.sub);if(s)m.set(s,(m.get(s)||0)+1);});if(!m.size)return fc;
+    return fc+`<div class="subchips"><button type="button" data-sub="" aria-pressed="${!flt.sub}">Todas</button>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<button type="button" data-sub="${esc(k)}" aria-pressed="${norm(flt.sub)===norm(k)}">${esc(k)} <b>${n}</b></button>`).join('')}</div>`;}
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(!b)return;flt.sub=b.dataset.sub;render();});
 
   // ---------- botón «atrás» del móvil: vuelve un paso dentro de la app en vez de salir ----------
   const vis=id=>{const e=document.getElementById(id);return e&&!e.hidden;};
   function navDeep(){return vis('linkSheet')||vis('shareSheet')||vis('form')||vis('settings')||vis('addSheet')||!!prodKey||revOpen||navTab!=='home'||selMode||cmpOpen||!!flt.sub||!!flt.cat||allMode||!!flt.q||!!flt.state||space!=='mine';}
-  function navEnsure(){try{if(navDeep()&&!(history.state&&history.state.cmp))history.pushState({cmp:1},'');}catch(e){}}
+  function navLevel(){return [vis('cpSheet'),vis('addSheet'),vis('linkSheet'),vis('shareSheet'),vis('form'),!!prodKey,revOpen,vis('settings'),selMode,cmpOpen,!!flt.sub,!!flt.fac,!!(flt.cat||allMode),!!(flt.q||flt.state),space!=='mine',navTab==='lists'&&!listHome,navTab==='explore'&&flt.person===ME,navTab!=='home'].filter(Boolean).length;}
+  let hDepth=0;
+  function navEnsure(){try{const d=navLevel()+1;while(hDepth<d){history.pushState({cmp:1,d:hDepth+1},'');hDepth++;}}catch(e){}}
+  // Cada toque deja las entradas de «atrás» preparadas (con toque, Android no las salta)
+  document.addEventListener('click',()=>setTimeout(navEnsure,0),true);
+  document.addEventListener('change',()=>setTimeout(navEnsure,0),true);
   function navBack(){
     if(vis('cpSheet')){closeCopy();return true;}
     if(vis('addSheet')){closeAdd();return true;}
@@ -1585,6 +1607,7 @@ body.nav-home .hello{display:block}
     if(vis('settings')){$('#settings').hidden=true;return true;}
     if(selMode){$('#selModeBtn').click();return true;}
     if(cmpOpen){cmpOpen=false;render();return true;}
+    if(flt.fac){flt.fac='';render();return true;}
     if(flt.sub){flt.sub='';render();return true;}
     if(flt.cat||allMode){flt.cat='';allMode=false;saveFlt();render();return true;}
     if(flt.q||flt.state){flt.q='';flt.state='';$('#q').value='';render();return true;}
@@ -1593,7 +1616,7 @@ body.nav-home .hello{display:block}
     if(navTab==='explore'&&flt.person===ME){flt.person='';allMode=false;navTab='lists';listHome=true;render();return true;}
     if(navTab!=='home'){setNav('home');return true;}
     return false;}
-  window.addEventListener('popstate',()=>{if(navBack()){window.scrollTo({top:0});setTimeout(navEnsure,0);}else history.back();});
+  window.addEventListener('popstate',()=>{hDepth=Math.max(0,hDepth-1);if(navBack()){if(!vis('form'))window.scrollTo({top:0});}else if(hDepth>0)history.back();});
 
   // ---------- Comparador 2.0: preferencias, navegación por secciones e Inicio ----------
   let navTab='home';const openG=new Set();
@@ -1756,6 +1779,7 @@ body.nav-home .hello{display:block}
     return [
       {k:'missing',t:'Datos incompletos',d:'Sin leer, sin precio o sin portes. Releer enlaces y completar campos.',list:P.filter(i=>stIs(i,'missing'))},
       {k:'nocat',t:'Sin clasificar',d:'Asignar categoría y subcategoría.',list:P.filter(i=>stIs(i,'nocat'))},
+      {k:'catdiff',t:'Categorías distintas',d:'Un mismo artículo con categoría distinta según la tienda. Ábrelo y elige una.',list:(()=>{const G=new Map();P.forEach(i=>{const k=key(groupName(i));if(!G.has(k))G.set(k,[]);G.get(k).push(i);});return [...G.values()].filter(v=>new Set(v.map(i=>catOf(i)+'|'+clean(i.sub))).size>1).map(v=>v[0]);})()},
       {k:'nophoto',t:'Sin fotografías',d:'Buscar fotos y elegir portada.',list:P.filter(i=>stIs(i,'nophoto'))},
       {k:'cur',t:'Revisar monedas',d:'Importes en otra moneda o sospechosos.',list:(typeof curSuspects==='function'?curSuspects():[])},
       {k:'inh',t:'Portes y cupones supuestos',d:'Copiados de la tienda; se confirman al leer la web.',list:P.filter(i=>i.inherited&&Object.keys(i.inherited).length)},
@@ -1817,6 +1841,8 @@ body.nav-home .hello{display:block}
     const head=`<div class="phead"><div><span class="k">Mejor coste total</span><b class="big">${valid.length?eur(calc(lt).total):'—'}</b><span class="lbl ${lcls}">${lbl}</span></div><div class="side"><span class="chip">${shops} ${shops===1?'tienda':'tiendas'}</span>${availChip(lt)}</div></div>
       <div class="pmeta">${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
     const withUrl=offers.filter(o=>safeUrl(o.url)).length;
+    const cc=new Map();offers.forEach(o=>{const c=catOf(o)+(clean(o.sub)?' › '+clean(o.sub):'');if(!cc.has(c))cc.set(c,{n:0,o});cc.get(c).n++;});
+    const catBox=cc.size>1?`<div class="badbox" style="margin:0 0 10px"><b>Categorías distintas en sus tiendas</b><small>${[...cc.entries()].map(([c,v])=>`${esc(c)} (${v.n})`).join(' · ')}. Elige una para todas:</small><div class="pacts">${[...cc.entries()].map(([c,v])=>`<button class="btn small${GENERIC.test(catOf(v.o))||catOf(v.o)===NOCAT?'':' primary'}" type="button" data-setcat="${v.o.id}">${esc(c)}</button>`).join('')}</div></div>`:'';
     const myK=key(name);const NS=notSame();const seenG=new Set();
     const sugg=items.filter(i=>(i.status||'pending')==='pending'&&key(groupName(i))!==myK&&!isUnread(i)).filter(i=>{const k=key(groupName(i));if(seenG.has(k))return false;if(NS.has(pairK(f,i)))return false;if(offers.some(o=>likely(o,i))){seenG.add(k);return true;}return false;}).slice(0,3);
     const suggBox=sugg.map(i=>`<div class="sugbox"><span class="sv">${thumb(i)||svgI(catIcon(catOf(i)))}</span><div class="st2"><b>¿Es el mismo que «${esc(groupName(i))}»?</b><small>${esc(shopOf(i))} · ${eur(calc(i).total)}${catOf(i)!==catOf(f)?` · está en ${esc(catOf(i))}`:''}</small><div class="pacts"><button class="btn small primary" type="button" data-dupa="${(t=>t.id)(([lt,i].sort((x,y)=>String(x.createdAt||'').localeCompare(String(y.createdAt||''))))[0])}" data-dupb="${esc(key(String(lt.createdAt||'')<=String(i.createdAt||'')?groupName(i):name))}">${norm(shopOf(i))===norm(shopOf(lt))?'Es el mismo (vincular)':'Vincular'}</button><button class="btn small" type="button" data-open="${esc(key(groupName(i)))}">Ver</button><button class="btn small" type="button" data-notsame="${esc(pairK(f,i))}">No es el mismo</button></div></div></div>`).join('');
@@ -1847,8 +1873,10 @@ body.nav-home .hello{display:block}
       <div class="pacts"><button class="btn small primary" type="button" data-act="bought" data-id="${lt.id}">Comprado en ${esc(shopOf(lt))}</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-act="discard" data-id="${lt.id}">Descartar</button></div><p class="hint">Cada oferta tiene sus propias acciones dentro de «Comparativa».</p></div></div>`;
     const tg=offers.map(o=>num(o.target)).find(x=>x>0)||'';const anyOut=offers.some(isOut);const st=offers.some(o=>o.alertStock);
     const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
-    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}${suggBox?`<h3 class="lh">¿Es el mismo artículo?</h3><p class="hint" style="margin:-4px 2px 10px">Parecidos a «${esc(name)}»${sub?' ('+esc(sub)+')':''}. Si son el mismo en otra tienda, vincúlalos para comparar.</p>${suggBox}`:''}</div>`;
+    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${catBox}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}${suggBox?`<h3 class="lh">¿Es el mismo artículo?</h3><p class="hint" style="margin:-4px 2px 10px">Parecidos a «${esc(name)}»${sub?' ('+esc(sub)+')':''}. Si son el mismo en otra tienda, vincúlalos para comparar.</p>${suggBox}`:''}</div>`;
   }
+  document.addEventListener('click',async e=>{const sc=e.target.closest('[data-setcat]');if(!sc)return;const ref=items.find(i=>i.id===sc.dataset.setcat);if(!ref)return;
+    for(const o of prodItems()){if(o.category!==ref.category||clean(o.sub)!==clean(ref.sub)){o.category=ref.category;o.sub=ref.sub||'';await put('items',o);}}render();setStatus(`Todas sus tiendas en ${catOf(ref)}${clean(ref.sub)?' › '+ref.sub:''}.`);});
   document.addEventListener('click',async e=>{const fx=e.target.closest('[data-fixph]');if(fx){const it=items.find(i=>i.id===fx.dataset.fixph);if(!it)return;
       openForm(it);formImgs=formImgs.filter(v=>!isBad(v));renderImgEdit();const w=$('#webImgs');
       setTimeout(()=>{revealField(w);const d=$('#fs-imgs');if(d)d.open=true;w.scrollIntoView({behavior:'smooth',block:'center'});
@@ -1860,7 +1888,7 @@ body.nav-home .hello{display:block}
     const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;
     for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${shopOf(list[i])}…`,'busy');await checkItem(list[i]);}
     render();setStatus(`Comprobadas ${list.length} ${list.length===1?'oferta':'ofertas'}.`);});
-  function render(){harmonizeCats();
+  function render(){
     renderSpaces();
     setTimeout(navEnsure,0);
     $('#selTop').setAttribute('aria-pressed',String(!!selMode));
@@ -2100,7 +2128,7 @@ body.nav-home .hello{display:block}
     'Belleza':['Perfumes','Maquillaje','Cuidado facial','Cuidado corporal','Pelo','Uñas','Herramientas de belleza'],
     'Juguetes':['Construcción','Figuras y muñecos','Coches, pistas y vehículos','Radiocontrol y drones','Robots y programación','Ciencia y experimentos','Juegos de mesa','Puzles','Cartas coleccionables','Peluches','Manualidades y dibujo','Disfraces','Aire libre (patinetes, bicis, pelotas)','Lanzadores de espuma','Instrumentos musicales','Libros y cómics infantiles'],
     'Pistolas':['Gas blowback','CO2','Muelle','Eléctricas'],'Revólveres':['CO2','Gas','Muelle'],'Rifles':['AEG','Francotirador','Gas (GBBR)','Escopetas','Subfusiles'],
-    'Cargadores':['Pistola','Rifle','Hi-cap','Mid-cap','Low-cap'],'Munición':['BBs 6 mm','BBs bio','Balines 4,5 mm','Trazadoras'],'Gas y baterías':['Green gas','CO2','Baterías LiPo','Cargadores de batería'],
+    'Cargadores':['Pistola','Rifle','Hi-cap','Mid-cap','Low-cap'],'Munición':['BBs 6 mm','Balines 4,5 mm','Granadas y cartuchos'],'Gas y baterías':['Green gas','CO2','Baterías LiPo','Cargadores de batería'],
     'Piezas internas':['Gearbox','Hop-up','Cañones','Motores','Muelles','Engranajes','Pistón y cilindro'],'Piezas externas':['Guardamanos','Culatas','Empuñaduras','Silenciadores','Raíles'],
     'Ópticas':['Red dot','Visores','Linternas','Láser'],'Equipamiento':['Chalecos y portaplacas','Fundas y cartucheras','Protección ocular','Máscaras','Cascos','Ropa táctica','Botas tácticas','Mochilas tácticas'],
     'Electrónica':['Móviles','Tablets','Ordenadores','Audio','Fotografía','Smart home','Accesorios'],'Hogar':['Cocina','Decoración','Muebles','Textil hogar','Limpieza','Organización'],
@@ -2117,7 +2145,7 @@ body.nav-home .hello{display:block}
     ['blowback','Blowback','Sí / No'],['caliber','Calibre','6 mm BB, 4,5 mm acero…'],['hopup','Hop-up','Ajustable / Fijo / No'],['fireMode','Modo de disparo','Semi, Full…'],
     ['material','Material','Metal'],['body','Material cuerpo/receiver','Metal'],['length','Longitud','216 mm'],['weight','Peso','818 g'],['barrel','Cañón interior','100 mm'],
     ['magCap','Capacidad del cargador','15 rds'],['magType','Tipo de cargador','Mid-cap, Hi-cap…'],['magMaterial','Material del cargador','Metal'],
-    ['bbWeight','BBs recomendadas','0,20 g'],['shotsPerFill','Disparos por carga/cápsula','≈40'],['safety','Seguro','Palanca'],['holster','Tipo de funda','A, D'],['color','Color','Negro'],['included','Incluye','1 cargador, llave…']];
+    ['bbWeight','BBs recomendadas','0,20 g'],['bbBio','BBs biodegradables','Sí / No'],['bbTracer','BBs trazadoras','Sí / No'],['bbGrams','Peso de cada BB','0,25 g'],['bbCount','Unidades en la bolsa','4000'],['shotsPerFill','Disparos por carga/cápsula','≈40'],['safety','Seguro','Palanca'],['holster','Tipo de funda','A, D'],['color','Color','Negro'],['included','Incluye','1 cargador, llave…']];
   const WEAPON_RE=/pistol|rev[oó]lver|escopet|rifle|fusil|carabin|francotirad|sniper|r[eé]plica|\barmas?\b|aeg|aep|gbb|smg|ametrallad|lanzagranad|airgun|aire comprimido|co2/i;
   function cleanSpecs(o){const r={};if(!o||typeof o!=='object')return r;SPECS.forEach(([k])=>{let v=o[k];if(typeof v==='boolean')v=v?'Sí':'No';v=clean(v==null?'':String(v));if(v&&!/^(n\/?a|-|—|null|undefined)$/i.test(v))r[k]=v;});return r;}
   const hasSpecs=it=>!!(it&&it.specs&&Object.keys(it.specs).length);
@@ -2185,7 +2213,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   function catHint(){
     const cats=allCats().map(c=>c[0]).filter(c=>c!==NOCAT);
-    return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, usa una de esta lista de categorías con sus subcategorías: ${Object.entries(TAXONOMY).map(([c,v])=>c+' ('+v.join(', ')+')').join('; ')}. Si nada encaja, crea una corta y genérica en plural. Nunca uses «Otros», «Varios» ni «General». Los sets de LEGO van en "LEGO" (con su tema como subcategoría); el resto de juguetes, en "Juguetes". Todo lo de huerto y jardín (semillas, plantas, riego…) en "Huerto"; todo lo de golf en "Golf". Los videojuegos, consolas y sus accesorios van en "Videojuegos", con la plataforma como subcategoría (Nintendo Switch 2, Nintendo Switch, Xbox Series X|S, PlayStation 5…). Gadgets, frikadas, caprichos y regalos de broma van en "Chorradas". La ropa, el calzado y los complementos de moda van en Ropa, Calzado o Complementos (no en Equipamiento, salvo que sea táctico).\nEn "sub" pon la subcategoría de esa lista que mejor encaje ("" si ninguna).`;
+    return `\nCategorías que ya uso: ${cats.length?cats.join(', '):'(ninguna aún)'}. En "category" usa una de ellas si encaja; si no, usa una de esta lista de categorías con sus subcategorías: ${Object.entries(TAXONOMY).map(([c,v])=>c+' ('+v.join(', ')+')').join('; ')}. Si nada encaja, crea una corta y genérica en plural. Nunca uses «Otros», «Varios» ni «General». En Munición, la subcategoría es solo el calibre (BBs 6 mm, Balines 4,5 mm); si son bio, trazadoras, su color o su peso van en specs (bbBio, bbTracer, bbGrams, bbCount) y en color. Los sets de LEGO van en "LEGO" (con su tema como subcategoría); el resto de juguetes, en "Juguetes". Todo lo de huerto y jardín (semillas, plantas, riego…) en "Huerto"; todo lo de golf en "Golf". Los videojuegos, consolas y sus accesorios van en "Videojuegos", con la plataforma como subcategoría (Nintendo Switch 2, Nintendo Switch, Xbox Series X|S, PlayStation 5…). Gadgets, frikadas, caprichos y regalos de broma van en "Chorradas". La ropa, el calzado y los complementos de moda van en Ropa, Calzado o Complementos (no en Equipamiento, salvo que sea táctico).\nEn "sub" pon la subcategoría de esa lista que mejor encaje ("" si ninguna).`;
   }
   const PAGE_PROMPT=p=>`Este es el contenido de una página de una tienda online que el usuario tiene abierta en su navegador y ha decidido guardar (URL: ${p.u}; título: ${p.t}). Extrae los datos de compra. `+MULTI+
     `Fotos que hay en la página (elige para "images" solo las del producto, en buena resolución):\n${(p.i||[]).join('\n')}\n\nTEXTO DE LA PÁGINA:\n${p.x}\n\n`+FIELDS;
@@ -3430,7 +3458,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-17a';
+    const APP_V='2026-11-17b';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}

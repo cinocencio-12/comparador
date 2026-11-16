@@ -23,3 +23,6 @@
 - Fusionar = mismo artículo dos veces en la misma tienda: se juntan historial, fotos y datos; la otra oferta pasa a Descartados con `mergedInto` (no se borra).
 - «Son distintos» guarda la pareja en localStorage `notSame` y no se vuelve a proponer.
 - Fotos: si la tienda no deja copiar una foto, se pide a wsrv.nl (servicio público de imágenes) y se guarda la copia en el móvil; al abrir, se copian poco a poco (40 por sesión) las que aún eran enlaces. Solo viajan direcciones de fotos de producto.
+- Atrás de Android: una entrada de historial por nivel, creada en cada toque (Android salta las creadas sin toque).
+- Categorías distintas en un artículo vinculado: se avisa en la ficha y en Revisión y Carlos elige; no se cambia sola.
+- Munición: subcategoría = calibre; bio, trazadora, color y peso son atributos combinables (chips de filtro), sacados de specs o del nombre.
