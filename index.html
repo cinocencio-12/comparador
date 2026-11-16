@@ -718,6 +718,15 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.gobig{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 10px;padding:14px 16px;border-radius:18px;text-decoration:none;color:#fff;background:linear-gradient(120deg,#5B21B6,#7C3AED 55%,#C026D3);box-shadow:0 6px 18px rgba(109,40,217,.35)}
+.gobig span{display:flex;flex-direction:column;font:600 1rem var(--f-body)}.gobig b{font-weight:850}
+.gobig small{font-size:.78rem;opacity:.85;font-weight:500}
+.gobig svg{width:26px;height:26px;flex:none}
+.gobig.none{background:var(--warn-soft);color:var(--warn);box-shadow:none;font-size:.88rem}
+.orow .tt{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.gostore{font:750 .76rem var(--f-body);color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:5px 10px;text-decoration:none;white-space:nowrap}
+img.broken{visibility:hidden}
+.pgal img.broken{visibility:visible;object-position:-9999px 0;background:var(--glass) url("icons/icon-192.png") center/56px no-repeat;opacity:.5}
 .rvdup.v2{grid-template-columns:1fr 1fr;align-items:start;gap:10px}
 .rvdup.v2 .dside{display:flex;flex-direction:column;gap:8px;min-width:0}
 .rvdup.v2 .dside img,.rvdup.v2 .dside .ph,.rvdup.v2 .dside .thumb{width:100%!important;height:auto!important;aspect-ratio:4/3;object-fit:contain;border-radius:12px;background:#fff}
@@ -1176,7 +1185,7 @@ body.nav-home .hello{display:block}
   const blobUrls=new WeakMap();
   // Una imagen puede ser: URL (texto), Blob guardado, o {ref} si aún se está descargando de la nube.
   function src(v){if(typeof v==='string')return v;if(!isBlob(v))return '';if(!blobUrls.has(v))blobUrls.set(v,URL.createObjectURL(v));return blobUrls.get(v);}
-  const imgTag=(v,attrs)=>{const u=src(v);return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
+  const imgTag=(v,attrs)=>{const u=src(v);return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.classList.add('broken')" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
   async function grabImage(u){
     try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
       const r=await fetch(u,{mode:'cors',signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
@@ -1736,12 +1745,14 @@ body.nav-home .hello{display:block}
     const bySh=new Map();(pend.length?pend:[]).forEach(o=>{const k=norm(shopOf(o));if(!bySh.has(k))bySh.set(k,[]);bySh.get(k).push(o);});
     const reps=[...bySh.values()].filter(v=>v.length>1);
     const fuseBox=reps.map(v=>`<div class="alertbox" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px"><span style="flex:1;min-width:0">Hay ${v.length} ofertas de <b>${esc(shopOf(v[0]))}</b>: ${v.map(o=>isUnread(o)?'sin leer':eur(calc(o).total)).join(' y ')}. Si es el mismo artículo, fusiónalas.</span><button class="btn small primary" type="button" data-fuse="${v[0].id}" data-fuse2="${v[1].id}">Fusionar</button></div>`).join('');
-    const acts=`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
+    const lu=safeUrl(lt.url)||(offers.find(o=>safeUrl(o.url))||{}).url;const lsh=safeUrl(lt.url)?shopOf(lt):shopOf(offers.find(o=>safeUrl(o.url))||lt);
+    const goBig=lu?`<a class="gobig" href="${esc(safeUrl(lu))}" target="_blank" rel="noopener"><span>Ver el artículo en <b>${esc(lsh)}</b><small>Abre la página de la tienda</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>`:`<div class="gobig none">Este artículo no tiene enlace a la tienda. Edítalo y pega la dirección.</div>`;
+    const acts=goBig+`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
     // Comparación
     const single=valid.length<2;
     const cmp=`<div class="ptab" data-pt="cmp" ${pTab==='cmp'?'':'hidden'}><p class="ptsub">${offers.length} ${offers.length===1?'oferta':'ofertas'} · precio, portes, importación y total</p><div class="in">${offers.map(o=>{const c=calc(o);const [l,lc]=costLbl(o);const isBest=!single&&o===lt;
       const imp=c.total-c.after-(c.ship||0);
-      return `<details class="orow"><summary><span class="st" style="${hueOf(shopOf(o))}"><span class="sav">${esc((shopOf(o)||'?').replace(/^www\./,'').charAt(0).toUpperCase())}</span>${esc(shopOf(o))}</span><span class="tt ${isBest?'best':''}">${isUnread(o)?'—':eur(c.total)}</span><span class="bk">${isUnread(o)?'Sin leer':`${eur(c.after)}${num(o.discount)>0?' con dto.':''} · ${c.ship>0?'+'+eur(c.ship)+' portes':l==='sin portes'?'portes: sin dato':'portes gratis'}${imp>0.005?' · +'+eur(imp)+' importación':''}`} ${isBest?'<span class="chip lowtot">Mejor total</span>':''}${lc?`<span class="chip low">${l}</span>`:''}${availChip(o)}</span></summary><div class="od">${offerRow(o,false,calc(lt).total,true,{single,lowTotal:isBest})}</div></div>`;}).join('')}</div></details>`;
+      return `<details class="orow"><summary><span class="st" style="${hueOf(shopOf(o))}"><span class="sav">${esc((shopOf(o)||'?').replace(/^www\./,'').charAt(0).toUpperCase())}</span>${esc(shopOf(o))}</span><span class="tt ${isBest?'best':''}">${isUnread(o)?'—':eur(c.total)}${safeUrl(o.url)?`<a class="gostore" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ir a la tienda ↗</a>`:''}</span><span class="bk">${isUnread(o)?'Sin leer':`${eur(c.after)}${num(o.discount)>0?' con dto.':''} · ${c.ship>0?'+'+eur(c.ship)+' portes':l==='sin portes'?'portes: sin dato':'portes gratis'}${imp>0.005?' · +'+eur(imp)+' importación':''}`} ${isBest?'<span class="chip lowtot">Mejor total</span>':''}${lc?`<span class="chip low">${l}</span>`:''}${availChip(o)}</span></summary><div class="od">${offerRow(o,false,calc(lt).total,true,{single,lowTotal:isBest})}</div></div>`;}).join('')}</div></details>`;
     // Histórico
     let yb=null;offers.forEach(o=>{const m=minIn(histPts(o),365);if(m&&(!yb||m.p<yb.p))yb={...m,o};});
     const hist=`<div class="ptab" data-pt="hist" ${pTab==='hist'?'':'hidden'}><p class="ptsub">${yb?`Lo más barato del año: ${eur(yb.p)} el ${fd(yb.t)} en ${esc(shopOf(yb.o))}`:'Mínimos, máximos y tendencia'}</p><div class="in">${offers.map(o=>`<div class="hsec"><b>${esc(shopOf(o))}</b>${trendHtml(o)}${histBox(o)}</div>`).join('')}</div></div>`;
@@ -3327,7 +3338,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16r';
+    const APP_V='2026-11-16s';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
