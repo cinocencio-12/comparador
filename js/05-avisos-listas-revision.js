@@ -15,8 +15,8 @@
   drawNotif();
   // Objetivo para todo el producto (todas sus tiendas) desde la ficha
   document.addEventListener('change',async e=>{const t=e.target;if(t.id==='pfTarget'||t.id==='pfStock'){const list=prodItems().filter(o=>(o.status||'pending')==='pending');
-    for(const o of list){if(t.id==='pfTarget'){o.target=num(t.value)||null;o.lastAlert=null;}else o.alertStock=t.checked?'1':'';await put('items',o);}
-    setStatus(t.id==='pfTarget'?(num(t.value)>0?`Te avisaré cuando el total baje de ${eur(num(t.value))} en cualquier tienda. Activa «Vigilar precios» en Ajustes para que se compruebe solo al abrir la app.`:'Aviso de precio quitado.'):(t.checked?'Te avisaré si vuelve a haber stock.':'Aviso de stock quitado.'));render();}});
+    for(const o of list){if(t.id==='pfTarget'){o.target=parseIn(t.value)||null;o.lastAlert=null;}else o.alertStock=t.checked?'1':'';await put('items',o);}
+    setStatus(t.id==='pfTarget'?(parseIn(t.value)>0?`Te avisaré cuando el total baje de ${eur(parseIn(t.value))} en cualquier tienda. Activa «Vigilar precios» en Ajustes para que se compruebe solo al abrir la app.`:'Aviso de precio quitado.'):(t.checked?'Te avisaré si vuelve a haber stock.':'Aviso de stock quitado.'));render();}});
   // ---------- Listas: portada de listas, prioridades ----------
   const PRIO={alta:['Prioridad alta',3],media:['Prioridad media',2],baja:['Prioridad baja',1]};
   const prioN=i=>(PRIO[i.prio]||[0,0])[1];
@@ -50,7 +50,7 @@
       return `<div class="paid" style="flex-wrap:wrap"><span style="flex:1;min-width:0"><b>${esc(fullName(i))}</b><br><small class="hint">${esc(shopOf(i))} · pagaste ${eur(paid)}${days!=null?` hace ${days} días`:''}${i.checkedAt>(i.boughtAt||'')&&Math.abs(d)>0.005?` · ahora <b style="color:${d<0?'var(--accent)':'var(--danger)'}">${eur(now)}</b>`:''}</small></span><span style="display:flex;gap:6px">${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Precio</button>`:''}<button class="btn small primary" data-act="rebuy" data-id="${i.id}">Comprar otra vez</button></span></div>`;}).join('')}</div></details>`;}
   const boughtEdit=i=>`<details class="hist bedit"><summary>Precio pagado, cantidad y notas</summary><div class="bgrid"><label>Pagado (€)<input data-bpaid="${i.id}" inputmode="decimal" value="${esc(numIn(num(i.paid)||calc(i).total))}"></label><label>Cantidad<input data-bqty="${i.id}" inputmode="numeric" value="${esc(String(i.qty||1))}"></label><label class="w">Notas de la compra<input data-bnote="${i.id}" value="${esc(i.buyNote||'')}" placeholder="Pedido, talla, a quién…"></label><label class="ck"><input type="checkbox" data-bcons="${i.id}" ${i.consumable?'checked':''}> Consumible: avísame para la recompra</label></div></details>`;
   document.addEventListener('change',async e=>{const t=e.target;const id=t.dataset.bpaid||t.dataset.bqty||t.dataset.bnote||t.dataset.bcons;if(!id)return;const it=items.find(i=>i.id===id);if(!it)return;
-    if(t.dataset.bpaid)it.paid=num(t.value);if(t.dataset.bqty)it.qty=Math.max(1,Math.round(num(t.value))||1);if(t.dataset.bnote)it.buyNote=clean(t.value);if(t.dataset.bcons)it.consumable=t.checked?'1':'';
+    if(t.dataset.bpaid)it.paid=parseIn(t.value);if(t.dataset.bqty)it.qty=Math.max(1,Math.round(num(t.value))||1);if(t.dataset.bnote)it.buyNote=clean(t.value);if(t.dataset.bcons)it.consumable=t.checked?'1':'';
     await put('items',it);setStatus('Compra actualizada.');if(t.dataset.bcons||t.dataset.bpaid)render();});
   // ---------- Centro de revisión ----------
   let revOpen=false,revKind=null;

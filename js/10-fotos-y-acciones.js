@@ -48,7 +48,7 @@
   $('#imgClose').addEventListener('click',()=>{$('#imgSearch').hidden=true;});
 
   // Muestra cuánto es en euros lo que escribes en otra moneda.
-  function curPreview(){const c=F('fCur').value||'EUR',sc=F('fShipCur').value||c;const p=num(F('fPrice').value),sh=num(F('fShip').value);
+  function curPreview(){const c=F('fCur').value||'EUR',sc=F('fShipCur').value||c;const p=parseIn(F('fPrice').value),sh=parseIn(F('fShip').value);
     const parts=[];if(p&&c!=='EUR')parts.push(`precio ≈ ${eur(toEur(p,c))} (1 € = ${fmtNum(FX[c]||0,FX[c]>=100?0:3)} ${c})`);
     if(sh&&sc!=='EUR')parts.push(`envío ≈ ${eur(toEur(sh,sc))}${sc!==c?` (1 € = ${fmtNum(FX[sc]||0,FX[sc]>=100?0:3)} ${sc})`:''}`);
     $('#curPrev').textContent=parts.join(' · ');
@@ -99,7 +99,7 @@
   $('#form').addEventListener('submit',async e=>{
     e.preventDefault();
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});if(me)d.shareWith=formShare();
-    ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=num(d[k]));
+    ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=parseIn(d[k]));
     convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;
     {const o={};cpInh.forEach((v,k)=>{if(k==='shipping'?num(d.shipping)>0:k==='freeFrom'?num(d.freeFrom)>0:clean(d.code))o[k]=v;});d.inherited=Object.keys(o).length?o:null;}
     d.specs=readSpecs();

@@ -34,7 +34,7 @@
     m=t.match(/\b(?:pack|caja|bolsa|lote|set)\s*(?:de\s*)?(\d{1,5})\b/i);if(m&&N(m[1])>1)return N(m[1]);
     m=t.match(/\s[x×]\s?(\d{1,4})\s/i)||t.match(/\s(\d{1,4})\s?[x×]\s/i);if(m&&N(m[1])>1)return N(m[1]);return 0;}
   function unitPrice(it){const u=unitsOf(it);if(!u||isUnread(it))return null;const t=calc(it).total;if(!(t>0))return null;const per=u>=500?1000:1;return {v:t/u*per,per,u,lbl:per===1000?'€/1000':'€/ud'};}
-  const upTxt=x=>x?`${x.v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:x.v<1?3:2})} ${x.lbl}`:'';
+  const upTxt=x=>x?`${fmtNum(x.v,x.v<1?3:2).replace(/(,\d\d\d*?)0+$/,"$1")} ${x.lbl}`:'';
   // Un artículo vinculado en varias tiendas va en una sola categoría: gana la concreta frente a «Otros»/vacía
   const GENERIC=/^(otros?|otras?|varios|varias|miscel[aá]nea|general|sin clasificar|sin categor[ií]a)$/i;
   let harmT=null;

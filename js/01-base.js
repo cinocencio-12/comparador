@@ -4,6 +4,11 @@
   // Formato español siempre: punto para miles y coma para decimales (1.299,50).
   function fmtNum(n,dec){n=Number(n)||0;const neg=n<0;n=Math.abs(n);const f=n.toFixed(dec);let [i,d]=f.split('.');
     i=i.replace(/\B(?=(\d{3})+(?!\d))/g,'.');return (neg?'-':'')+i+(d?','+d:'');}
+  // Importe escrito a mano: la coma siempre es decimal (6,250 → 6,25); el punto con 3 cifras detrás, miles (1.299)
+  function parseIn(v){const s=String(v??'').trim();if(/^-?\d+,\d+$/.test(s))return parseFloat(s.replace(',','.'));return num(s);}
+  const fmtIn=n=>n?fmtNum(n,Math.round(n*100)%100?2:0):'';
+  const MONEY_IDS=['fPrice','fDisc','fShip','fFree','fTarget','fPaid'];
+  document.addEventListener('focusout',e=>{const t=e.target;if(!t||!MONEY_IDS.includes(t.id)||!t.value.trim())return;const n=parseIn(t.value);t.value=n?fmtIn(n):t.value;t.dispatchEvent(new Event('input',{bubbles:true}));});
   const eur=n=>fmtNum(Math.round((Number(n)||0)*100)/100,2)+' €';
   // Lee importes escritos de cualquier forma: 1.299,50 · 1,299.50 · 9,800 (miles) · 15,6 · 15.60
   function num(v){
@@ -19,7 +24,7 @@
     const n=parseFloat(s);return isFinite(n)?n:0;
   }
   // Para mostrar un importe dentro de un campo de texto, en formato español.
-  const numIn=v=>{const n=num(v);if(!n)return '';return Number.isInteger(n)?String(n):String(Math.round(n*100)/100).replace('.',',');};
+  const numIn=v=>{const n=num(v);return n?fmtIn(n):'';}; // importe guardado → como se escribe: 1.299 · 6,50
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeUrl=u=>/^https?:\/\//i.test(u||'')?u:'';
   const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);

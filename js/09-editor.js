@@ -17,7 +17,7 @@
   });
   F('fImgs').addEventListener('change',async e=>{const fs=[...e.target.files];e.target.value='';for(const f of fs)formImgs.push(await shrink(f));renderImgEdit();});
   function fillForm(it){
-    FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(v??''));});
+    FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(MONEY_IDS.includes(id)&&v!==''&&v!=null&&num(v)?fmtIn(num(v)):(v??'')));});
     // Si se leyó en otra moneda, el formulario muestra los importes originales.
     F('fOutEU').checked=it.product?outsideEU(it):false;
     const o=it.orig;F('fCur').innerHTML=curOpts(o?o.currency:'EUR');F('fShipCur').innerHTML=curOpts(o?(o.shipCurrency||o.currency):'EUR');

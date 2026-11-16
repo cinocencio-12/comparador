@@ -276,6 +276,20 @@ async def p_comprobar(a):
     comprobar('399' in st, f'al acabar no dice el resultado: {st}')
 
 
+async def p_importes(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.getElementById('form').querySelectorAll('details').forEach(d=>d.open=true)")
+    casos = {'fPrice': ('1299,5', '1.299,50'), 'fShip': ('6,250', '6,25'), 'fFree': ('1.000', '1.000'), 'fDisc': ('6.5', '6,50')}
+    for id, (escrito, visto) in casos.items():
+        await a.pg.evaluate("""([id,v])=>{const e=document.getElementById(id);e.scrollIntoView();e.focus();e.value=v;e.blur();}""", [id, escrito])
+        r = await a.pg.input_value('#' + id)
+        comprobar(r == visto, f'{id}: escrito «{escrito}» queda «{r}», debía ser «{visto}»')
+    ancho = await a.pg.evaluate("document.getElementById('fShip').getBoundingClientRect().width")
+    comprobar(ancho > 150, f'la casilla del envío es demasiado estrecha ({ancho:.0f}px)')
+    await a.foto('importes')
+
+
 async def p_costes(a):
     await a.abrir()
     await a.pg.evaluate("logUse('claude-haiku-4-5',{input_tokens:100000,output_tokens:20000,server_tool_use:{web_search_requests:2}})")

@@ -129,7 +129,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   const NODEC=new Set(['JPY','KRW','TWD','CLP','HUF','ISK']);
   const fmtCur=(n,cur)=>{n=num(n);return fmtNum(n,NODEC.has(cur)||Number.isInteger(n)?0:2)+' '+cur;};
   const CUR_NAMES={EUR:'Euro €',USD:'Dólar EE. UU. $',GBP:'Libra £',JPY:'Yen japonés ¥',TWD:'Dólar Taiwán NT$',HKD:'Dólar Hong Kong HK$',CNY:'Yuan chino ¥',AUD:'Dólar australiano A$',CAD:'Dólar canadiense C$',CHF:'Franco suizo',SEK:'Corona sueca',NOK:'Corona noruega',DKK:'Corona danesa',PLN:'Zloty polaco',CZK:'Corona checa',KRW:'Won coreano ₩',SGD:'Dólar Singapur S$',MXN:'Peso mexicano'};
-  const curOpts=sel=>CURS.map(c=>`<option value="${c}" ${c===sel?'selected':''}>${c} · ${CUR_NAMES[c]||c}</option>`).join('');
+  const curOpts=sel=>CURS.map(c=>`<option value="${c}" ${c===sel?'selected':''} title="${CUR_NAMES[c]||c}">${c==='EUR'?'€':c}</option>`).join('');
   function normCur(c){c=clean(c).toUpperCase().replace(/[^A-Z$£¥€]/g,'');
     const m={'€':'EUR','$':'USD','US$':'USD','NT$':'TWD','NTD':'TWD','£':'GBP','¥':'JPY','YEN':'JPY','RMB':'CNY','HK$':'HKD','A$':'AUD','C$':'CAD'};
     return m[c]||(CURS.includes(c)||FX[c]?c:'EUR');}
