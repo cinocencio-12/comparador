@@ -260,6 +260,22 @@ async def p_compartir(a):
     comprobar('Carl Gustaf' in st, f'no avisa de que ya lo tenías: {st}')
 
 
+async def p_comprobar(a):
+    await a.abrir(extra=EXTRA)
+    # Claude simulado: tarda 2,5 s y devuelve un precio
+    await a.pg.route('https://api.anthropic.com/**', lambda r: asyncio.ensure_future(asyncio.sleep(2.5)).add_done_callback(lambda _: asyncio.ensure_future(r.fulfill(status=200, content_type='application/json', body=json.dumps({"content": [{"type": "text", "text": json.dumps({"products": [{"product": "VFC Saab Carl Gustaf M3", "price": 399, "currency": "EUR", "availability": "En stock"}]})}], "usage": {"input_tokens": 1000, "output_tokens": 100}})))))
+    await a.pg.evaluate("localStorage.setItem('apiKey','clave-de-prueba')")
+    await a.pg.click('[data-nav=explore]'); await a.pg.click('.cattile[data-cat=Lanzacohetes]'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("[...document.querySelectorAll('[data-open]')].find(x=>/Carl/.test(x.textContent)).click()"); await a.pg.wait_for_timeout(300)
+    await a.pg.click('#pfCheck'); await a.pg.wait_for_timeout(1300)
+    st = await a.pg.inner_text('#statusTxt'); vis = await a.pg.evaluate("!document.getElementById('status').hidden")
+    comprobar(vis and 'iGUN' in st and ' s' in st, f'mientras comprueba no dice qué hace: {st}')
+    await a.foto('comprobando')
+    await a.pg.wait_for_timeout(2500)
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar('399' in st, f'al acabar no dice el resultado: {st}')
+
+
 async def p_costes(a):
     await a.abrir()
     await a.pg.evaluate("logUse('claude-haiku-4-5',{input_tokens:100000,output_tokens:20000,server_tool_use:{web_search_requests:2}})")

@@ -70,9 +70,14 @@
     if(e.target.closest('[data-rmbad]')){let n=0;for(const o of prodItems()){const im=(o.images||[]).filter(v=>!isBad(v));if(im.length!==(o.images||[]).length){n+=(o.images||[]).length-im.length;o.images=im;await put('items',o);}}await scanPhotos();render();setStatus(`${n} ${n===1?'foto rota quitada':'fotos rotas quitadas'}. Puedes buscar otra en Revisión → Sin fotografías.`);return;}
     if(e.target.closest('#pfBack')){closeProd();return;}
     const b=e.target.closest('#pfCheck');if(!b)return;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
-    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;
-    for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${shopOf(list[i])}…`,'busy');await checkItem(list[i]);}
-    render();setStatus(`Comprobadas ${list.length} ${list.length===1?'oferta':'ofertas'}.`);});
+    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;b.classList.add('working');
+    const msgs=[];let fail=0;
+    for(let i=0;i<list.length;i++){const sh=shopOf(list[i]),t0=Date.now(),n=list.length>1?` (${i+1} de ${list.length})`:'';
+      const tick=()=>{const s=Math.round((Date.now()-t0)/1000);const paso=s<4?'Abriendo la web de':s<20?'Leyendo precio, portes y stock en':'Sigue leyendo (algunas webs tardan)';
+        const t=`${paso} ${s<20?sh:''}${n}… ${s} s`.replace('  ',' ');b.textContent=`${s} s · ${sh}`;setStatus(t,'busy');};
+      tick();const iv=setInterval(tick,1000);
+      try{const r=await checkItem(list[i]);if(!r.ok)fail++;msgs.push(r.msg);}finally{clearInterval(iv);}}
+    render();setStatus(msgs.length===1?msgs[0]:`Comprobadas ${list.length} ofertas${fail?` (${fail} no se pudieron leer)`:''}: `+msgs.join(' · '),fail&&fail===list.length?'err':'');});
   function render(){
     renderSpaces();
     setTimeout(navEnsure,0);

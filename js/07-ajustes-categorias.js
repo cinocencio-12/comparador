@@ -1,7 +1,8 @@
 // Comparador · 07-ajustes-categorias.js
 // Parte del código de la app, que se carga en orden desde index.html (ver js/LEEME.md).
   // ---------- estado ----------
-  function setStatus(txt,kind){const s=$('#status');s.hidden=!txt;$('#statusTxt').textContent=txt||'';s.classList.toggle('done',kind!=='busy');s.classList.toggle('err',kind==='err');$('#statusClose').hidden=kind==='busy';}
+  let stT=null;
+  function setStatus(txt,kind){const s=$('#status');clearTimeout(stT);if(txt&&kind!=='busy'&&kind!=='err')stT=setTimeout(()=>{s.hidden=true;},Math.min(20000,6000+txt.length*60));s.hidden=!txt;$('#statusTxt').textContent=txt||'';s.classList.toggle('done',kind!=='busy');s.classList.toggle('err',kind==='err');$('#statusClose').hidden=kind==='busy';}
   $('#statusClose').addEventListener('click',()=>setStatus(''));
 
   // ---------- ajustes ----------

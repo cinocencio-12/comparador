@@ -130,7 +130,7 @@
       await del('items',it.id);items=items.filter(i=>i.id!==it.id);render();return;
     }
     if(act==='split'){it.group=fullName(it)+' · '+shopOf(it);await put('items',it);render();setStatus(`Desunido: ${fullName(it)} (${shopOf(it)}) ya va en su propia ficha.`);return;}
-    if(act==='check'){b.disabled=true;b.textContent='Comprobando…';const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
+    if(act==='check'){b.disabled=true;b.classList.add('working');b.textContent='Comprobando…';setStatus(`Leyendo precio, portes y stock en ${shopOf(it)}…`,'busy');const r=await checkItem(it);render();setStatus(r.msg,r.ok?'':'err');return;}
     if(act==='rebuy'){
       const copy=JSON.parse(JSON.stringify({...it,images:[]}));copy.images=it.images||[];
       Object.assign(copy,{id:uid(),status:'pending',boughtAt:null,paid:null,createdAt:new Date().toISOString(),discardedAt:null,discardReason:'',history:(it.history||[]).slice()});
