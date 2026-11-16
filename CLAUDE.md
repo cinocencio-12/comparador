@@ -33,3 +33,8 @@
 - Compatibilidades («Aplica a»): una entrada sirve si todas sus palabras están en el artículo y el calibre coincide (Rhino 6 mm ≠ 4,5 mm). Ficha: «Sirve para» y «Accesorios compatibles».
 - Compartir algo que ya tenías: abre su ficha para vincular o fusionar.
 - Revisión: el globo cuenta solo lo nuevo desde la última visita (+🥚 si pasa de 99). Gasto de Claude y espacio de fotos en Ajustes (aproximado).
+
+## IVA y datos de tienda (17 nov 2026)
+- «IVA no incluido» (`vatExcl`): en tienda de la UE se suma el IVA de destino (el de Ajustes, 21 % España), porque desde 2021 (ventanilla única OSS) la tienda de la UE cobra el IVA del país del comprador. Fuera de la UE no se suma (ya va en la importación). Claude lo detecta al leer («sin IVA», «+IVA», «excl. VAT», «HT»…).
+- Ficha: botones separados «Comprobar precio» y «Comprobar stock» (este solo toca la disponibilidad).
+- Editor: «Rellenar con lo de esta tienda» copia portes, envío gratis, cupón, moneda, UE e IVA del artículo más reciente de la misma tienda que lo tenga; solo lo vacío y quedan como supuestos.

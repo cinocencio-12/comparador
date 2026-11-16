@@ -19,7 +19,7 @@
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(MONEY_IDS.includes(id)&&v!==''&&v!=null&&num(v)?fmtIn(num(v)):(v??'')));});
     // Si se leyó en otra moneda, el formulario muestra los importes originales.
-    F('fOutEU').checked=it.product?outsideEU(it):false;
+    F('fOutEU').checked=it.product?outsideEU(it):false;F('fVatExcl').checked=!!it.vatExcl;
     const o=it.orig;F('fCur').innerHTML=curOpts(o?o.currency:'EUR');F('fShipCur').innerHTML=curOpts(o?(o.shipCurrency||o.currency):'EUR');
     const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
     F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();
@@ -91,6 +91,22 @@
     return n;}
   // Fuente para una tienda: el artículo con portes leídos de la web (no supuestos) más reciente.
   function shopSource(list){return list.filter(i=>!inh(i,'shipping')&&(num(i.shipping)>0||num(i.freeFrom)>0)).sort((a,b)=>(b.checkedAt||b.updatedAt||'')>(a.checkedAt||a.updatedAt||'')?1:-1)[0];}
+  // ---------- Rellenar con lo de esta tienda (un toque) ----------
+  // Para cada dato toma el artículo más reciente de la misma tienda que lo tenga (mejor si se leyó de la web). Solo rellena lo vacío.
+  function shopFillForm(){const shop=norm(fv('fStore'));if(!shop)return{msg:'Escribe primero la tienda.',err:1};
+    const peers=items.filter(i=>i.id!==editingId&&norm(shopOf(i))===shop&&!isUnread(i))
+      .sort((a,b)=>(b.checkedAt||b.updatedAt||b.createdAt||'')>(a.checkedAt||a.updatedAt||a.createdAt||'')?1:-1);
+    if(!peers.length)return{msg:`No hay otros artículos de ${fv('fStore')}.`,err:1};
+    const pick=(has,k)=>peers.find(i=>has(i)&&!inh(i,k))||peers.find(has);const done=[];
+    if(!fv('fShip')){const s=pick(i=>num(i.shipping)>0,'shipping');if(s){const o=s.orig||s;F('fShip').value=numIn(o.shipping);F('fShipCur').value=(s.orig&&(s.orig.shipCurrency||s.orig.currency))||'EUR';cpInh.set('shipping',s.id);done.push('portes');}}
+    if(!fv('fFree')){const s=pick(i=>num(i.freeFrom)>0,'freeFrom');if(s){F('fFree').value=numIn((s.orig||s).freeFrom);cpInh.set('freeFrom',s.id);done.push('envío gratis desde');}}
+    if(!fv('fCode')){const s=pick(i=>clean(i.code),'code');if(s){F('fCode').value=clean(s.code);cpInh.set('code',s.id);done.push('cupón');}}
+    if((F('fCur').value||'EUR')==='EUR'){const s=peers.find(i=>i.orig&&i.orig.currency&&i.orig.currency!=='EUR');if(s){F('fCur').value=s.orig.currency;F('fCur').dispatchEvent(new Event('change'));done.push('moneda '+s.orig.currency);}}
+    if(!F('fOutEU').checked&&!F('fOutEU').disabled&&peers.some(outsideEU)){F('fOutEU').checked=true;done.push('fuera de la UE');}
+    if(!F('fVatExcl').checked&&peers.some(i=>i.vatExcl)){F('fVatExcl').checked=true;done.push('IVA no incluido');}
+    curPreview();
+    return done.length?{msg:`Copiado de ${fv('fStore')}: ${done.join(', ')}. Quedan como supuestos; lo que se lea de la web manda.`}:{msg:`Nada que rellenar: ${fv('fStore')} no tiene más datos o ya están puestos.`};}
+  F('shopCopy').addEventListener('click',()=>{const r=shopFillForm();F('shopCopyHint').textContent=r.msg;setStatus(r.msg,r.err?'err':'');});
   // ---------- Copiar datos de otro artículo (selectiva, con vista previa) ----------
   let cpSrc=null,cpMode='fill';const cpInh=new Map();
   [['fShip','shipping'],['fFree','freeFrom'],['fCode','code']].forEach(([id,k])=>F(id).addEventListener('input',()=>cpInh.delete(k)));
@@ -103,6 +119,7 @@
     ['ship','Gastos de envío',1,s=>{const o=s.orig||s;const n=numIn(o.shipping);return n&&n!=='0'?n+' '+((s.orig&&(s.orig.shipCurrency||s.orig.currency))||'EUR'):'';},()=>fv('fShip')?fv('fShip')+' '+F('fShipCur').value:'',(v,s)=>{const o=s.orig||s;F('fShip').value=numIn(o.shipping);F('fShipCur').value=(s.orig&&(s.orig.shipCurrency||s.orig.currency))||'EUR';}],
     ['free','Envío gratis desde',1,s=>{const n=numIn((s.orig||s).freeFrom);return n&&n!=='0'?n:'';},()=>fv('fFree'),v=>{F('fFree').value=v;}],
     ['eu','Fuera de la UE (IVA, aduana y banco)',1,s=>outsideEU(s)?'Sí':'',()=>F('fOutEU').checked?'Sí':'',v=>{if(!F('fOutEU').disabled)F('fOutEU').checked=v==='Sí';}],
+    ['vat','IVA no incluido',1,s=>s.vatExcl?'Sí':'',()=>F('fVatExcl').checked?'Sí':'',v=>{F('fVatExcl').checked=v==='Sí';}],
     ['code','Cupón',1,s=>clean(s.code),()=>fv('fCode'),v=>{F('fCode').value=v;}],
     ['disc','Descuento',0,s=>num(s.discount)>0?numIn(s.discount)+(s.discountType==='pct'?' %':' €'):'',()=>fv('fDisc')?fv('fDisc')+(F('fDiscType').value==='pct'?' %':' €'):'',(v,s)=>{F('fDisc').value=numIn(s.discount);F('fDiscType').value=s.discountType||'eur';}],
     ['g','Datos del producto'],

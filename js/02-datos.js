@@ -18,8 +18,10 @@
   function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=num(it.freeFrom);const ship=(free>0&&after>=free)?0:num(it.shipping);
     const base=after+ship;let imp=0,impVat=0,impFee=0,impBank=0;const out=outsideEU(it);
     if(out&&after>0){const c=impCfg();impVat=base*c.vat/100;impFee=c.fee;impBank=foreignCur(it)?base*c.bank/100:0;imp=impVat+impFee+impBank;}
-    return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,base,imp,impVat,impFee,impBank,out,total:base+imp};}
-  const impLine=(c)=>c.out&&c.imp?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">⚠ Fuera de la UE · posible importación (estimado): +${eur(c.impVat)} IVA${c.impFee?` + ${eur(c.impFee)} aduana`:''}${c.impBank?` + ${eur(c.impBank)} banco`:''} = <b>${eur(c.imp)}</b> · ya incluido en el total</div>`:'';
+    // Precio sin IVA en tienda de la UE: se paga el IVA de destino (España, el de Ajustes). Fuera de la UE ya lo suma la importación.
+    const vatAdd=it.vatExcl&&!out&&after>0?base*impCfg().vat/100:0;
+    return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,base,imp,impVat,impFee,impBank,out,vatAdd,total:base+imp+vatAdd};}
+  const impLine=(c)=>(c.vatAdd?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">Precio sin IVA · se suma el IVA (${fmtNum(impCfg().vat,0)} %): +${eur(c.vatAdd)} · ya incluido en el total</div>`:'')+(c.out&&c.imp?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">⚠ Fuera de la UE · posible importación (estimado): +${eur(c.impVat)} IVA${c.impFee?` + ${eur(c.impFee)} aduana`:''}${c.impBank?` + ${eur(c.impBank)} banco`:''} = <b>${eur(c.imp)}</b> · ya incluido en el total</div>`:'');
   const fullName=it=>[clean(it.product),clean(it.variant)].filter(Boolean).join(' · ');
   const groupName=it=>clean(it.group)||fullName(it)||'Sin nombre';
   const key=s=>clean(s).toLowerCase().replace(/\s+/g,' ');

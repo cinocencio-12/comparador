@@ -100,7 +100,7 @@
     e.preventDefault();
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});if(me)d.shareWith=formShare();
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=parseIn(d[k]));
-    convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;
+    convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;d.vatExcl=F('fVatExcl').checked;
     {const o={};cpInh.forEach((v,k)=>{if(k==='shipping'?num(d.shipping)>0:k==='freeFrom'?num(d.freeFrom)>0:clean(d.code))o[k]=v;});d.inherited=Object.keys(o).length?o:null;}
     d.specs=readSpecs();
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;

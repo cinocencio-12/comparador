@@ -26,6 +26,7 @@ Cada objeto de producto lleva estas claves:
  "discount": SOLO un descuento extra que aún no está aplicado en "price" (un cupón o código, o un % extra que se aplica en la cesta). Si el precio ya aparece rebajado (precio tachado), eso NO es descuento: pon 0,
  "discountType": "pct" o "eur",
  "code": código de cupón si aparece, si no "",
+ "vatExcl": true si la web muestra el precio SIN IVA ("sin IVA", "+ IVA", "IVA no incluido", "excl. VAT", "netto", "HT"); false si lo incluye o no lo dice,
  "shipping": coste de envío estándar en euros, 0 si es gratis, null si no aparece,
  "freeFrom": importe mínimo para envío gratis si aparece, si no 0,
  "description": descripción del producto en español, fiel a la tienda, con las características y especificaciones clave (máx. 900 caracteres, puedes usar saltos de línea),
@@ -167,7 +168,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
-      availability:clean(d.availability),currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
+      availability:clean(d.availability),vatExcl:d.vatExcl===true,currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
       specs:cleanSpecs(d.specs),sub:clean(d.sub),size:clean(d.size),color:clean(d.color),units:num(d.units)>1?String(Math.round(num(d.units))):'',category:clean(d.category),platform:clean(d.platform),tags:(Array.isArray(d.tags)?d.tags:[]).map(clean).filter(Boolean).slice(0,5).join(', '),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 

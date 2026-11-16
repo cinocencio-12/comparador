@@ -284,6 +284,22 @@ async def p_comprobar(a):
     comprobar('stock' in st.lower() and 'vuelve a haber' in st, f'«Comprobar stock» no dice el resultado: {st}')
 
 
+async def p_iva_y_tienda(a):
+    await a.abrir(extra=EXTRA)
+    # IVA no incluido: tienda de la UE suma el 21 %; fuera de la UE no se duplica (ya va en importación)
+    r = await a.pg.evaluate("""()=>[calc({price:100,shipping:10,vatExcl:true,country:'DE'}).total,calc({price:100,shipping:10,country:'DE'}).total,
+        calc({price:100,shipping:10,vatExcl:true,country:'US'}).total===calc({price:100,shipping:10,country:'US'}).total]""")
+    comprobar(abs(r[0]-133.1) < 0.01 and abs(r[1]-110) < 0.01 and r[2], f'IVA no incluido mal calculado: {r}')
+    # Rellenar con lo de esta tienda: copia portes, envío gratis y cupón de otro artículo de la misma tienda
+    await a.pg.evaluate("""()=>{items.push({id:'t1',product:'Bolas 0,25',store:'TiendaPrueba',price:10,shipping:4.95,freeFrom:60,code:'HOLA10',vatExcl:true,status:'pending',images:[],checkedAt:new Date().toISOString()});}""")
+    await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.getElementById('form').querySelectorAll('details').forEach(d=>d.open=true)")
+    await a.pg.fill('#fStore', 'TiendaPrueba'); await a.pg.click('#shopCopy'); await a.pg.wait_for_timeout(200)
+    v = await a.pg.evaluate("['fShip','fFree','fCode'].map(i=>document.getElementById(i).value).concat(document.getElementById('fVatExcl').checked)")
+    comprobar(v[0] == '4,95' and v[1].startswith('60') and v[2] == 'HOLA10' and v[3] is True, f'«Rellenar con lo de esta tienda» no copia: {v}')
+    await a.foto('rellenar-tienda')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

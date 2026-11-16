@@ -13,10 +13,10 @@
 <meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-<link rel="stylesheet" href="css/01-base.css?v=2026-11-17l">
-<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17l">
-<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17l">
-<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17l">
+<link rel="stylesheet" href="css/01-base.css?v=2026-11-17m">
+<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17m">
+<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17m">
+<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17m">
 </head>
 <body>
 <div class="wrap">
@@ -167,8 +167,10 @@
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
     <div class="f c3"><label for="fUnits">Unidades por pack</label><input id="fUnits" inputmode="numeric" placeholder="p. ej. 4000"><span class="hint" id="unitsHint"></span></div>
     <label class="selbox" style="grid-column:1/-1"><input type="checkbox" id="fOutEU"> Tienda fuera de la UE (sumar IVA de importación, aduana y banco estimados)</label>
+    <label class="selbox" style="grid-column:1/-1"><input type="checkbox" id="fVatExcl"> IVA no incluido (el precio de la web es sin IVA: se suma al coste)</label>
     <div class="f c3"><label for="fShip">Envío</label><div class="disc"><input id="fShip" inputmode="decimal" placeholder="0"><select id="fShipCur" aria-label="Moneda del envío"></select></div></div>
     <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
+    <div class="f c6"><button class="btn small" type="button" id="shopCopy">Rellenar con lo de esta tienda</button><span class="hint" id="shopCopyHint">Copia portes, envío gratis, cupón, moneda, UE e IVA de otro artículo de la misma tienda (solo lo vacío).</span></div>
     <div class="f c3"><label for="fTarget">Avísame si el total baja de (€)</label><input id="fTarget" inputmode="decimal" placeholder="Sin aviso"></div>
     <div class="f c3"><label for="fStockAl">Aviso de stock</label><select id="fStockAl"><option value="">No avisar</option><option value="1">Avísame si vuelve a haber stock</option></select></div>
     </div></details>
@@ -322,21 +324,21 @@
   <div class="bar lbacts"><button id="lbFirst" type="button">★ Poner como principal</button><button id="lbCat" type="button">Portada de la categoría</button><button id="lbDel" type="button">Quitar foto</button></div>
 </div>
 
-<script src="js/01-base.js?v=2026-11-17l"></script>
-<script src="js/02-datos.js?v=2026-11-17l"></script>
-<script src="js/03-vistas.js?v=2026-11-17l"></script>
-<script src="js/04-inicio-y-navegacion.js?v=2026-11-17l"></script>
-<script src="js/05-avisos-listas-revision.js?v=2026-11-17l"></script>
-<script src="js/06-ficha.js?v=2026-11-17l"></script>
-<script src="js/07-ajustes-categorias.js?v=2026-11-17l"></script>
-<script src="js/08-claude-y-monedas.js?v=2026-11-17l"></script>
-<script src="js/09-editor.js?v=2026-11-17l"></script>
-<script src="js/10-fotos-y-acciones.js?v=2026-11-17l"></script>
-<script src="js/11-comprobar-y-comprar.js?v=2026-11-17l"></script>
-<script src="js/12-nube.js?v=2026-11-17l"></script>
-<script src="js/13-consejos.js?v=2026-11-17l"></script>
-<script src="js/14-compatibles.js?v=2026-11-17l"></script>
-<script src="js/15-costes.js?v=2026-11-17l"></script>
-<script src="js/16-arranque.js?v=2026-11-17l"></script>
+<script src="js/01-base.js?v=2026-11-17m"></script>
+<script src="js/02-datos.js?v=2026-11-17m"></script>
+<script src="js/03-vistas.js?v=2026-11-17m"></script>
+<script src="js/04-inicio-y-navegacion.js?v=2026-11-17m"></script>
+<script src="js/05-avisos-listas-revision.js?v=2026-11-17m"></script>
+<script src="js/06-ficha.js?v=2026-11-17m"></script>
+<script src="js/07-ajustes-categorias.js?v=2026-11-17m"></script>
+<script src="js/08-claude-y-monedas.js?v=2026-11-17m"></script>
+<script src="js/09-editor.js?v=2026-11-17m"></script>
+<script src="js/10-fotos-y-acciones.js?v=2026-11-17m"></script>
+<script src="js/11-comprobar-y-comprar.js?v=2026-11-17m"></script>
+<script src="js/12-nube.js?v=2026-11-17m"></script>
+<script src="js/13-consejos.js?v=2026-11-17m"></script>
+<script src="js/14-compatibles.js?v=2026-11-17m"></script>
+<script src="js/15-costes.js?v=2026-11-17m"></script>
+<script src="js/16-arranque.js?v=2026-11-17m"></script>
 </body>
 </html>

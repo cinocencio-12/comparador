@@ -13,7 +13,7 @@
       const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
       if(num(d.price)>0){it.price=d.price;it.discount=d.discount;it.discountType=d.discountType;it.orig=d.orig||null;it.curChecked=true;if(d.code)it.code=d.code;}
       if(d.shipping>0)it.shipping=d.shipping;if(d.freeFrom>0)it.freeFrom=d.freeFrom;webPrevails(it,d);
-      it.availability=d.availability||it.availability||'';
+      it.availability=d.availability||it.availability||'';if(d.vatExcl)it.vatExcl=true;
       ['brand','sku','mpn','ean','description'].forEach(k=>{if(!clean(it[k])&&d[k])it[k]=d[k];});
       const now=new Date().toISOString();it.checkedAt=now;
       if(num(d.price)>0){(it.history=it.history||[]).push({at:now,price:calc(it).after,total:calc(it).total,avail:it.availability});if(it.history.length>500)it.history=it.history.slice(-500);}
