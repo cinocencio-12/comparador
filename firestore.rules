@@ -2,12 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
     function signed() { return request.auth != null; }
-    function myEmail() { return request.auth.token.email; }
+    function myEmail() { return request.auth.token.email.lower(); }
     function verified() { return request.auth.token.email_verified == true; }
+
+    // Perfil: lo ve el dueño y las personas con las que comparte (para saber su nombre).
     match /profiles/{uid} {
       allow read: if signed() && (request.auth.uid == uid || (verified() && myEmail() in resource.data.sharedWith));
       allow write: if signed() && request.auth.uid == uid;
     }
+
+    // Productos: el dueño hace todo; los demás solo leen lo que el dueño les ha hecho visible.
     match /users/{uid}/items/{itemId} {
       allow read, write: if signed() && request.auth.uid == uid;
       allow read: if signed() && verified() && myEmail() in resource.data.visibleTo;
@@ -16,13 +20,28 @@ service cloud.firestore {
         allow read: if signed() && verified() && myEmail() in get(/databases/$(db)/documents/users/$(uid)/items/$(itemId)).data.visibleTo;
       }
     }
-    // Reservas de regalos («lo compro yo»). Las ven las personas con quien el dueño comparte;
-    // el dueño solo las ve si es un regalo para otra persona (hideOwner == false).
+
+    // Reservas de regalos («Lo compro yo»).
+    // - Solo puede reservar quien ve ese producto, y una sola persona por producto (no se puede pisar).
+    // - La ven las mismas personas que ven el producto (viewers = copia de visibleTo comprobada al crear).
+    // - El dueño solo la ve si el regalo es para otra persona (hideOwner == false); si es su deseo, es secreta.
+    // - Solo puede quitarla quien la hizo. No guarda el nombre del producto.
     match /reservations/{owner}/items/{itemId} {
-      function sharer() { return verified() && myEmail() in get(/databases/$(db)/documents/profiles/$(owner)).data.sharedWith; }
-      allow read: if signed() && (sharer() || (request.auth.uid == owner && resource.data.hideOwner == false));
-      allow create, update: if signed() && sharer() && request.resource.data.by == myEmail();
-      allow delete: if signed() && sharer() && resource.data.by == myEmail();
+      function item() { return get(/databases/$(db)/documents/users/$(owner)/items/$(itemId)).data; }
+      allow read: if signed() && ((verified() && myEmail() in resource.data.viewers)
+                               || (request.auth.uid == owner && resource.data.hideOwner == false));
+      allow create: if signed() && verified() && request.auth.uid != owner
+                    && myEmail() in item().visibleTo
+                    && request.resource.data.by == myEmail()
+                    && request.resource.data.viewers == item().visibleTo
+                    && request.resource.data.hideOwner is bool
+                    && request.resource.data.keys().hasOnly(['by', 'byName', 'at', 'hideOwner', 'viewers']);
+      allow delete: if signed() && verified() && resource.data.by == myEmail();
+    }
+
+    // Todo lo demás, cerrado.
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

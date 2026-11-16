@@ -700,6 +700,12 @@ body.nav-prod .homesearch{display:none}
 .alertset input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
 .track ul.hits{margin:8px 0 0}.track ul.hits li{cursor:pointer}
 .chip.resv{background:var(--share-soft);color:var(--share)}
+
+.bnav{grid-template-columns:repeat(6,1fr)}
+.bnav button{position:relative;font-size:.68rem}
+.bnav button svg{width:46px}
+.bnav .badge{position:absolute;top:2px;right:calc(50% - 26px);min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--danger);color:#fff;font:700 .66rem/18px var(--f-body);font-style:normal;text-align:center}
+.selbar{flex-wrap:wrap}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -805,7 +811,7 @@ body.nav-prod .homesearch{display:none}
       <div class="list" id="contactsList"></div>
       <div class="actions"><button class="btn small" type="button" id="addContact">+ Añadir persona</button></div>
       <span class="hint">Solo ve lo que marques en cada producto (o lo nuevo, si marcas «compartir lo nuevo»). Los regalos para esa persona nunca se le muestran.</span></div>
-    <label class="selbox full"><input type="checkbox" id="watchOn"> Vigilar precios: al abrir la app, comprobar solos los productos con enlace</label>
+    <label class="selbox full"><input type="checkbox" id="watchOn"> Vigilar precios: al abrir la app, comprobar solo los productos con aviso (precio objetivo o stock)</label>
     <div class="f c6"><button class="btn small" type="button" id="notifOn">Activar avisos en el móvil</button><span class="hint" id="notifTxt"> Para que las bajadas a tu precio objetivo y la vuelta de stock salgan como notificación.</span></div>
     <div class="f c3"><label for="watchDays">Cada cuántos días</label><input id="watchDays" inputmode="numeric"></div>
     <div class="f c3"><label for="watchMax">Máximo por apertura</label><input id="watchMax" inputmode="numeric"></div>
@@ -964,6 +970,7 @@ body.nav-prod .homesearch{display:none}
   <button type="button" data-nav="explore"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Explorar</span></button>
   <button type="button" data-nav="add" class="add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Añadir</span></button>
   <button type="button" data-nav="lists"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.6 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/></svg><span>Listas</span></button>
+  <button type="button" data-nav="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l2 2 4-4"/><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/></svg><span>Revisión</span><i class="badge" id="navRevN" hidden></i></button>
   <button type="button" data-nav="buys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 13H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span>Compras</span></button>
 </nav>
 <div class="sheet-bg" id="cpBg" hidden></div>
@@ -991,6 +998,7 @@ body.nav-prod .homesearch{display:none}
 <button class="fab" id="homeBtn" type="button" aria-label="Volver arriba y ver todo">Ver todo</button>
 <div class="selbar" id="selBar" hidden><b id="selCount">0 seleccionados</b>
   <button class="btn small" id="selCompare" type="button">Comparar</button>
+  <button class="btn small" id="selCheck" type="button">Comprobar precio</button>
   <button class="btn small primary" id="selJoin" type="button">Unir como el mismo</button>
   <button class="btn small" id="selCancel" type="button">Cancelar</button></div>
 
@@ -1192,7 +1200,7 @@ body.nav-prod .homesearch{display:none}
   function drawSelBar(){
     $('#selBar').hidden=!selMode;$('#homeBtn').hidden=selMode;
     $('#selCount').textContent=`${sel.size} ${sel.size===1?'seleccionado':'seleccionados'}`;
-    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;
+    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
     $('#selModeBtn').textContent=selMode?'Salir de seleccionar':'Seleccionar para comparar o unir';
   }
   function compareTable(){
@@ -1218,6 +1226,12 @@ body.nav-prod .homesearch{display:none}
   $('#selModeBtn').addEventListener('click',()=>{selMode=!selMode;if(!selMode){sel.clear();cmpOpen=false;}render();});
   $('#selCancel').addEventListener('click',()=>{selMode=false;sel.clear();cmpOpen=false;render();});
   $('#selCompare').addEventListener('click',()=>{cmpOpen=true;render();window.scrollTo({top:$('#view').offsetTop-80,behavior:'smooth'});});
+
+  $('#selCheck').addEventListener('click',async()=>{if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(i=>i&&safeUrl(i.url));if(!list.length){setStatus('Los seleccionados no tienen enlace.','err');return;}
+    const b=$('#selCheck');b.disabled=true;let ok=0,dn=0,up=0;
+    for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');const t0=calc(list[i]).total;const r=await checkItem(list[i]);if(r.ok){ok++;const d=calc(list[i]).total-t0;if(d<-0.005)dn++;if(d>0.005)up++;}}
+    selMode=false;sel.clear();render();setStatus(`Comprobados ${ok} de ${list.length}: ${dn} bajan, ${up} suben.`);});
   $('#selJoin').addEventListener('click',async()=>{
     const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);if(list.length<2)return;
     // Nombre del grupo: el que ya tenga más ofertas, o el del primero.
@@ -1398,7 +1412,7 @@ body.nav-prod .homesearch{display:none}
   $('#modReset').addEventListener('click',()=>{['theme','navpos','view','text'].forEach(k=>{try{localStorage.removeItem('pref_'+k);}catch(e){}});applyPrefs();saveMods(MODS_DEF.slice());setStatus('Apariencia e Inicio restablecidos.');});
   // Secciones
   const NAVTABS={explore:['compare','shops'],lists:['gifts','buy','shared'],buys:['done','discarded']};
-  function setNav(n){if(n==='add'){openAdd();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
+  function setNav(n){if(n==='add'){openAdd();return;}if(n==='review'){navTab='review';prodKey=null;openReview();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
     if(n==='home'){flt.cat='';flt.sub='';allMode=false;space='mine';}
     if(n==='explore'&&!NAVTABS.explore.includes(tab))tab=space==='mine'?'compare':'shared';
     if(n==='lists'){tab='gifts';listHome=true;flt.person='';}if(n==='buys')tab='done';
@@ -1509,7 +1523,7 @@ body.nav-prod .homesearch{display:none}
       {k:'err',t:'Errores de lectura',d:'Tiendas que bloquean la lectura o fallos de conexión.',list:P.filter(i=>i.checkErr)}];}
   function revCount(){return revData(true).filter(r=>r.k!=='dup').reduce((s,r)=>s+r.list.length,0);}
   function openReview(k){revOpen=true;revKind=k||null;prodKey=null;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
-  function closeReview(){if(revKind){revKind=null;}else revOpen=false;render();window.scrollTo({top:0});}
+  function closeReview(){if(revKind){revKind=null;}else{revOpen=false;if(navTab==='review')navTab='home';}render();window.scrollTo({top:0});}
   const revRow=it=>`<div class="rvrow">${(it.images||[])[0]?imgTag(it.images[0],''):`<span class="ph">${svgI(catIcon(catOf(it)))}</span>`}<div class="t"><b>${esc(fullName(it)||'Sin nombre')}</b><small>${esc(shopOf(it))} · ${esc(catOf(it))}${it.checkErr?` · <span style="color:var(--danger)">${it.checkErr==='blocked'?'la tienda bloquea la lectura':'error al leer'}</span>`:''}${it.inherited?' · '+Object.keys(it.inherited).map(k=>({shipping:'portes',freeFrom:'mínimo portes',code:'cupón'})[k]).join(', ')+' supuestos':''}</small>${missBox(it)}</div><div class="a"><button class="btn small" type="button" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" type="button" data-open="${esc(key(groupName(it)))}">Ficha</button></div></div>`;
   function renderReview(){const D=revData();
     const back=`<div class="pfback"><button class="iconbtn" type="button" id="rvBack" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="crumb">${revKind?'Centro de revisión':'Inicio'}</span></div>`;
@@ -1599,7 +1613,7 @@ body.nav-prod .homesearch{display:none}
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     document.body.classList.toggle('nav-home',navTab==='home');
-    {const q=$('#qn-rev');if(q)q.textContent=revCount();}
+    {const q=$('#qn-rev'),rc=revCount();if(q)q.textContent=rc;const nb=$('#navRevN');if(nb){nb.hidden=!rc;nb.textContent=rc>99?'99+':rc;}}
     document.querySelectorAll('#bnav [data-nav]').forEach(b=>{if(b.dataset.nav===navTab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
     const v=$('#view');
@@ -2552,7 +2566,8 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${num(d.price)>0?eur(after)+(Math.abs(diff)>0.005?` (${diff<0?'baja':'sube'} ${eur(Math.abs(diff))})`:' (sin cambios)'):'precio no encontrado'}${it.availability?' · '+it.availability:''}.`};
     }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
   }
-  $('#checkTop').addEventListener('click',()=>{const b=$('#checkTop');if(b.classList.contains('spin'))return;b.classList.add('spin');$('#checkAllBtn').click();const t=setInterval(()=>{if(!$('#checkAllBtn').disabled){b.classList.remove('spin');clearInterval(t);}},500);});
+  $('#checkTop').addEventListener('click',()=>{if(!selMode){if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}prodKey=null;revOpen=false;$('#selModeBtn').click();setStatus('Marca los productos que quieres comprobar y pulsa «Comprobar» abajo.');return;}
+    $('#selCheck').click();});
   $('#checkAllBtn').addEventListener('click',async()=>{
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     const list=items.filter(i=>(tab==='done'?i.status==='bought':(i.status||'pending')==='pending')&&matches(i)&&safeUrl(i.url));
@@ -2609,7 +2624,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   let watching=false;
   async function autoWatch(){
     const w=watchCfg();if(!w.on||!cfg.key||watching)return;
-    const due=items.filter(i=>(i.status||'pending')==='pending'&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
+    const due=items.filter(i=>(i.status||'pending')==='pending'&&hasAlert(i)&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
       .sort((a,b)=>(hasAlert(b)-hasAlert(a))||(a.checkedAt||'').localeCompare(b.checkedAt||'')).slice(0,w.max);
     if(!due.length)return;watching=true;let ups=0,downs=0;
     for(let i=0;i<due.length;i++){setStatus(`Vigilando precios ${i+1} de ${due.length}…`,'busy');const b=calc(due[i]).after;const r=await checkItem(due[i]);
@@ -2908,7 +2923,7 @@ Productos: ${JSON.stringify(list)}`;
 
   // Convierte un documento de la nube en producto, con las fotos que ya estén en el móvil.
   async function fromCloud(d,owner){
-    const it={...d};delete it.visibleTo;
+    const it={...d};it._viewers=d.visibleTo||[];delete it.visibleTo;
     it.images=await Promise.all((d.images||[]).map(async r=>{if(r.u)return r.u;const k=owner+'/'+(r.it||d.id)+'/'+r.id;const b=await imgGet(k);
       if(b){let m=blobRefs.get(b);if(!m){m=new Map();blobRefs.set(b,m);}m.set(d.id,r.id);return b;}return {ref:{id:r.id,it:r.it||d.id,owner}};}));
     it._sig=(d.images||[]).map(x=>x.id||'').join(',');
@@ -2947,7 +2962,7 @@ Productos: ${JSON.stringify(list)}`;
       const owners=new Set();
       snap.forEach(p=>{const uidO=p.id;owners.add(uidO);if(sharedOwners.has(uidO)){sharedOwners.get(uidO).name=p.data().name||p.data().email;return;}
         const o={name:p.data().name||p.data().email,items:new Map(),unsub:null,resv:new Map(),runsub:null};sharedOwners.set(uidO,o);
-        o.runsub=fs.collection('reservations').doc(uidO).collection('items').onSnapshot(r=>{o.resv.clear();r.forEach(d=>o.resv.set(d.id,d.data()));reRender();},()=>{});
+        o.runsub=fs.collection('reservations').doc(uidO).collection('items').where('viewers','array-contains',lc(me.email)).onSnapshot(r=>{o.resv.clear();r.forEach(d=>o.resv.set(d.id,d.data()));reRender();},()=>{});
         o.unsub=fs.collection('users').doc(uidO).collection('items').where('visibleTo','array-contains',lc(me.email)).onSnapshot(async s2=>{
           for(const ch of s2.docChanges()){const d=ch.doc.data();d.id=ch.doc.id;if(ch.type==='removed'){o.items.delete(d.id);continue;}
             const it=await fromCloud(d,uidO);o.items.set(d.id,it);fetchImages(it,uidO,false);}
@@ -2966,7 +2981,7 @@ Productos: ${JSON.stringify(list)}`;
   document.addEventListener('click',async e=>{const b=e.target.closest('[data-resv]');if(!b||!me)return;const o=sharedOwners.get(b.dataset.resv);if(!o)return;const it=o.items.get(b.dataset.rid);if(!it)return;
     const ref=fs.collection('reservations').doc(b.dataset.resv).collection('items').doc(it.id);const r=o.resv.get(it.id);b.disabled=true;
     try{if(r&&lc(r.by)===lc(me.email)){await ref.delete();setStatus('Reserva quitada.');}
-      else{await ref.set({by:lc(me.email),byName:(me.displayName||me.email).split(' ')[0],at:new Date().toISOString(),hideOwner:!peopleList(it).length,name:fullName(it)});
+      else{if(r){setStatus('Ya lo ha reservado otra persona.','err');b.disabled=false;return;}await ref.set({by:lc(me.email),byName:(me.displayName||me.email).split(' ')[0],at:new Date().toISOString(),hideOwner:!peopleList(it).length,viewers:it._viewers||[]});
         setStatus(peopleList(it).length?`Reservado: ${o.name} y los demás verán que lo compras tú.`:`Reservado en secreto: ${o.name} no lo verá; los demás con quien lo comparte, sí.`);}}
     catch(err){setStatus('No se pudo reservar: faltan las reglas nuevas de Firestore (firestore.rules).','err');}b.disabled=false;});
   const myResvChip=i=>{const r=myResv.get(i.id);return r?`<span class="chip resv">Lo compra ${esc(r.byName||r.by)}</span>`:'';};
@@ -3133,7 +3148,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16m';
+    const APP_V='2026-11-16n';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
