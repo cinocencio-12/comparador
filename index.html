@@ -718,6 +718,7 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.lb .lbacts{bottom:calc(env(safe-area-inset-bottom,0px) + 64px);gap:10px}.lb .lbacts button{width:auto;height:auto;padding:12px 18px;border-radius:999px;font:750 .95rem var(--f-body);background:rgba(255,255,255,.16);color:#fff;border:0}.lb .lbacts #lbFirst{background:linear-gradient(135deg,var(--cta1),var(--cta2));color:var(--cta-fg)}.lb .lbacts button:disabled{opacity:.6}
 .sugbox{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px;padding:12px 14px;border-radius:16px;background:var(--accent-soft);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
 .sugbox .sv{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:var(--glass);display:flex;align-items:center;justify-content:center;color:var(--accent)}
 .sugbox .sv img{width:100%;height:100%;object-fit:cover;background:#fff}.sugbox .sv svg{width:28px;height:28px}
@@ -1144,6 +1145,7 @@ body.nav-home .hello{display:block}
   <button class="close" id="lbClose" type="button">Cerrar</button>
   <img id="lbImg" alt="" referrerpolicy="no-referrer">
   <div class="bar"><button id="lbPrev" type="button">‹</button><span id="lbCount"></span><button id="lbNext" type="button">›</button></div>
+  <div class="bar lbacts"><button id="lbFirst" type="button">★ Poner como principal</button><button id="lbDel" type="button">Quitar foto</button></div>
 </div>
 
 <script>
@@ -1613,7 +1615,7 @@ body.nav-home .hello{display:block}
     const c=e.target.closest('[data-open]');if(c){openProd(c.dataset.open);return;}
     const k=e.target.closest('[data-collapse]');if(k){openG.delete(k.dataset.collapse);render();}});
   function compactCard(g){const valid=g.offers.filter(o=>!isUnread(o));const lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):g.offers[0];
-    const img=(g.offers.find(o=>(o.images||[])[0])||{}).images;const c=calc(lt);const shops=new Set(g.offers.map(shopOf)).size;
+    const img=(g.offers.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||''))).find(o=>(o.images||[])[0])||{}).images;const c=calc(lt);const shops=new Set(g.offers.map(shopOf)).size;
     const noShip=!(num(lt.shipping)>0)&&!(num(lt.freeFrom)>0)&&!/gratis|free/i.test(lt.notes||'');
     const lbl=!valid.length?'<small class="est">sin precio</small>':noShip?'<small class="est">sin portes</small>':(inh(lt,'shipping')||inh(lt,'freeFrom'))?'<small class="est">portes supuestos</small>':outsideEU(lt)?'<small class="est">total estimado</small>':'<small>coste total</small>';
     const allOut=g.offers.every(o=>/agotad|sin stock|no disponible|out of stock/.test(norm(o.availability)));
@@ -1757,7 +1759,7 @@ body.nav-home .hello{display:block}
     const valid=offers.filter(o=>!isUnread(o));const lt=valid[0]||offers[0];
     const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null;
     const f=offers[0];const name=groupName(f);const sub=[f.brand,f.variant].map(clean).filter(Boolean).join(' · ');
-    const imgs=[];offers.forEach(o=>(o.images||[]).forEach((v,i)=>{if(!imgs.some(x=>x[0]===v))imgs.push([v,o.id,i]);}));
+    const imgs=[];offers.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||''))).forEach(o=>(o.images||[]).forEach((v,i)=>{if(!imgs.some(x=>x[0]===v))imgs.push([v,o.id,i]);}));
     const [lbl,lcls]=costLbl(lt);const shops=new Set(offers.map(shopOf)).size;
     const back=`<div class="pfback"><button class="iconbtn" type="button" id="pfBack" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="crumb">${esc(catOf(f))}${clean(f.sub)?' · '+esc(f.sub):''}</span></div>`;
     const badN=imgs.filter(([v])=>isBad(v)).length;const goodImgs=imgs.filter(([v])=>!isBad(v));
@@ -2358,7 +2360,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
     formImgs.forEach((v,i)=>{const d=document.createElement('div');d.className='th';
-      d.innerHTML=`${imgTag(v)}${i===0?'<span class="first">Principal</span>':`<button type="button" data-first="${i}" aria-label="Hacer principal" style="right:auto;left:3px;bottom:3px;top:auto;font-size:11px">★</button>`}<button type="button" data-rm="${i}" aria-label="Quitar">×</button>`;
+      d.innerHTML=`${imgTag(v)}${i===0?'<span class="first">Principal</span>':`<button type="button" data-first="${i}" aria-label="Hacer principal" title="Hacer principal" style="right:auto;left:3px;bottom:3px;top:auto;font-size:11px;width:auto;padding:0 8px;border-radius:999px">★ Principal</button>`}<button type="button" data-rm="${i}" aria-label="Quitar">×</button>`;
       box.insertBefore(d,add);});
     if(typeof markMissing==='function'&&!$('#form').hidden)markMissing();
   }
@@ -2608,7 +2610,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     if(!d.group)d.group=fullName(d);
     if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d,{images:formImgs,curChecked:true});await put('items',it);}
     else{const it={id:uid(),...d,images:formImgs,status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
-    closeForm();render();setStatus('Guardado.');
+    closeForm();try{await scanPhotos();}catch(err){}render();setStatus('Guardado.');
   });
 
   // ---------- acciones ----------
@@ -2648,7 +2650,13 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;
-  function lbShow(){$('#lbImg').src=src(lbIt.images[lbI]);$('#lbCount').textContent=`${lbI+1} / ${lbIt.images.length}`;$('#lbPrev').hidden=$('#lbNext').hidden=lbIt.images.length<2;}
+  function lbShow(){$('#lbImg').src=src(lbIt.images[lbI]);$('#lbCount').textContent=`${lbI+1} / ${lbIt.images.length}`;$('#lbPrev').hidden=$('#lbNext').hidden=lbIt.images.length<2;const pr=lbI===0&&isCover(lbIt);$('#lbFirst').disabled=pr;$('#lbFirst').textContent=pr?'★ Es la principal':'★ Poner como principal';}
+  const isCover=it=>{const g=items.filter(i=>(i.status||'pending')!=='discarded'&&key(groupName(i))===key(groupName(it))&&(i.images||[]).length);const c=g.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||'')))[0];return !c||c.id===it.id||!c.coverAt;};
+  $('#lbFirst').addEventListener('click',async()=>{const [x]=lbIt.images.splice(lbI,1);lbIt.images.unshift(x);lbIt.coverAt=new Date().toISOString();await put('items',lbIt);lbI=0;lbShow();render();setStatus('Foto principal cambiada.');});
+  $('#lbDel').addEventListener('click',async()=>{if(!confirm('¿Quitar esta foto del artículo?'))return;lbIt.images.splice(lbI,1);await put('items',lbIt);if(!lbIt.images.length){$('#lb').hidden=true;}else{lbI=Math.min(lbI,lbIt.images.length-1);lbShow();}await scanPhotos();render();setStatus('Foto quitada.');});
+  // Mantener pulsada una foto: abrirla con las opciones (principal / quitar)
+  document.addEventListener('contextmenu',e=>{const t=e.target.closest('.pgal [data-lb],.buyrow [data-lb],.offer [data-lb]');if(t){e.preventDefault();t.click();return;}
+    const ed=e.target.closest('#imgEdit .imgthumb, #imgEdit > div');if(ed){const f=ed.querySelector('[data-first]');if(f){e.preventDefault();f.click();setStatus('Será la foto principal al guardar.');}}});
   $('#view').addEventListener('click',e=>{const t=e.target.closest('[data-lb]');if(!t)return;const it=items.find(i=>i.id===t.dataset.lb);if(!it||!(it.images||[]).length)return;lbIt=it;lbI=+t.dataset.i||0;$('#lb').hidden=false;lbShow();});
   $('#lbClose').addEventListener('click',()=>{$('#lb').hidden=true;});
   $('#lb').addEventListener('click',e=>{if(e.target.id==='lb')$('#lb').hidden=true;});
@@ -3372,7 +3380,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16v';
+    const APP_V='2026-11-16w';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
