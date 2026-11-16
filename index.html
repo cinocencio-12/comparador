@@ -1204,16 +1204,32 @@ body.nav-home .hello{display:block}
     clearTimeout(badT);badT=setTimeout(async()=>{try{await scanPhotos();}catch(e){}if(prodKey)render();},600);};
   // Al abrir la app, comprueba en segundo plano las fotos de la web de lo pendiente
   function probeImgs(){const urls=new Set();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>(i.images||[]).forEach(v=>{if(typeof v==='string'&&/^https?:/.test(v)&&!BAD.has(v))urls.add(v);}));
-    let n=0;const fail=u=>{if(BAD.has(u))return;BAD.add(u);n++;try{localStorage.setItem('badImg',JSON.stringify([...BAD].slice(-500)));}catch(e){}clearTimeout(badT);badT=setTimeout(async()=>{try{await scanPhotos();}catch(e){}render();if(n)setStatus(`${n} ${n===1?'foto ya no carga':'fotos ya no cargan'} (la tienda la cambió). Las tienes en Revisión → Sin fotografías.`);},1500);};
+    let n=0;const fail=async u=>{if(BAD.has(u))return;const c=await viaCopy(u);if(c){for(const it of items){const k=(it.images||[]).indexOf(u);if(k>=0){it.images[k]=c;await put('items',it);}}clearTimeout(badT);badT=setTimeout(()=>render(),1500);return;}BAD.add(u);n++;try{localStorage.setItem('badImg',JSON.stringify([...BAD].slice(-500)));}catch(e){}clearTimeout(badT);badT=setTimeout(async()=>{try{await scanPhotos();}catch(e){}render();if(n)setStatus(`${n} ${n===1?'foto ya no carga':'fotos ya no cargan'} (la tienda la cambió). Las tienes en Revisión → Sin fotografías.`);},1500);};
     [...urls].forEach((u,k)=>setTimeout(()=>{const im=new Image();im.referrerPolicy='no-referrer';im.onerror=()=>fail(u);im.src=u;},k*60));}
   setTimeout(()=>{try{if(navigator.onLine!==false)probeImgs();}catch(e){}},4000);
+  setTimeout(()=>{copyWebImgs(40).then(n=>{if(n)setStatus(`${n} ${n===1?'foto guardada':'fotos guardadas'} en el móvil: ya no dependen de la web de la tienda.`);}).catch(()=>{});},15000);
   const imgTag=(v,attrs)=>{const u=src(v);if(isBad(v))return `<img src="icons/icon-192.png" alt="Foto no disponible" data-bad="1" ${attrs||''}>`;return u?`<img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="__bad(this)" ${attrs||''}>`:`<span class="th" style="display:inline-block;width:56px;height:56px;border-radius:8px;background:var(--line)" ${attrs||''}></span>`;};
   async function grabImage(u){
     try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),8000);
       const r=await fetch(u,{mode:'cors',signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
       if(r.ok){const b=await r.blob();if(/^image\//.test(b.type)&&b.size>1500)return b;}}catch(e){}
-    return u; // la tienda no deja copiarla: se muestra desde su web
+    const c=await viaCopy(u);if(c)return c;
+    return u; // ni directo ni con copia: se muestra desde su web
   }
+  // «Truco de la copia sin conexión»: si la tienda no deja copiar la foto, se pide a un servicio
+  // público de imágenes (wsrv.nl) que la descargue y nos la devuelva; se guarda la copia en el móvil.
+  async function viaCopy(u){try{const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),12000);
+      const r=await fetch('https://wsrv.nl/?url='+encodeURIComponent(u.replace(/^https?:\/\//,''))+'&w=1200&we&output=jpg&q=85',{signal:ctl.signal,referrerPolicy:'no-referrer'});clearTimeout(t);
+      if(!r.ok)return null;const b=await r.blob();if(!/^image\//.test(b.type)||b.size<1500)return null;try{return await shrink(b);}catch(e){return b;}}catch(e){return null;}}
+  // Guarda en el móvil una copia de las fotos que aún dependen de la web de la tienda (poco a poco, sin perder nada)
+  let copying=false;
+  async function copyWebImgs(max){if(copying||!navigator.onLine)return 0;copying=true;let n=0;
+    try{for(const it of items.filter(i=>i.status!=='discarded')){if(n>=max)break;const im=it.images||[];if(!im.some(v=>typeof v==='string'&&/^https?:/.test(v)))continue;
+        const out=[];let ch=false;for(const v of im){if(typeof v==='string'&&/^https?:/.test(v)&&n<max){const b=await viaCopy(v)||await (async()=>{try{const r=await fetch(v,{mode:'cors',referrerPolicy:'no-referrer'});if(r.ok){const x=await r.blob();if(/^image\//.test(x.type)&&x.size>1500)return x;}}catch(e){}return null;})();
+            if(b){out.push(b);ch=true;n++;if(BAD.has(v)){BAD.delete(v);try{localStorage.setItem('badImg',JSON.stringify([...BAD]));}catch(e){}}continue;}}out.push(v);}
+        if(ch){it.images=out;await put('items',it);}}}
+    finally{copying=false;}
+    if(n){try{await scanPhotos();}catch(e){}render();}return n;}
   async function grabImages(urls){
     const list=[...new Set((urls||[]).map(u=>clean(u).replace(/&amp;/g,'&')).filter(u=>/^https?:\/\//i.test(u)))].slice(0,8);
     return Promise.all(list.map(grabImage));
@@ -3380,7 +3396,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16w';
+    const APP_V='2026-11-16x';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
