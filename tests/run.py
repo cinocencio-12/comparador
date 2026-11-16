@@ -300,6 +300,21 @@ async def p_iva_y_tienda(a):
     await a.foto('rellenar-tienda')
 
 
+async def p_ficha_tecnica(a):
+    await a.abrir(extra=EXTRA)
+    # Rangos de FPS / julios y listas de Claude (array) se guardan como texto
+    r = await a.pg.evaluate("""()=>cleanSpecs({fps:'120 - 250',joules:'hasta 1,5 J',gas:['Green gas','CO₂ 12 g'],ms:'de 90 a 110 m/s'})""")
+    comprobar(r.get('fps') == '120–250 fps' and r.get('ms') == '90–110 m/s' and r.get('gas') == 'Green gas, CO₂ 12 g', f'rangos o listas mal: {r}')
+    # Editor: listas fijas, casillas múltiples y valores antiguos que no están en la lista se conservan
+    await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.getElementById('form').querySelectorAll('details').forEach(d=>d.open=true)")
+    v = await a.pg.evaluate("""()=>{fillSpecs({system:'1x 12 g CO₂',gas:'Top gas / Red gas, Green gas',fireMode:'Semi, ráfaga y Full',battery:'LiPo',batC:'25C',stock:'Retráctil / telescópica',rails:'Sí',railType:'M-LOK',fps:'120-250'});
+        const o=readSpecs();return [document.getElementById('sp_battery').tagName,o.system,o.gas,o.fireMode,o.batC,o.stock,o.railType,o.fps]}""")
+    comprobar(v[0] == 'SELECT' and v[1] == '1x 12 g CO₂' and set(v[2].split(', ')) == {'Top gas / Red gas', 'Green gas'} and v[3] == 'Semi, ráfaga y Full' and v[4] == '25C' and v[5].startswith('Retráctil') and v[6] == 'M-LOK' and v[7] == '120–250 fps', f'ficha técnica del editor mal: {v}')
+    await a.pg.evaluate("document.getElementById('specBox').scrollIntoView()")
+    await a.foto('ficha-tecnica')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

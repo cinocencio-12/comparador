@@ -132,3 +132,7 @@ body.nav-home .hello{display:block}
 .disc input{flex:1 1 auto;min-width:0}
 .disc select{width:64px!important;flex:none;padding-left:8px;padding-right:22px;text-align:center}
 #form .f.c3:has(> .disc){grid-column:1/-1}
+/* Ficha técnica: casillas de opciones múltiples compactas */
+#specGrid .spchip{display:inline-flex!important;align-items:center;gap:6px;padding:6px 12px!important;min-height:0!important;width:auto!important;margin:0!important;text-align:left;line-height:1.2;white-space:nowrap;border-radius:999px}
+#specGrid .spchip input{width:16px!important;height:16px!important;min-height:0!important;padding:0!important;margin:0!important;flex:none}
+#specGrid .spchip span{padding:0!important}

@@ -28,11 +28,25 @@
     if(/^Sin leer/.test(F('fGroup').value))F('fGroup').value='';
     fillSpecs(it.specs);
   }
-  function drawSpecGrid(){$('#specGrid').innerHTML=SPECS.map(([k,l,ph])=>`<div class="f"><label for="sp_${k}">${esc(l)}</label><input id="sp_${k}" placeholder="${esc(ph)}"></div>`).join('');}
+  // Campo libre, lista (una opción) o casillas (varias). Todos guardan texto, así filtros y comparativas siguen igual.
+  const specOpt=k=>SPECS.find(s=>s[0]===k)||[];
+  function drawSpecGrid(){$('#specGrid').innerHTML=SPECS.map(([k,l,ph,op,multi])=>!op?`<div class="f"><label for="sp_${k}">${esc(l)}</label><input id="sp_${k}" placeholder="${esc(ph)}"></div>`
+    :multi?`<div class="f full spmulti"><span class="lbl">${esc(l)}</span><div class="spchips" id="sp_${k}">${op.map(o=>`<label class="spchip"><input type="checkbox" value="${esc(o)}"><span>${esc(o)}</span></label>`).join('')}</div></div>`
+    :`<div class="f"><label for="sp_${k}">${esc(l)}</label><select id="sp_${k}"><option value="">—</option>${op.map(o=>`<option>${esc(o)}</option>`).join('')}</select></div>`).join('');}
+  function setSpec(k,v){const [,,,op,multi]=specOpt(k);const el=F('sp_'+k);v=clean(v||'');
+    if(!op){el.value=v;return;}
+    if(multi){// primero las opciones conocidas (algunas llevan coma, «y» o «/»), luego lo que sobre separado por comas
+      let rest=norm(v);const parts=[];[...op].sort((a,b)=>b.length-a.length).forEach(o=>{const n=norm(o);if(n&&rest.includes(n)){parts.push(o);rest=rest.split(n).join(' , ');}});
+      if(v)rest.split(/\s*[,;]\s*/).map(x=>x.trim()).filter(x=>x.length>1).forEach(x=>{const orig=v.split(/\s*[,;]\s*/).find(y=>norm(y)===x);parts.push(orig||x);});const box=el;
+      parts.forEach(p=>{if(![...box.querySelectorAll('input')].some(x=>norm(x.value)===norm(p)))box.insertAdjacentHTML('beforeend',`<label class="spchip"><input type="checkbox" value="${esc(p)}"><span>${esc(p)}</span></label>`);});
+      box.querySelectorAll('input').forEach(x=>x.checked=parts.some(p=>norm(p)===norm(x.value)));return;}
+    if(v&&![...el.options].some(o=>norm(o.value)===norm(v)))el.insertAdjacentHTML('beforeend',`<option>${esc(v)}</option>`);
+    el.value=v?[...el.options].find(o=>norm(o.value)===norm(v)).value:'';}
+  function getSpec(k){const [,,,op,multi]=specOpt(k);const el=F('sp_'+k);return op&&multi?[...el.querySelectorAll('input:checked')].map(x=>x.value).join(', '):el.value;}
   drawSpecGrid();
-  function fillSpecs(sp){sp=sp||{};SPECS.forEach(([k])=>{F('sp_'+k).value=sp[k]||'';});specVis();}
-  function readSpecs(){const o={};SPECS.forEach(([k])=>{o[k]=F('sp_'+k).value;});return cleanSpecs(o);}
-  function specVis(){const filled=SPECS.some(([k])=>clean(F('sp_'+k).value));const box=$('#specBox');box.hidden=!(filled||WEAPON_RE.test(F('fCategory').value+' '+F('fPlatform').value));if(filled)box.open=true;}
+  function fillSpecs(sp){sp=sp||{};SPECS.forEach(([k])=>setSpec(k,sp[k]));specVis();}
+  function readSpecs(){const o={};SPECS.forEach(([k])=>{o[k]=getSpec(k);});return cleanSpecs(o);}
+  function specVis(){const filled=SPECS.some(([k])=>clean(getSpec(k)));const box=$('#specBox');box.hidden=!(filled||WEAPON_RE.test(F('fCategory').value+' '+F('fPlatform').value));if(filled)box.open=true;}
   function subList(){const c=F('fCategory').value;$('#subList').innerHTML=[...new Set([...subsFor(c),...subsUsed(c)])].map(x=>`<option value="${esc(x)}">`).join('');}
   F('fCategory').addEventListener('input',subList);F('fSub').addEventListener('focus',subList);
   F('fCategory').addEventListener('input',specVis);F('fPlatform').addEventListener('input',specVis);

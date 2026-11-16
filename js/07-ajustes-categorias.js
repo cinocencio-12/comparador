@@ -35,13 +35,36 @@
   function subsFor(cat){const k=Object.keys(TAXONOMY).find(x=>norm(x)===norm(cat));return k?TAXONOMY[k]:[];}
   function subsUsed(cat){return [...new Set(items.filter(i=>catOf(i)===cat&&clean(i.sub)).map(i=>clean(i.sub)))];}
   // ---------- ficha técnica de armas / réplicas ----------
-  const SPECS=[['system','Sistema','1x 12 g CO₂, Green gas, Muelle, Eléctrica…'],['fps','Velocidad (FPS)','443 fps'],['ms','Velocidad de salida (m/s)','135 m/s'],['joules','Potencia (J)','2 J'],
-    ['blowback','Blowback','Sí / No'],['caliber','Calibre','6 mm BB, 4,5 mm acero…'],['hopup','Hop-up','Ajustable / Fijo / No'],['fireMode','Modo de disparo','Semi, Full…'],
+  // [clave, etiqueta, ejemplo, opciones fijas (opcional), varias a la vez (opcional)]. Con opciones se elige de una lista;
+  // si un dato guardado no está en la lista, se conserva como opción más.
+  const SN=['Sí','No'];
+  const SPECS=[['system','Sistema','',['Eléctrica (AEG)','Eléctrica (AEP)','Gas con blowback (GBB)','Gas sin blowback (NBB)','CO₂','HPA (aire a presión)','Muelle','Gas o CO₂ (dual)']],
+    ['gas','Gas compatible','',['Green gas','Top gas / Red gas','Black gas','Propano (con adaptador)','CO₂ 12 g','CO₂ 88/90 g','HPA'],1],
+    ['shotsPerFill','Disparos por carga/cápsula','≈40'],
+    ['battery','Batería: tipo','',['LiPo','Li-ion','LiFe','NiMH','Pilas']],
+    ['batVolt','Batería: voltaje','',['7,4 V (LiPo 2S)','11,1 V (LiPo 3S)','6,6 V (LiFe 2S)','9,9 V (LiFe 3S)','8,4 V (NiMH 7 celdas)','9,6 V (NiMH 8 celdas)','1,5 V','3,7 V']],
+    ['batCap','Batería: capacidad','1200 mAh'],
+    ['batC','Batería: descarga (C)','',['15C','20C','25C','30C','35C','40C','50C','60C']],
+    ['batPlug','Batería: conector','',['Mini Tamiya','Deans (T-plug)','XT30','XT60']],
+    ['batForm','Batería: formato','',['Stick','Nunchuck (2 cuerpos)','Butterfly','Buffer tube','Brick / PEQ']],
+    ['cellType','Pilas: tipo','',['AAA','AA','CR123A','CR2032','9 V','18650']],
+    ['cellCount','Pilas: número','2'],
+    ['batIncl','Batería incluida','',['Sí','No','Opcional (pack)']],
+    ['chargerIncl','Cargador incluido','',SN],
+    ['fps','Velocidad (FPS)','350 o 120-250'],['ms','Velocidad de salida (m/s)','135 o 90-110'],['joules','Potencia máxima (J)','1,14 o 0,5-1,5'],
+    ['stock','Culata','',['Fija','Plegable / abatible','Retráctil / telescópica','Plegable y retráctil','Ajustable (carrillera / cantonera)','Bullpup','Sin culata']],
+    ['rails','Raíles','',SN],
+    ['railType','Tipo de raíl','',['Picatinny / RIS 20 mm','Weaver','Cola de milano 11 mm','KeyMod','M-LOK','Raíl inferior (linterna)'],1],
+    ['blowback','Blowback','',SN],['caliber','Calibre','',['6 mm BB','8 mm BB','4,5 mm (balín)','4,5 mm acero (BB)','5,5 mm','40 mm (granada)']],['hopup','Hop-up','',['Ajustable','Fijo','No']],['fireMode','Modo de disparo','',['Semi','Semi y Full','Semi, ráfaga y Full','Cerrojo (bolt)','Tiro a tiro','Doble acción','Simple y doble acción'],1],
     ['material','Material','Metal'],['body','Material cuerpo/receiver','Metal'],['length','Longitud','216 mm'],['weight','Peso','818 g'],['barrel','Cañón interior','100 mm'],
-    ['magCap','Capacidad del cargador','15 rds'],['magType','Tipo de cargador','Mid-cap, Hi-cap…'],['magMaterial','Material del cargador','Metal'],
-    ['bbWeight','BBs recomendadas','0,20 g'],['bbBio','BBs biodegradables','Sí / No'],['bbTracer','BBs trazadoras','Sí / No'],['bbGrams','Peso de cada BB','0,25 g'],['bbCount','Unidades en la bolsa','4000'],['shotsPerFill','Disparos por carga/cápsula','≈40'],['safety','Seguro','Palanca'],['holster','Tipo de funda','A, D'],['color','Color','Negro'],['included','Incluye','1 cargador, llave…']];
+    ['magCap','Capacidad del cargador','15 rds'],['magType','Tipo de cargador','',['Low-cap','Mid-cap','Hi-cap','Cápsula / cartuchos','Tambor (drum)']],['magMaterial','Material del cargador','Metal'],
+    ['bbWeight','BBs recomendadas','0,20 g'],['bbBio','BBs biodegradables','',SN],['bbTracer','BBs trazadoras','',SN],['bbGrams','Peso de cada BB','0,25 g'],['bbCount','Unidades en la bolsa','4000'],['safety','Seguro','Palanca'],['holster','Tipo de funda','A, D'],['color','Color','Negro'],['included','Incluye','1 cargador, llave…']];
+  // Rangos: «120 - 250», «120 a 250», «de 120 hasta 250 fps» → «120–250 fps».
+  function normRange(v,unit){const m=String(v).replace(',','.').match(/(\d+(?:\.\d+)?)\s*(?:-|–|—|a|hasta|to|~)\s*(\d+(?:\.\d+)?)/i);
+    const f=x=>fmtNum(+x,/\./.test(x)?2:0).replace(/,00$/,'');
+    if(m)return `${f(m[1])}–${f(m[2])} ${unit}`;const n=String(v).replace(',','.').match(/\d+(?:\.\d+)?/);return n&&!/[a-z]{3,}/i.test(String(v).replace(/fps|m\/s|j(ulios)?/ig,''))?`${f(n[0])} ${unit}`:v;}
   const WEAPON_RE=/pistol|rev[oó]lver|escopet|rifle|fusil|carabin|francotirad|sniper|r[eé]plica|\barmas?\b|aeg|aep|gbb|smg|ametrallad|lanzagranad|airgun|aire comprimido|co2/i;
-  function cleanSpecs(o){const r={};if(!o||typeof o!=='object')return r;SPECS.forEach(([k])=>{let v=o[k];if(typeof v==='boolean')v=v?'Sí':'No';v=clean(v==null?'':String(v));if(v&&!/^(n\/?a|-|—|null|undefined)$/i.test(v))r[k]=v;});return r;}
+  function cleanSpecs(o){const r={};if(!o||typeof o!=='object')return r;SPECS.forEach(([k])=>{let v=o[k];if(Array.isArray(v))v=v.map(x=>clean(String(x))).filter(Boolean).join(', ');if(typeof v==='boolean')v=v?'Sí':'No';v=clean(v==null?'':String(v));if(v&&!/^(n\/?a|-|—|null|undefined)$/i.test(v))r[k]=v;});if(r.fps)r.fps=normRange(r.fps,'fps');if(r.ms)r.ms=normRange(r.ms,'m/s');if(r.joules)r.joules=normRange(r.joules,'J');return r;}
   const hasSpecs=it=>!!(it&&it.specs&&Object.keys(it.specs).length);
   function specsHtml(it){if(!hasSpecs(it))return '';return `<details class="desc"><summary>Ficha técnica</summary><table class="specs">${SPECS.filter(([k])=>it.specs[k]).map(([k,l])=>`<tr><th>${esc(l)}</th><td>${esc(it.specs[k])}</td></tr>`).join('')}</table></details>`;}
   function mergeSpecs(dst,src){const a=cleanSpecs(dst),b=cleanSpecs(src);Object.keys(b).forEach(k=>{if(!a[k])a[k]=b[k];});return a;}

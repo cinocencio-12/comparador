@@ -63,6 +63,8 @@ table.specs td{padding:3px 0;overflow-wrap:anywhere}
 table.specs tr+tr th,table.specs tr+tr td{border-top:1px solid rgba(127,127,127,.18)}
 .specgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 10px;margin-top:8px}
 .specgrid label{font-size:.75rem}
+.specgrid .full{grid-column:1/-1}.specgrid .lbl{font-size:.75rem;font-weight:600}
+.spchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.spchip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:.8rem!important;font-weight:500;cursor:pointer}.spchip input{margin:0;accent-color:var(--accent)}.spchip:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,transparent)}
 .row-actions{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
 .diff{font-size:.78rem;color:var(--muted);font-family:var(--f-mono);text-align:right}
 .list{display:flex;flex-direction:column;gap:10px}
