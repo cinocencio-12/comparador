@@ -1,9 +1,9 @@
-// Comparador · 13-arranque.js
+// Comparador · 16-arranque.js
 // Parte del código de la app, que se carga en orden desde index.html (ver js/LEEME.md).
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-17h';
+    const APP_V='2026-11-17i';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}

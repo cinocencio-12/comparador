@@ -210,6 +210,64 @@ async def p_html(a):
     comprobar(not pr.mal and not pr.st, 'index.html mal cerrado: ' + ', '.join(pr.mal[:3] + [f'<{t}> línea {l} sin cerrar' for t, l in pr.st[:3]]))
 
 
+def _hist(precios, dias_atras):
+    import datetime
+    hoy = datetime.datetime(2026, 11, 16)
+    return [{"at": (hoy - datetime.timedelta(days=d)).isoformat() + 'Z', "price": p, "total": p} for p, d in zip(precios, dias_atras)]
+
+
+CONSEJOS = [
+    {"id": "h1", "product": "Pistola en mínimo", "store": "Tienda A", "url": "https://a.es/h1", "price": 80, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Pruebas", "status": "pending", "images": [], "history": _hist([100, 95, 90, 80], [60, 40, 20, 1])},
+    {"id": "h2", "product": "Pistola cara ahora", "store": "Tienda A", "url": "https://a.es/h2", "price": 120, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Pruebas", "status": "pending", "images": [], "history": _hist([100, 95, 110, 120], [60, 40, 20, 1])},
+    {"id": "k1", "product": "Gafas de tiro", "store": "Cestashop", "url": "https://c.es/1", "price": 20, "shipping": 5, "freeFrom": 30, "discount": 0, "discountType": "eur", "category": "Pruebas", "status": "pending", "images": []},
+    {"id": "k2", "product": "Cinta de tela", "store": "Cestashop", "url": "https://c.es/2", "price": 15, "shipping": 5, "freeFrom": 30, "discount": 0, "discountType": "eur", "category": "Pruebas", "status": "pending", "group": "Cinta de tela", "images": []},
+    {"id": "k3", "product": "Cinta de tela", "store": "Otra tienda", "url": "https://o.es/2", "price": 14, "shipping": 4, "discount": 0, "discountType": "eur", "category": "Pruebas", "status": "pending", "group": "Cinta de tela", "images": []},
+    {"id": "v1", "product": "Vainas reductoras", "brand": "iGUN", "store": "iGUN", "url": "https://i.es/v", "price": 25, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Cargadores", "sub": "Vainas", "compat": "Chiappa Rhino 50DS 6 mm, Chiappa Rhino 60DS 6 mm", "status": "pending", "images": []},
+    {"id": "r6", "product": "Chiappa Rhino 50DS 6mm CO2", "brand": "Chiappa", "store": "iGUN", "url": "https://i.es/r6", "price": 180, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Revólveres", "status": "pending", "images": []},
+    {"id": "r4", "product": "Chiappa Rhino 50DS 4,5 mm balines", "brand": "Chiappa", "store": "iGUN", "url": "https://i.es/r4", "price": 170, "shipping": 0, "discount": 0, "discountType": "eur", "category": "Revólveres", "status": "pending", "images": []},
+]
+
+
+async def p_consejos(a):
+    await a.abrir(extra=CONSEJOS)
+    tips = await a.pg.inner_text('#view'); await a.foto('inicio-cesta', True)
+    comprobar('Cestashop' in tips and '8,00 €' in tips, 'la cesta óptima no propone juntar en Cestashop (ahorro 8 €)')
+    await a.pg.click('[data-nav=explore]'); await a.pg.click('.cattile[data-cat=Pruebas]'); await a.pg.wait_for_timeout(300)
+    txt = await a.pg.inner_text('#view')
+    await a.foto('buen-momento', True)
+    comprobar('Mínimo de 90 días' in txt, 'no marca el mínimo de 90 días')
+    comprobar('Caro ahora' in txt, 'no avisa de que está caro ahora')
+
+
+async def p_compatibles(a):
+    await a.abrir(extra=CONSEJOS)
+    await a.pg.click('[data-nav=explore]'); await a.pg.click('.cattile[data-cat=Cargadores]'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("[...document.querySelectorAll('[data-open]')].find(x=>/Vainas/.test(x.textContent)).click()"); await a.pg.wait_for_timeout(400)
+    sirve = await a.pg.evaluate("[...document.querySelectorAll('.cpt b')].map(b=>b.textContent)")
+    await a.foto('vainas', True)
+    comprobar(sirve == ['Chiappa Rhino 50DS 6mm CO2'], f'«Sirve para» debe ser solo el Rhino de 6 mm: {sirve}')
+    await a.pg.click('.cpt'); await a.pg.wait_for_timeout(400)
+    acc = await a.pg.evaluate("[...document.querySelectorAll('.cpt b')].map(b=>b.textContent)")
+    comprobar(acc == ['Vainas reductoras'], f'el Rhino de 6 mm no enseña sus vainas: {acc}')
+
+
+async def p_compartir(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{const it={id:'nuevo',product:'Saab Carl Gustaf M3 VFC gas',brand:'VFC',store:'Gunfire',price:430,shipping:9,discount:0,discountType:'eur',category:'Lanzacohetes',status:'pending',images:[]};it.group=autoGroup(it);items.push(it);afterShare(it);}""")
+    await a.pg.wait_for_timeout(400)
+    comprobar(await a.n('#pfBack') == 1, 'tras compartir algo que ya tenías no abre su ficha')
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar('Carl Gustaf' in st, f'no avisa de que ya lo tenías: {st}')
+
+
+async def p_costes(a):
+    await a.abrir()
+    await a.pg.evaluate("logUse('claude-haiku-4-5',{input_tokens:100000,output_tokens:20000,server_tool_use:{web_search_requests:2}})")
+    await a.pg.click('#openSettings'); await a.pg.wait_for_timeout(300)
+    t = await a.pg.inner_text('#costBox')
+    comprobar('1 lectura' in t and '≈' in t, f'Ajustes no enseña el gasto de Claude: {t[:120]}')
+
+
 PRUEBAS = {k[2:]: v for k, v in globals().items() if k.startswith('p_')}
 
 

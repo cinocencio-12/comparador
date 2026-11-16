@@ -17,7 +17,10 @@
 | `10-fotos-y-acciones.js` | Buscar fotos, acciones de cada oferta, visor de fotos, copia de seguridad, etiquetas. |
 | `11-comprobar-y-comprar.js` | Comprobar precios, comprar, releer, clasificar, completar fotos. |
 | `12-nube.js` | Firebase: cuenta, sincronización, compartir, reservas. |
-| `13-arranque.js` | Arranque de la app. |
+| `13-consejos.js` | ¿Buen momento para comprar? (90 días) y cesta óptima por tienda (envío gratis). |
+| `14-compatibles.js` | «Aplica a»: qué accesorio sirve para qué artículo, respetando modelo y calibre. |
+| `15-costes.js` | Gasto aproximado de Claude y espacio de fotos (Ajustes). |
+| `16-arranque.js` | Arranque de la app. Siempre el último. |
 
 Los archivos comparten variables globales (no son módulos ES): el orden importa. Un nombre nuevo no debe coincidir con
 uno del navegador (`tests/run.py paneles` lo comprueba).

@@ -29,3 +29,7 @@
 - Categorías distintas en un artículo vinculado: se avisa en la ficha y en Revisión y Carlos elige; no se cambia sola.
 - Munición: subcategoría = calibre; bio, trazadora, color y peso son atributos combinables (chips de filtro), sacados de specs o del nombre.
 - Precio por unidad: campo «Unidades por pack» (units) o deducido del nombre; €/ud o €/1000 si ≥500 uds. Filtros combinables en todas las categorías: color, material, talla, específicos (golf: tees material/altura, bolas capas/nuevas-recuperadas; munición) y las etiquetas del usuario (#etiqueta).
+- Consejos: «¿buen momento?» con historial de 90 días (mínimo / por debajo de la media / caro ahora); cesta óptima por tienda para llegar al envío gratis (módulo de Inicio y ficha).
+- Compatibilidades («Aplica a»): una entrada sirve si todas sus palabras están en el artículo y el calibre coincide (Rhino 6 mm ≠ 4,5 mm). Ficha: «Sirve para» y «Accesorios compatibles».
+- Compartir algo que ya tenías: abre su ficha para vincular o fusionar.
+- Revisión: el globo cuenta solo lo nuevo desde la última visita (+🥚 si pasa de 99). Gasto de Claude y espacio de fotos en Ajustes (aproximado).

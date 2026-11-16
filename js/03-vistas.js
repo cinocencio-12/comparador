@@ -148,6 +148,7 @@
       const col=clean(i.color).split(/[\s,/]+/)[0];if(col&&col.length<14)out.push(capW(norm(col)));
       const mat=clean(sp.material);if(mat&&mat.length<18)out.push(capW(norm(mat)));
       const sz=clean(i.size);if(sz&&sz.length<8)out.push('Talla '+sz);}
+    splitList(i.compat).forEach(c=>{if(c.length<30)out.push('Para '+c);});
     tagList(i).forEach(g=>out.push('#'+g));
     return [...new Set(out)];}
   function facChips(list){if(!flt.cat)return '';const m=new Map();list.forEach(i=>attrsOf(i).forEach(a=>m.set(a,(m.get(a)||0)+1)));

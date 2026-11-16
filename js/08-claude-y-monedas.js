@@ -15,7 +15,8 @@ Cada objeto de producto lleva estas claves:
  "size": talla seleccionada o disponible en esta oferta (ropa y calzado: "M", "38", "S/M", "3-4 años"…); si hay varias y ninguna está elegida, lista corta de las disponibles; "" si no aplica,
  "color": color de esta oferta/variante (p. ej. "Negro", "Azul marino", "Estampado flores"); "" si no aplica,
  "platform": modelo o plataforma al que pertenece o para el que es el producto (p. ej. "Hi-Capa 5.1", "Glock 17", "CAM870", "M4", "AK"); "" si no aplica,
- "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios); [] si no lo dice,
+ "compatible": lista de modelos con los que la tienda dice que es compatible (sobre todo piezas y accesorios), con marca, modelo y calibre si importa (p. ej. "Chiappa Rhino 50DS 6 mm", no "revólveres"); [] si no lo dice,
+ "tags": hasta 5 rasgos cortos útiles para filtrar que no estén ya en categoría, subcategoría o color: función, tipo o material (p. ej. ["reductoras de potencia","revólver","latón"]); [] si no hay,
  "store": nombre de la tienda,
  "url": URL de la página del producto,
  "shippingCurrency": moneda del coste de envío si es distinta de la del precio; si no, la misma que "currency",
@@ -167,7 +168,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
       availability:clean(d.availability),currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
-      specs:cleanSpecs(d.specs),sub:clean(d.sub),size:clean(d.size),color:clean(d.color),units:num(d.units)>1?String(Math.round(num(d.units))):'',category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
+      specs:cleanSpecs(d.specs),sub:clean(d.sub),size:clean(d.size),color:clean(d.color),units:num(d.units)>1?String(Math.round(num(d.units))):'',category:clean(d.category),platform:clean(d.platform),tags:(Array.isArray(d.tags)?d.tags:[]).map(clean).filter(Boolean).slice(0,5).join(', '),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
   // Une lo leído en la web con lo leído en la captura: precio y variante de la captura; el resto, lo más completo.
@@ -243,7 +244,8 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       for(const it of chosen){it.group=autoGroup(it);if(me&&!it.shareWith)it.shareWith=[...(profile.defShare||[])];await put('items',it);items.push(it);saved.push(it);}
       render();
       if(single){const it=saved[0],c=calc(it),n=(it.images||[]).length;
-        setStatus(`Guardado: ${fullName(it)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${it.incomplete?' (revisa: falta algún dato)':''}`);}
+        setStatus(`Guardado: ${fullName(it)} · ${eur(c.total)} · ${n} ${n===1?'foto':'fotos'}${it.incomplete?' (revisa: falta algún dato)':''}`);
+        afterShare(it);}
       else setStatus(`Guardados ${saved.length} ${saved.length===1?'producto':'productos'}: `+saved.map(it=>`${fullName(it)} (${eur(calc(it).total)})`).join(' · '));
       return;
     }catch(err){
@@ -252,6 +254,11 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
     }
   }
 
+  // Tras compartir: si ya tenías ese artículo, se dice y se abre su ficha para vincular o fusionar
+  function afterShare(it){try{const k=key(groupName(it));const same=items.filter(i=>i!==it&&(i.status||'pending')==='pending'&&key(groupName(i))===k);
+      if(same.length){openProd(k);setStatus(same.some(o=>norm(shopOf(o))===norm(shopOf(it)))?`Ya lo tenías de ${shopOf(it)}: arriba puedes fusionar las dos ofertas.`:`Añadido a «${groupName(it)}» como otra tienda: ya lo comparas con ${same.length} ${same.length===1?'oferta':'ofertas'}.`);return;}
+      const m=items.find(i=>i!==it&&(i.status||'pending')==='pending'&&!isUnread(i)&&likely(it,i)&&!notSame().has(pairK(it,i)));
+      if(m){openProd(k);setStatus(`Parece «${groupName(m)}» (${shopOf(m)}), que ya tenías. Al final de la ficha puedes vincularlo o decir que no es el mismo.`);}}catch(e){}}
   // ---------- recibir una página enviada con el marcador «Guardar en Comparador» ----------
   async function importFromHash(){
     const h=location.hash;if(!h.startsWith('#import='))return;
