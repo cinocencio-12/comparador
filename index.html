@@ -718,6 +718,7 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.vrow{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}.upsort{border:0;border-radius:999px;padding:9px 14px;font:700 .84rem var(--f-body);background:var(--glass);box-shadow:var(--card-sh);color:var(--tag-fg);cursor:pointer}.upsort[aria-pressed="true"]{background:var(--tag);}
 .upr{color:var(--tag-fg)!important;font-weight:750}
 .ccard .pr small.upr{display:block;width:100%;order:3}
 .subchips.facs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
@@ -2025,12 +2026,18 @@ body.nav-home .hello{display:block}
       ${histBox(it)}
       <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small" data-link="${it.id}">Vincular</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Desvincular</button>`}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
   }
+  let upSort=false;
+  document.addEventListener('click',e=>{if(e.target.closest('[data-upsort]')){upSort=!upSort;render();}});
   function renderCompare(gs){
     if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
       return catGrid(gs.map(g=>g.offers[0]),i=>bestOf.get(i.id)||0);}
     const back=flt.cat?catBack(gs.length):(allMode&&showGrid()?`<div class="catback" style="${hueOf('Todo')}"><button class="iconbtn" type="button" data-cat="" aria-label="Volver a categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ic">${svgI('all')}</span><h2>Todo<small>${gs.length} productos</small></h2></div>`:'');
     const inCat=flt.cat?items.filter(i=>(i.status||'pending')==='pending'&&catOf(i)===flt.cat):[];
-    return back+subChips(inCat)+(gs.length?viewSeg():'')+renderCompare0(gs);
+    const gUp=g=>{const v=g.offers.map(unitPrice).filter(Boolean).map(x=>x.v/x.per);return v.length?Math.min(...v):null;};
+    const nUp=gs.filter(g=>gUp(g)!=null).length;
+    if(upSort&&nUp)gs=gs.slice().sort((a,b)=>{const x=gUp(a),y=gUp(b);return x==null?1:y==null?-1:x-y;});
+    const upBtn=nUp>=2?`<button type="button" class="upsort" data-upsort aria-pressed="${upSort}">${upSort?'✓ ':''}Más barato por unidad</button>`:'';
+    return back+subChips(inCat)+(gs.length?`<div class="vrow">${viewSeg()}${upBtn}</div>`:'')+renderCompare0(gs);
   }
   function renderCompare0(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Nada guardado aún. Desde la tienda en Chrome: <b>Compartir → Comparador</b>. Se guardan fotos, descripción, referencias y precio.</div>`;
@@ -3484,7 +3491,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-17c';
+    const APP_V='2026-11-17d';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
