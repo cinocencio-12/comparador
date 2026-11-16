@@ -1367,7 +1367,11 @@ body.nav-home .hello{display:block}
     return jac>=0.6||(cover>=0.85&&inter>=3);
   }
   function likely(a,b){if(similar(a,b))return true;if(clean(a.brand)&&clean(b.brand)&&key(a.brand)!==key(b.brand))return false;
-    const A=toks(a),B=toks(b);if(!A.size||!B.size)return false;let inter=0;A.forEach(t=>{if(B.has(t))inter++;});return inter>=2&&inter/Math.min(A.size,B.size)>=0.6;}
+    const A=toks(a),B=toks(b);if(!A.size||!B.size)return false;
+    const nA=[...A].filter(t=>/\d/.test(t)).sort().join(),nB=[...B].filter(t=>/\d/.test(t)).sort().join();if(nA&&nB&&nA!==nB)return false;
+    const COL=/^(negro|negra|black|blanco|blanca|white|rojo|roja|red|azul|blue|verde|green|amarillo|yellow|rosa|pink|gris|grey|gray|marron|brown|tan|oliva|olive|od|naranja|orange|morado|purple|plata|silver|oro|gold|beige|coyote|multicam)$/;
+    const cA=[...A].filter(t=>COL.test(t)).sort().join(),cB=[...B].filter(t=>COL.test(t)).sort().join();if(cA&&cB&&cA!==cB)return false;
+    let inter=0;A.forEach(t=>{if(B.has(t))inter++;});return inter>=2&&inter/Math.min(A.size,B.size)>=0.6;}
   function autoGroup(doc){
     const m=items.find(i=>i!==doc&&i.status!=='discarded'&&!isUnread(i)&&similar(doc,i));
     return m?groupName(m):fullName(doc);
@@ -1813,7 +1817,7 @@ body.nav-home .hello{display:block}
     const fuseBox=reps.map(v=>`<div class="alertbox" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px"><span style="flex:1;min-width:0">Hay ${v.length} ofertas de <b>${esc(shopOf(v[0]))}</b>: ${v.map(o=>isUnread(o)?'sin leer':eur(calc(o).total)).join(' y ')}. Si es el mismo artículo, fusiónalas.</span><button class="btn small primary" type="button" data-fuse="${v[0].id}" data-fuse2="${v[1].id}">Fusionar</button></div>`).join('');
     const lu=safeUrl(lt.url)||(offers.find(o=>safeUrl(o.url))||{}).url;const lsh=safeUrl(lt.url)?shopOf(lt):shopOf(offers.find(o=>safeUrl(o.url))||lt);
     const goBig=lu?`<a class="gobig" href="${esc(safeUrl(lu))}" target="_blank" rel="noopener"><span>Ver el artículo en <b>${esc(lsh)}</b><small>Abre la página de la tienda</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>`:`<div class="gobig none">Este artículo no tiene enlace a la tienda. Edítalo y pega la dirección.</div>`;
-    const acts=goBig+`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
+    const acts=goBig+`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
     // Comparación
     const single=valid.length<2;
     const cmp=`<div class="ptab" data-pt="cmp" ${pTab==='cmp'?'':'hidden'}><p class="ptsub">${offers.length} ${offers.length===1?'oferta':'ofertas'} · precio, portes, importación y total</p><div class="in">${offers.map(o=>{const c=calc(o);const [l,lc]=costLbl(o);const isBest=!single&&o===lt;
@@ -1835,7 +1839,7 @@ body.nav-home .hello{display:block}
       <div class="pacts"><button class="btn small primary" type="button" data-act="bought" data-id="${lt.id}">Comprado en ${esc(shopOf(lt))}</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-act="discard" data-id="${lt.id}">Descartar</button></div><p class="hint">Cada oferta tiene sus propias acciones dentro de «Comparativa».</p></div></div>`;
     const tg=offers.map(o=>num(o.target)).find(x=>x>0)||'';const anyOut=offers.some(isOut);const st=offers.some(o=>o.alertStock);
     const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
-    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${suggBox?`<div style="margin-top:12px">${suggBox}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
+    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}${suggBox?`<h3 class="lh">¿Es el mismo artículo?</h3><p class="hint" style="margin:-4px 2px 10px">Parecidos a «${esc(name)}»${sub?' ('+esc(sub)+')':''}. Si son el mismo en otra tienda, vincúlalos para comparar.</p>${suggBox}`:''}</div>`;
   }
   document.addEventListener('click',async e=>{const fx=e.target.closest('[data-fixph]');if(fx){const it=items.find(i=>i.id===fx.dataset.fixph);if(!it)return;
       openForm(it);formImgs=formImgs.filter(v=>!isBad(v));renderImgEdit();const w=$('#webImgs');
@@ -3418,7 +3422,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16y';
+    const APP_V='2026-11-16z';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
