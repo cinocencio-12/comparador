@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Comparador de precios y listas compartidas">
+<defs><linearGradient id="bag" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#78ee00"/><stop offset=".48" stop-color="#00b55b"/><stop offset="1" stop-color="#005184"/></linearGradient><linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#02def1"/><stop offset=".52" stop-color="#008ee5"/><stop offset="1" stop-color="#0355c5"/></linearGradient><linearGradient id="purple" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#db20fa"/><stop offset="1" stop-color="#4100b5"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe100"/><stop offset="1" stop-color="#ff8d00"/></linearGradient></defs>
+<!-- Shopping bag -->
+<path d="M282 278 V224 C282 84 378 28 507 28 S733 84 733 224 V278 H652 V222 C652 139 597 109 507 109 S363 139 363 222 V278 Z" fill="url(#bag)"/>
+<path d="M164 268 H835 L934 921 Q940 983 869 988 H141 Q76 983 87 918 Z" fill="url(#bag)" stroke="#008f71" stroke-width="12" stroke-linejoin="round"/>
+<!-- Trend bars -->
+<g fill="white"><rect x="220" y="867" width="88" height="68" rx="13"/><rect x="328" y="828" width="88" height="107" rx="13"/><rect x="436" y="775" width="88" height="160" rx="13"/><rect x="544" y="742" width="88" height="193" rx="13"/></g>
+<path d="M186 838 Q311 824 395 730 L361 721 L423 656 L443 752 L417 741 Q330 846 186 838Z" fill="url(#gold)"/>
+<!-- Search magnifier -->
+<circle cx="477" cy="514" r="207" fill="white"/><circle cx="477" cy="514" r="185" fill="url(#blue)"/><circle cx="477" cy="514" r="142" fill="white"/>
+<path d="M600 649 L739 788" stroke="white" stroke-width="116" stroke-linecap="round"/><path d="M600 649 L739 788" stroke="url(#blue)" stroke-width="94" stroke-linecap="round"/>
+<text x="477" y="584" font-family="DejaVu Sans,Arial,sans-serif" font-weight="bold" font-size="238" text-anchor="middle" fill="#003b86">€</text>
+<!-- Sharing bubble -->
+<path d="M741 168 C795 120 882 122 942 171 C1009 224 1007 329 939 387 C892 428 835 432 784 411 L725 441 L741 378 C690 320 695 219 741 168 Z" fill="url(#purple)" stroke="white" stroke-width="19" stroke-linejoin="round"/>
+<g stroke="white" stroke-width="21" stroke-linecap="round"><path d="M790 278 L892 221 M790 278 L892 341"/></g><g fill="white"><circle cx="790" cy="278" r="29"/><circle cx="892" cy="221" r="29"/><circle cx="892" cy="341" r="29"/></g>
+</svg>

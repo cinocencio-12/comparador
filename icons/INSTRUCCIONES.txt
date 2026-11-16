@@ -1,0 +1,11 @@
+LOGO PARA WEB APP / ANDROID
+
+PNG y WebP: canal alfa (transparencia) real en el fondo exterior.
+SVG: versión vectorial editable redibujada para aproximarse al diseño elegido; no es un trazado exacto de la imagen original.
+JPG/JPEG: fondo blanco (estos formatos no permiten alfa).
+Favicon: favicon.ico, icon-16.png, icon-32.png.
+PWA: icon-192.png, icon-512.png, pwa-maskable-512.png.
+Android: android-foreground-512.png y android-icon-512.png; los iconos adaptativos nativos requieren definir las capas foreground/background en el proyecto Android.
+Apple: apple-touch-icon.png.
+
+El archivo manifest-ejemplo.webmanifest es una plantilla: sustituir el nombre y ajustar rutas.

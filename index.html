@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Comparador de Compras</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icons/logo.svg" type="image/svg+xml">
+<link rel="icon" href="icons/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="theme-color" content="#EDEFF3" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#15171D" media="(prefers-color-scheme: dark)">
 <meta name="referrer" content="no-referrer">
@@ -2465,7 +2467,7 @@ Productos: ${JSON.stringify(list)}`;
     if(!cfg.key){$('#settings').hidden=false;setStatus('Pega tu clave de API en Ajustes para que todo se lea solo.');}
     if('serviceWorker' in navigator){try{await navigator.serviceWorker.register('sw.js');}catch(e){}}
     // Si hay una versión nueva publicada, se recarga sola (una vez).
-    const APP_V='2026-11-16d';
+    const APP_V='2026-11-16e';
     async function checkVersion(){try{const r=await fetch('version.json?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const v=(await r.json()).v;
       if(v&&v!==APP_V&&sessionStorage.getItem('reloadedFor')!==v){sessionStorage.setItem('reloadedFor',v);location.replace(location.pathname+'?v='+encodeURIComponent(v));}}catch(e){}}
     checkVersion();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkVersion();});
