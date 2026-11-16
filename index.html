@@ -718,6 +718,11 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.sugbox{display:flex;gap:12px;align-items:flex-start;margin:0 0 10px;padding:12px 14px;border-radius:16px;background:var(--accent-soft);box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 35%,transparent)}
+.sugbox .sv{width:56px;height:56px;border-radius:12px;overflow:hidden;flex:none;background:var(--glass);display:flex;align-items:center;justify-content:center;color:var(--accent)}
+.sugbox .sv img{width:100%;height:100%;object-fit:cover;background:#fff}.sugbox .sv svg{width:28px;height:28px}
+.sugbox .st2{flex:1;min-width:0}.sugbox b{display:block;font:800 .95rem var(--f-display);overflow-wrap:anywhere}.sugbox small{display:block;color:var(--muted);font-size:.8rem;margin:2px 0 8px}
+.sugbox .pacts{margin:0}
 .gobig{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 10px;padding:14px 16px;border-radius:18px;text-decoration:none;color:#fff;background:linear-gradient(120deg,#5B21B6,#7C3AED 55%,#C026D3);box-shadow:0 6px 18px rgba(109,40,217,.35)}
 .gobig span{display:flex;flex-direction:column;font:600 1rem var(--f-body)}.gobig b{font-weight:850}
 .gobig small{font-size:.78rem;opacity:.85;font-weight:500}
@@ -1335,6 +1340,8 @@ body.nav-home .hello{display:block}
     const jac=inter/(A.size+B.size-inter),cover=inter/Math.min(A.size,B.size);
     return jac>=0.6||(cover>=0.85&&inter>=3);
   }
+  function likely(a,b){if(similar(a,b))return true;if(clean(a.brand)&&clean(b.brand)&&key(a.brand)!==key(b.brand))return false;
+    const A=toks(a),B=toks(b);if(!A.size||!B.size)return false;let inter=0;A.forEach(t=>{if(B.has(t))inter++;});return inter>=2&&inter/Math.min(A.size,B.size)>=0.6;}
   function autoGroup(doc){
     const m=items.find(i=>i!==doc&&i.status!=='discarded'&&!isUnread(i)&&similar(doc,i));
     return m?groupName(m):fullName(doc);
@@ -1759,6 +1766,9 @@ body.nav-home .hello{display:block}
     const head=`<div class="phead"><div><span class="k">Mejor coste total</span><b class="big">${valid.length?eur(calc(lt).total):'—'}</b><span class="lbl ${lcls}">${lbl}</span></div><div class="side"><span class="chip">${shops} ${shops===1?'tienda':'tiendas'}</span>${availChip(lt)}</div></div>
       <div class="pmeta">${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
     const withUrl=offers.filter(o=>safeUrl(o.url)).length;
+    const myK=key(name);const NS=notSame();const seenG=new Set();
+    const sugg=items.filter(i=>(i.status||'pending')==='pending'&&key(groupName(i))!==myK&&!isUnread(i)).filter(i=>{const k=key(groupName(i));if(seenG.has(k))return false;if(NS.has(pairK(f,i)))return false;if(offers.some(o=>likely(o,i))){seenG.add(k);return true;}return false;}).slice(0,3);
+    const suggBox=sugg.map(i=>`<div class="sugbox"><span class="sv">${thumb(i)||svgI(catIcon(catOf(i)))}</span><div class="st2"><b>¿Es el mismo que «${esc(groupName(i))}»?</b><small>${esc(shopOf(i))} · ${eur(calc(i).total)}${catOf(i)!==catOf(f)?` · está en ${esc(catOf(i))}`:''}</small><div class="pacts"><button class="btn small primary" type="button" data-dupa="${(t=>t.id)(([lt,i].sort((x,y)=>String(x.createdAt||'').localeCompare(String(y.createdAt||''))))[0])}" data-dupb="${esc(key(String(lt.createdAt||'')<=String(i.createdAt||'')?groupName(i):name))}">${norm(shopOf(i))===norm(shopOf(lt))?'Es el mismo (vincular)':'Vincular'}</button><button class="btn small" type="button" data-open="${esc(key(groupName(i)))}">Ver</button><button class="btn small" type="button" data-notsame="${esc(pairK(f,i))}">No es el mismo</button></div></div></div>`).join('');
     const bySh=new Map();(pend.length?pend:[]).forEach(o=>{const k=norm(shopOf(o));if(!bySh.has(k))bySh.set(k,[]);bySh.get(k).push(o);});
     const reps=[...bySh.values()].filter(v=>v.length>1);
     const fuseBox=reps.map(v=>`<div class="alertbox" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px"><span style="flex:1;min-width:0">Hay ${v.length} ofertas de <b>${esc(shopOf(v[0]))}</b>: ${v.map(o=>isUnread(o)?'sin leer':eur(calc(o).total)).join(' y ')}. Si es el mismo artículo, fusiónalas.</span><button class="btn small primary" type="button" data-fuse="${v[0].id}" data-fuse2="${v[1].id}">Fusionar</button></div>`).join('');
@@ -1786,11 +1796,12 @@ body.nav-home .hello{display:block}
       <div class="pacts"><button class="btn small primary" type="button" data-act="bought" data-id="${lt.id}">Comprado en ${esc(shopOf(lt))}</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-act="discard" data-id="${lt.id}">Descartar</button></div><p class="hint">Cada oferta tiene sus propias acciones dentro de «Comparativa».</p></div></div>`;
     const tg=offers.map(o=>num(o.target)).find(x=>x>0)||'';const anyOut=offers.some(isOut);const st=offers.some(o=>o.alertStock);
     const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
-    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
+    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${suggBox?`<div style="margin-top:12px">${suggBox}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
   }
   document.addEventListener('click',async e=>{const fx=e.target.closest('[data-fixph]');if(fx){const it=items.find(i=>i.id===fx.dataset.fixph);if(!it)return;
-      openForm(it);formImgs=formImgs.filter(v=>!isBad(v));renderImgEdit();const w=$('#webImgs');revealField(w);setTimeout(()=>{w.scrollIntoView({behavior:'smooth',block:'center'});
-        if(fx.dataset.g)$('#gImgs').click();else if(fx.dataset.up)setStatus('Pulsa «Pegar imagen o enlace» o añade una foto desde la galería, y luego Guardar.');else if(cfg.key)w.click();else setStatus('Para buscar fotos en internet hace falta la clave de API en Ajustes. Mientras, usa «Google Imágenes».','err');},250);
+      openForm(it);formImgs=formImgs.filter(v=>!isBad(v));renderImgEdit();const w=$('#webImgs');
+      setTimeout(()=>{revealField(w);const d=$('#fs-imgs');if(d)d.open=true;w.scrollIntoView({behavior:'smooth',block:'center'});
+        if(fx.dataset.g)$('#gImgs').click();else if(fx.dataset.up)$('#fImgs').click();else if(cfg.key)w.click();else setStatus('Para buscar fotos en internet hace falta la clave de API en Ajustes. Mientras, usa «Google Imágenes».','err');},300);
       setStatus('He quitado la foto rota del formulario. Elige otra y pulsa Guardar.');return;}
     if(e.target.closest('[data-rmbad]')){let n=0;for(const o of prodItems()){const im=(o.images||[]).filter(v=>!isBad(v));if(im.length!==(o.images||[]).length){n+=(o.images||[]).length-im.length;o.images=im;await put('items',o);}}await scanPhotos();render();setStatus(`${n} ${n===1?'foto rota quitada':'fotos rotas quitadas'}. Puedes buscar otra en Revisión → Sin fotografías.`);return;}
     if(e.target.closest('#pfBack')){closeProd();return;}
@@ -3270,8 +3281,9 @@ Productos: ${JSON.stringify(list)}`;
     // Nombre final: el del producto desde el que se abre; si no, el que tenga más tiendas.
     let name=lkIt?groupName(lkIt):groupName(keys.map(k=>G.get(k)).filter(Boolean).sort((a,b)=>b.length-a.length)[0][0]);
     if(lkForm&&!clean(F('fGroup').value)&&!editingId)name=groupName(G.get(keys[0])[0]);
-    let n=0;const ks=new Set(keys);
-    for(const it of items)if(ks.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);n++;}
+    let n=0;const ks=new Set(keys);const ref=(lkIt&&clean(lkIt.category)?lkIt:null)||items.find(i=>key(groupName(i))===key(name)&&clean(i.category));
+    for(const it of items)if(ks.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;if(ref&&clean(ref.category)){it.category=ref.category;if(clean(ref.sub))it.sub=ref.sub;}await put('items',it);n++;}
+    if(lkIt&&ref&&lkIt!==ref&&clean(ref.category)){lkIt.category=ref.category;if(clean(ref.sub))lkIt.sub=ref.sub;}
     if(lkForm)F('fGroup').value=name;
     closeLink();render();setStatus(`Vinculados en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, pulsa «Desvincular» en la oferta.`);});
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-link]');if(!b)return;const it=items.find(i=>i.id===b.dataset.link);if(it)openLink(it);});
@@ -3360,7 +3372,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16u';
+    const APP_V='2026-11-16v';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
