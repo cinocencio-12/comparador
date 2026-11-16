@@ -97,3 +97,12 @@ body.nav-home .hello{display:block}
 .prog{height:8px;border-radius:999px;background:var(--line);overflow:hidden;margin:2px 14px 4px}
 .prog span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--ok),#7CE0B0)}
 .progtx{display:block;padding:0 14px 8px;font-size:.78rem;color:var(--muted)}
+.cloudbtn{position:relative}
+.cloudbtn i{position:absolute;right:6px;bottom:6px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg);background:var(--ok);font-style:normal}
+.cloudbtn[data-st=off] i{background:var(--muted)}
+.cloudbtn[data-st=busy] i{background:var(--cta2);animation:cpulse 1s ease-in-out infinite}
+.cloudbtn[data-st=err]{color:var(--danger)}
+.cloudbtn[data-st=err] i{background:var(--danger);width:14px;height:14px}
+.cloudbtn[data-st=err] i::after{content:"×";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff;font:900 11px/1 var(--f-body)}
+@keyframes cpulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.cloudbtn[data-st=busy] i{animation:none}}

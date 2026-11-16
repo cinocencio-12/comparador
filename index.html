@@ -13,10 +13,10 @@
 <meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-<link rel="stylesheet" href="css/01-base.css?v=2026-11-17f">
-<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17f">
-<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17f">
-<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17f">
+<link rel="stylesheet" href="css/01-base.css?v=2026-11-17g">
+<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17g">
+<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17g">
+<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17g">
 </head>
 <body>
 <div class="wrap">
@@ -24,23 +24,12 @@
     <h1>Comparador</h1>
     <button class="iconbtn" id="selTop" type="button" aria-pressed="false" aria-label="Seleccionar varios para vincular o comparar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12.5 3 3 5-6"/></svg></button>
     <button class="iconbtn" id="checkTop" type="button" aria-label="Comprobar precios y stock de lo que ves"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/></svg></button>
+    <button class="iconbtn cloudbtn" id="cloudTop" type="button" data-st="off" aria-label="Cuenta y sincronización" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .5-7.97A6 6 0 0 0 6.1 9.5 4.25 4.25 0 0 0 7 18z"/></svg><i></i></button>
     <button class="iconbtn" id="openSettings" type="button" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
   <div class="hello" id="hello"><h2>Hola</h2><p>Compara, ahorra y organiza tus compras</p></div>
   <div class="homesearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="hq" type="search" placeholder="Buscar productos, tiendas, marcas…" aria-label="Buscar productos, tiendas, marcas"></div>
   <nav class="spacebar" id="spaceBar" aria-label="De quién son las compras"></nav>
-
-  <div class="authbar" id="authBar" hidden>
-    <b id="authTxt"></b>
-    <button class="btn small primary" type="button" id="loginGoogle">Entrar con Google</button>
-    <button class="btn small" type="button" id="loginMailBtn">Con correo</button>
-    <button class="btn small" type="button" id="logoutBtn" hidden>Salir</button>
-    <div class="authform" id="mailForm" hidden>
-      <input id="mailEmail" type="email" placeholder="Correo" autocomplete="username">
-      <input id="mailPass" type="password" placeholder="Contraseña" autocomplete="current-password">
-      <div class="actions"><button class="btn small primary" type="button" id="mailLogin">Entrar</button><button class="btn small" type="button" id="mailSignup">Crear cuenta</button><button class="btn small" type="button" id="mailReset">He olvidado la contraseña</button></div>
-    </div>
-  </div>
 
   <div id="status" class="status" hidden><span id="statusTxt"></span><button class="btn small" id="statusClose" type="button">Ok</button></div>
 
@@ -97,6 +86,17 @@
 
   <div class="settings" id="settings" hidden>
     <h2>Ajustes</h2>
+  <div class="authbar" style="grid-column:1/-1" id="authBar" hidden>
+    <b id="authTxt"></b>
+    <button class="btn small primary" type="button" id="loginGoogle">Entrar con Google</button>
+    <button class="btn small" type="button" id="loginMailBtn">Con correo</button>
+    <button class="btn small" type="button" id="logoutBtn" hidden>Salir</button>
+    <div class="authform" id="mailForm" hidden>
+      <input id="mailEmail" type="email" placeholder="Correo" autocomplete="username">
+      <input id="mailPass" type="password" placeholder="Contraseña" autocomplete="current-password">
+      <div class="actions"><button class="btn small primary" type="button" id="mailLogin">Entrar</button><button class="btn small" type="button" id="mailSignup">Crear cuenta</button><button class="btn small" type="button" id="mailReset">He olvidado la contraseña</button></div>
+    </div>
+  </div>
     <div class="apar">
       <h3>Apariencia</h3>
       <div class="seg" data-pref="theme"><span>Tema</span><button type="button" data-v="auto">Automático</button><button type="button" data-v="light">Claro</button><button type="button" data-v="dark">Oscuro</button></div>
@@ -322,18 +322,18 @@
   <div class="bar lbacts"><button id="lbFirst" type="button">★ Poner como principal</button><button id="lbCat" type="button">Portada de la categoría</button><button id="lbDel" type="button">Quitar foto</button></div>
 </div>
 
-<script src="js/01-base.js?v=2026-11-17f"></script>
-<script src="js/02-datos.js?v=2026-11-17f"></script>
-<script src="js/03-vistas.js?v=2026-11-17f"></script>
-<script src="js/04-inicio-y-navegacion.js?v=2026-11-17f"></script>
-<script src="js/05-avisos-listas-revision.js?v=2026-11-17f"></script>
-<script src="js/06-ficha.js?v=2026-11-17f"></script>
-<script src="js/07-ajustes-categorias.js?v=2026-11-17f"></script>
-<script src="js/08-claude-y-monedas.js?v=2026-11-17f"></script>
-<script src="js/09-editor.js?v=2026-11-17f"></script>
-<script src="js/10-fotos-y-acciones.js?v=2026-11-17f"></script>
-<script src="js/11-comprobar-y-comprar.js?v=2026-11-17f"></script>
-<script src="js/12-nube.js?v=2026-11-17f"></script>
-<script src="js/13-arranque.js?v=2026-11-17f"></script>
+<script src="js/01-base.js?v=2026-11-17g"></script>
+<script src="js/02-datos.js?v=2026-11-17g"></script>
+<script src="js/03-vistas.js?v=2026-11-17g"></script>
+<script src="js/04-inicio-y-navegacion.js?v=2026-11-17g"></script>
+<script src="js/05-avisos-listas-revision.js?v=2026-11-17g"></script>
+<script src="js/06-ficha.js?v=2026-11-17g"></script>
+<script src="js/07-ajustes-categorias.js?v=2026-11-17g"></script>
+<script src="js/08-claude-y-monedas.js?v=2026-11-17g"></script>
+<script src="js/09-editor.js?v=2026-11-17g"></script>
+<script src="js/10-fotos-y-acciones.js?v=2026-11-17g"></script>
+<script src="js/11-comprobar-y-comprar.js?v=2026-11-17g"></script>
+<script src="js/12-nube.js?v=2026-11-17g"></script>
+<script src="js/13-arranque.js?v=2026-11-17g"></script>
 </body>
 </html>

@@ -144,6 +144,11 @@ async def p_revision(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=review]'); await a.pg.wait_for_timeout(400)
     comprobar(await a.n('.rvcard') >= 5, 'faltan secciones en Revisión')
+    comprobar(await a.pg.evaluate("document.getElementById('navRevN').hidden"), 'tras visitar Revisión el globo no se vacía')
+    # algo nuevo: el globo cuenta solo eso
+    await a.pg.evaluate("localStorage.setItem('revSeen',JSON.stringify([]))"); await a.pg.click('[data-nav=home]'); await a.pg.wait_for_timeout(300)
+    n = await a.pg.inner_text('#navRevN')
+    comprobar(n == '+🥚' or n.isdigit(), f'globo raro: {n}')
     await a.foto('revision')
 
 
@@ -165,8 +170,10 @@ async def p_paneles(a):
     p2 = await a.pg.context.new_page(); await p2.goto('about:blank')
     choques = await p2.evaluate("ns=>ns.filter(n=>n in window)", sorted(nombres)); await p2.close()
     comprobar(not choques, 'nombres que pisan funciones del navegador: ' + ', '.join(choques))
-    await a.pg.click('#openSettings'); await a.pg.wait_for_timeout(200)
-    comprobar(await a.pg.evaluate("!document.getElementById('settings').hidden"), 'Ajustes no se abre')
+    comprobar(await a.pg.evaluate("!document.getElementById('cloudTop').hidden"), 'falta la nube de sincronización')
+    await a.pg.click('#cloudTop'); await a.pg.wait_for_timeout(200)
+    comprobar(await a.pg.evaluate("!document.getElementById('settings').hidden"), 'la nube no abre Ajustes')
+    await a.foto('nube-ajustes')
     await a.pg.click('#openSettings'); await a.pg.wait_for_timeout(100)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200)
     comprobar(await a.pg.evaluate("!document.getElementById('addSheet').hidden"), 'Añadir no se abre')
@@ -174,6 +181,20 @@ async def p_paneles(a):
     comprobar(await a.pg.evaluate("!document.getElementById('form').hidden"), 'el formulario nuevo no se abre')
     await a.pg.fill('#fProduct', 'Bolsa 4000 BBs'); await a.pg.fill('#fPrice', '20'); await a.pg.wait_for_timeout(100)
     comprobar('€/1000' in await a.pg.inner_text('#unitsHint'), 'el editor no calcula el precio por unidad')
+
+
+async def p_html(a):
+    from html.parser import HTMLParser
+    class P(HTMLParser):
+        def __init__(s): super().__init__(); s.st = []; s.mal = []
+        def handle_starttag(s, t, at):
+            if t in ('div', 'nav', 'details', 'form', 'section', 'header', 'main', 'label', 'select'): s.st.append((t, s.getpos()[0]))
+        def handle_endtag(s, t):
+            if t in ('div', 'nav', 'details', 'form', 'section', 'header', 'main', 'label', 'select'):
+                if not s.st or s.st[-1][0] != t: s.mal.append(f'</{t}> en línea {s.getpos()[0]}')
+                else: s.st.pop()
+    pr = P(); pr.feed(open(os.path.join(RAIZ, 'index.html'), encoding='utf-8').read())
+    comprobar(not pr.mal and not pr.st, 'index.html mal cerrado: ' + ', '.join(pr.mal[:3] + [f'<{t}> línea {l} sin cerrar' for t, l in pr.st[:3]]))
 
 
 PRUEBAS = {k[2:]: v for k, v in globals().items() if k.startswith('p_')}

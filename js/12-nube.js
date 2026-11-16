@@ -26,7 +26,11 @@
   }
   const itemRef=(uid,id)=>fs.collection('users').doc(uid).collection('items').doc(id);
   const pending=new Map();let pendTimer=null;
-  function setSync(t){const el=$('#syncTxt');if(el)el.textContent=t;}
+  function setSync(t){const el=$('#syncTxt');if(el)el.textContent=t;
+    const b=$('#cloudTop');if(b){const st=/error/i.test(t)?'err':/guardando|pendiente|sincronizando/i.test(t)?'busy':'ok';b.dataset.st=st;b.title=t.replace('☁ ','');b.setAttribute('aria-label','Nube: '+b.title);}}
+  window.addEventListener('offline',()=>{const b=$('#cloudTop');if(b&&me){b.dataset.st='err';b.title='Sin conexión: se subirá al volver';}});
+  window.addEventListener('online',()=>{const b=$('#cloudTop');if(b&&me&&b.dataset.st==='err'&&/conexión/.test(b.title)){b.dataset.st='ok';b.title='Sincronizado';}});
+  document.addEventListener('click',e=>{if(!e.target.closest('#cloudTop'))return;const s=$('#settings');if(s.hidden)$('#openSettings').click();setTimeout(()=>$('#authBar').scrollIntoView({behavior:'smooth',block:'start'}),60);});
   // Sube un producto (con sus fotos nuevas) a la nube.
   async function cloudSave(it){
     const ref=itemRef(me.uid,it.id);const imgs=[];
@@ -239,6 +243,7 @@
   $('#shNative').addEventListener('click',async()=>{if(!shIt)return;const it=shIt;try{await navigator.share({title:fullName(it),text:`${fullName(it)} — ${eur(calc(it).total)} en ${shopOf(it)}`,url:safeUrl(it.url)});}catch(e){}});
   // ---- inicio de sesión ----
   function drawAuth(){
+    const cb=$('#cloudTop');if(cb){cb.hidden=!FIREBASE_CONFIG;cb.dataset.st=me?'ok':'off';cb.title=me?'Sincronizado':'Sin cuenta: toca para entrar';}
     if(!FIREBASE_CONFIG){$('#authBar').hidden=true;return;}
     $('#authBar').hidden=false;
     $('#loginGoogle').hidden=$('#loginMailBtn').hidden=!!me;$('#logoutBtn').hidden=!me;if(me)$('#mailForm').hidden=true;

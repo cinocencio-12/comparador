@@ -85,7 +85,7 @@
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     document.body.classList.toggle('nav-home',navTab==='home');
-    {const q=$('#qn-rev'),rc=revCount();if(q)q.textContent=rc;const nb=$('#navRevN');if(nb){nb.hidden=!rc;nb.textContent=rc>99?'99+':rc;}}
+    {const q=$('#qn-rev'),rc=revCount();if(q)q.textContent=rc;const nb=$('#navRevN');const nn=revNew();if(nb){nb.hidden=!nn;nb.textContent=huevo(nn);nb.title=`${nn} nuevas desde tu última visita · ${rc} en total`;}}
     document.querySelectorAll('#bnav [data-nav]').forEach(b=>{if(b.dataset.nav===navTab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
     const v=$('#view');

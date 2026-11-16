@@ -89,12 +89,18 @@
       {k:'dup',t:'Posibles duplicados',d:'Mismo artículo en fichas separadas. Vincular (otra tienda), fusionar (misma tienda) o dejar.',list:nodup?[]:dupPairs()},
       {k:'err',t:'Errores de lectura',d:'Tiendas que bloquean la lectura o fallos de conexión.',list:P.filter(i=>i.checkErr)}];}
   function revCount(){return revData(true).filter(r=>r.k!=='dup').reduce((s,r)=>s+r.list.length,0);}
-  function openReview(k){revOpen=true;revKind=k||null;prodKey=null;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
+  // El globo de Revisión cuenta solo lo nuevo desde tu última visita (la lista completa sigue dentro)
+  const revKeys=()=>revData(true).filter(r=>r.k!=='dup').flatMap(r=>r.list.map(i=>r.k+':'+i.id));
+  function revSeen(){try{const v=localStorage.getItem('revSeen');return v?new Set(JSON.parse(v)):null;}catch(e){return null;}}
+  function revMarkSeen(){try{localStorage.setItem('revSeen',JSON.stringify(revKeys()));}catch(e){}}
+  function revNew(){const s=revSeen();if(!s){revMarkSeen();return 0;}return revKeys().filter(k=>!s.has(k)).length;}
+  const huevo=n=>n>99?'+🥚':String(n);
+  function openReview(k){revMarkSeen();revOpen=true;revKind=k||null;prodKey=null;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
   function closeReview(){if(revKind){revKind=null;}else{revOpen=false;if(navTab==='review')navTab='home';}render();window.scrollTo({top:0});}
   const revRow=it=>`<div class="rvrow">${(it.images||[])[0]?imgTag(it.images[0],''):`<span class="ph">${svgI(catIcon(catOf(it)))}</span>`}<div class="t"><b>${esc(fullName(it)||'Sin nombre')}</b><small>${esc(shopOf(it))} · ${esc(catOf(it))}${it.checkErr?` · <span style="color:var(--danger)">${it.checkErr==='blocked'?'la tienda bloquea la lectura':'error al leer'}</span>`:''}${it.inherited?' · '+Object.keys(it.inherited).map(k=>({shipping:'portes',freeFrom:'mínimo portes',code:'cupón'})[k]).join(', ')+' supuestos':''}</small>${missBox(it)}</div><div class="a"><button class="btn small" type="button" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" type="button" data-open="${esc(key(groupName(it)))}">Ficha</button></div></div>`;
   function renderReview(){const D=revData();
     const back=`<div class="pfback"><button class="iconbtn" type="button" id="rvBack" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="crumb">${revKind?'Centro de revisión':'Inicio'}</span></div>`;
-    if(!revKind){return `<div class="pf">${back}<h2>Centro de revisión</h2><div class="psub">Incidencias organizadas por tipo</div><div class="rvcards">${D.map(r=>`<button type="button" class="rvcard ${r.list.length?'':'ok'}" data-rv="${r.k}"><b>${r.list.length?`<span class="n">${r.list.length}</span> · `:''}${r.t}</b><small>${r.list.length?r.d:'Todo en orden'}</small></button>`).join('')}</div></div>`;}
+    if(!revKind){return `<div class="pf">${back}<h2>Centro de revisión</h2><div class="psub">${(()=>{const t=revCount();return t>100?'Más de 100 cosas por revisar. Un huevo. Ve por partes 👇':t+' cosas por revisar, por tipo';})()}</div><div class="rvcards">${D.map(r=>`<button type="button" class="rvcard ${r.list.length?'':'ok'}" data-rv="${r.k}"><b>${r.list.length?`<span class="n">${r.list.length}</span> · `:''}${r.t}</b><small>${r.list.length?r.d:'Todo en orden'}</small></button>`).join('')}</div></div>`;}
     const r=D.find(x=>x.k===revKind);if(!r){revKind=null;return renderReview();}
     const withUrl=r.list.filter&&r.k!=='dup'?r.list.filter(i=>safeUrl(i.url)).length:0;
     const acts={missing:`${$('#retryBtn').hidden?'':`<button class="btn primary" type="button" data-rva="retry">${esc($('#retryBtn').textContent)}</button>`}${withUrl?`<button class="btn" type="button" data-rva="check">Comprobar ${withUrl} con enlace</button>`:''}`,
