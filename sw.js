@@ -1,4 +1,4 @@
-// v2026-11-16b
+// v2026-11-16f
 self.addEventListener('install',e=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
 function db(){return new Promise((ok,ko)=>{const r=indexedDB.open('comparador',1);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('items'))d.createObjectStore('items',{keyPath:'id'});if(!d.objectStoreNames.contains('inbox'))d.createObjectStore('inbox',{keyPath:'id'});};r.onsuccess=()=>ok(r.result);r.onerror=()=>ko(r.error);});}
@@ -17,3 +17,5 @@ self.addEventListener('fetch',e=>{
     return Response.redirect(new URL('./?shared=1',u).href,303);
   })());
 });
+
+self.addEventListener('notificationclick',e=>{e.notification.close();e.waitUntil((async()=>{const cs=await self.clients.matchAll({type:'window',includeUncontrolled:true});for(const c of cs){if('focus' in c){await c.focus();return;}}await self.clients.openWindow('./');})());});
