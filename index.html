@@ -656,6 +656,25 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
 .cpitem img,.cpitem .ph{width:46px;height:46px;border-radius:10px;object-fit:cover;flex:none;background:var(--surface)}
 .cpitem .t{flex:1;min-width:0}.cpitem .t b{display:block;font-weight:650;overflow-wrap:anywhere}.cpitem .t small{color:var(--muted);font-size:.8rem}
 .cpitem .sg{flex:none;font:700 .72rem var(--f-body);background:var(--accent-soft);color:var(--tag-fg);border-radius:999px;padding:3px 8px}
+
+/* Centro de revisión */
+#quick [data-qs],#classifyBtn,#retryBtn,#curRevBtn,#photoBar{display:none!important}
+.quick .qrev{background:var(--warn-soft);color:var(--warn);box-shadow:none;font-weight:650}
+.rvcards{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.rvcard{text-align:left;border:0;background:var(--surface);color:var(--fg);border-radius:var(--r-lg);padding:14px 16px;box-shadow:0 0 0 1px var(--line);cursor:pointer;font:inherit}
+.rvcard b{display:block;font:800 1.02rem var(--f-display);font-variation-settings:"wdth" 90}
+.rvcard b .n{color:var(--warn)}
+.rvcard small{display:block;color:var(--muted);font-size:.84rem;margin-top:3px}
+.rvcard.ok{opacity:.6}.rvcard.ok b{color:var(--muted)}
+.rvlist{display:flex;flex-direction:column;gap:8px}
+.rvrow{display:grid;grid-template-columns:52px 1fr;gap:8px 12px;background:var(--surface);border-radius:var(--r-md);padding:10px 12px;box-shadow:0 0 0 1px var(--line)}
+.rvrow img,.rvrow .ph{width:52px;height:52px;border-radius:10px;object-fit:cover;background:var(--bg);display:flex;align-items:center;justify-content:center;color:var(--muted)}
+.rvrow .ph svg{width:24px;height:24px}
+.rvrow .t{min-width:0}.rvrow .t b{display:block;overflow-wrap:anywhere}.rvrow .t small{color:var(--muted);font-size:.8rem}
+.rvrow .a{grid-column:1/-1;display:flex;gap:6px}
+.rvdup{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;background:var(--surface);border-radius:var(--r-md);padding:10px 12px;box-shadow:0 0 0 1px var(--line)}
+.rvdup b{display:block;font-size:.88rem;overflow-wrap:anywhere}.rvdup small{color:var(--muted);font-size:.78rem}
+body.nav-prod .homesearch{display:none}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -853,6 +872,7 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
       <button type="button" data-qs="missing">Sin datos<b id="qn-missing"></b></button>
       <button type="button" data-qs="nocat">Sin clasificar<b id="qn-nocat"></b></button>
       <button type="button" data-qs="nophoto">Sin imágenes<b id="qn-nophoto"></b></button>
+      <button type="button" class="qrev" id="qRev">Revisión <b id="qn-rev"></b></button>
       <button type="button" class="qjoin" id="qJoin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>Unir iguales</button>
     </div>
     <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
@@ -1297,7 +1317,7 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
 
   // ---------- botón «atrás» del móvil: vuelve un paso dentro de la app en vez de salir ----------
   const vis=id=>{const e=document.getElementById(id);return e&&!e.hidden;};
-  function navDeep(){return vis('linkSheet')||vis('shareSheet')||vis('form')||vis('settings')||vis('addSheet')||!!prodKey||navTab!=='home'||selMode||cmpOpen||!!flt.sub||!!flt.cat||allMode||!!flt.q||!!flt.state||space!=='mine';}
+  function navDeep(){return vis('linkSheet')||vis('shareSheet')||vis('form')||vis('settings')||vis('addSheet')||!!prodKey||revOpen||navTab!=='home'||selMode||cmpOpen||!!flt.sub||!!flt.cat||allMode||!!flt.q||!!flt.state||space!=='mine';}
   function navEnsure(){try{if(navDeep()&&!(history.state&&history.state.cmp))history.pushState({cmp:1},'');}catch(e){}}
   function navBack(){
     if(vis('cpSheet')){closeCopy();return true;}
@@ -1306,6 +1326,7 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
     if(vis('shareSheet')){closeShare();return true;}
     if(vis('form')){closeForm();return true;}
     if(prodKey){closeProd();return true;}
+    if(revOpen){closeReview();return true;}
     if(vis('shareSheet')){closeShare();return true;}
     if(vis('form')){closeForm();return true;}
     if(vis('settings')){$('#settings').hidden=true;return true;}
@@ -1345,7 +1366,7 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
   $('#modReset').addEventListener('click',()=>{['theme','navpos','view','text'].forEach(k=>{try{localStorage.removeItem('pref_'+k);}catch(e){}});applyPrefs();saveMods(MODS_DEF.slice());setStatus('Apariencia e Inicio restablecidos.');});
   // Secciones
   const NAVTABS={explore:['compare','shops'],lists:['gifts','buy','shared'],buys:['done','discarded']};
-  function setNav(n){if(n==='add'){openAdd();return;}prodKey=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
+  function setNav(n){if(n==='add'){openAdd();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
     if(n==='home'){flt.cat='';flt.sub='';allMode=false;space='mine';}
     if(n==='explore'&&!NAVTABS.explore.includes(tab))tab=space==='mine'?'compare':'shared';
     if(n==='lists')tab='gifts';if(n==='buys')tab='done';
@@ -1366,12 +1387,12 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
       stats:()=>`<section class="hmod"><h2>Tu biblioteca de compras</h2><div class="stats"><div class="stat"><span>Productos</span><b>${pend.length}</b></div><div class="stat"><span>Ofertas</span><b>${allPend.length}</b></div><div class="stat wide"><span>Si compras lo más barato de cada cosa<small><br>con portes e importación estimada</small></span><b>${eur(best)}</b></div></div></section>`,
       track:()=>{const t=homeTrack();return `<section class="hmod"><div class="track"><h2 style="margin:0;font:800 1.05rem var(--f-display)">Seguimiento de precios</h2><div class="row"><span class="dn">↓ ${t.dns.length} ${t.dns.length===1?'bajada':'bajadas'}</span><span class="up">↑ ${t.ups.length} ${t.ups.length===1?'subida':'subidas'}</span></div>${t.dns.length?`<ul>${t.dns.slice(0,3).map(([i,d,b])=>`<li><span>${esc(fullName(i))} · ${esc(shopOf(i))}</span><b class="dn">−${eur(d)} → ${eur(b)}</b></li>`).join('')}</ul>`:`<p class="hint" style="margin:8px 0 0">Pulsa ⟳ arriba para comprobar precios y ver qué baja.</p>`}</div></section>`;},
       cats:()=>`<section class="hmod"><h2>Categorías<button type="button" id="hCustom">Personalizar</button></h2>${pend.length?catGrid(pend.map(g=>g.offers[0]),()=>0):'<div class="empty">Nada guardado aún. Pulsa «Añadir» abajo o, en la tienda, Compartir → Comparador.</div>'}</section>`,
-      review:()=>{const n=k=>+($('#qn-'+k).textContent||0);const a=n('missing'),b=n('nocat'),c=n('nophoto');if(!a&&!b&&!c)return '';
+      review:()=>{const n=k=>+($('#qn-'+k).textContent||0);const a=n('missing'),b=n('nocat'),c=n('nophoto');if(!a&&!b&&!c)return `<section class="hmod"><button type="button" class="revline" id="hReview">Centro de revisión · todo en orden<span class="go">Abrir ›</span></button></section>`;
         return `<section class="hmod"><button type="button" class="revline" id="hReview">Centro de revisión${a?` · <b>${a}</b> sin datos`:''}${b?` · <b>${b}</b> sin clasificar`:''}${c?` · <b>${c}</b> sin fotos`:''}<span class="go">Revisar ›</span></button></section>`;},
       spaces:()=>owners().length?`<section class="hmod"><h2>Compartido contigo</h2><nav class="spacebar">${$('#spaceBar').innerHTML}</nav></section>`:''};
     return mods().filter(x=>x.endsWith(':1')).map(x=>(M[x.split(':')[0]]||(()=>''))()).join('');}
   document.addEventListener('click',e=>{if(e.target.closest('#hCustom')){$('#openSettings').click();setTimeout(()=>$('#modList').scrollIntoView({behavior:'smooth',block:'center'}),80);}
-    if(e.target.closest('#hReview')){navTab='explore';tab='compare';flt.state='missing';render();window.scrollTo({top:0});}});
+    if(e.target.closest('#hReview')){openReview();}});
   // Vista compacta de productos
   const viewSeg=()=>`<div class="vseg" role="group" aria-label="Vista de productos"><button type="button" data-vw="compact" aria-pressed="${pref('view')==='compact'}">Compacta</button><button type="button" data-vw="detail" aria-pressed="${pref('view')==='detail'}">Detallada</button></div>`;
   document.addEventListener('click',e=>{const b=e.target.closest('[data-vw]');if(b){openG.clear();setPref('view',b.dataset.vw);render();return;}
@@ -1385,6 +1406,51 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
     const sub=[lt.brand,lt.variant].map(clean).filter(Boolean).join(' · ');
     return `<button type="button" class="ccard" data-open="${esc(key(g.name))}"><span class="ph">${img&&img[0]?imgTag(img[0],''):svgI(catIcon(g.cat))}</span><span class="bd"><h3>${esc(g.name)}</h3>${sub?`<span class="sub">${esc(sub)}</span>`:''}<span class="sub">${shops} ${shops===1?'tienda':'tiendas'}${shops>1?' · comparación activa':''}</span><span class="chips">${allOut?'<span class="chip err">Agotado</span>':''}</span><span class="pr"><b>${valid.length?eur(c.total):'—'}</b>${lbl}</span><span class="go">Ver ofertas y evolución ›</span></span></button>`;}
 
+
+  // ---------- Centro de revisión ----------
+  let revOpen=false,revKind=null;
+  const stIs=(it,k)=>{const keep=flt.state;flt.state=k;const r=stateOk(it);flt.state=keep;return r;};
+  const pendAll=()=>items.filter(i=>(i.status||'pending')==='pending');
+  function dupPairs(){const firsts=[];const seen=new Set();pendAll().forEach(i=>{const k=key(groupName(i));if(!seen.has(k)){seen.add(k);firsts.push(i);}});
+    const out=[];for(let a=0;a<firsts.length;a++)for(let b=a+1;b<firsts.length;b++){try{if(similar(firsts[a],firsts[b]))out.push([firsts[a],firsts[b]]);}catch(e){}}return out.slice(0,60);}
+  function revData(nodup){const P=pendAll();
+    return [
+      {k:'missing',t:'Datos incompletos',d:'Sin leer, sin precio o sin portes. Releer enlaces y completar campos.',list:P.filter(i=>stIs(i,'missing'))},
+      {k:'nocat',t:'Sin clasificar',d:'Asignar categoría y subcategoría.',list:P.filter(i=>stIs(i,'nocat'))},
+      {k:'nophoto',t:'Sin fotografías',d:'Buscar fotos y elegir portada.',list:P.filter(i=>stIs(i,'nophoto'))},
+      {k:'cur',t:'Revisar monedas',d:'Importes en otra moneda o sospechosos.',list:(typeof curSuspects==='function'?curSuspects():[])},
+      {k:'inh',t:'Portes y cupones supuestos',d:'Copiados de la tienda; se confirman al leer la web.',list:P.filter(i=>i.inherited&&Object.keys(i.inherited).length)},
+      {k:'dup',t:'Posibles duplicados',d:'Mismo artículo en fichas separadas. Unir o dejar.',list:nodup?[]:dupPairs()},
+      {k:'err',t:'Errores de lectura',d:'Tiendas que bloquean la lectura o fallos de conexión.',list:P.filter(i=>i.checkErr)}];}
+  function revCount(){return revData(true).filter(r=>r.k!=='dup').reduce((s,r)=>s+r.list.length,0);}
+  function openReview(k){revOpen=true;revKind=k||null;prodKey=null;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
+  function closeReview(){if(revKind){revKind=null;}else revOpen=false;render();window.scrollTo({top:0});}
+  const revRow=it=>`<div class="rvrow">${(it.images||[])[0]?imgTag(it.images[0],''):`<span class="ph">${svgI(catIcon(catOf(it)))}</span>`}<div class="t"><b>${esc(fullName(it)||'Sin nombre')}</b><small>${esc(shopOf(it))} · ${esc(catOf(it))}${it.checkErr?` · <span style="color:var(--danger)">${it.checkErr==='blocked'?'la tienda bloquea la lectura':'error al leer'}</span>`:''}${it.inherited?' · '+Object.keys(it.inherited).map(k=>({shipping:'portes',freeFrom:'mínimo portes',code:'cupón'})[k]).join(', ')+' supuestos':''}</small>${missBox(it)}</div><div class="a"><button class="btn small" type="button" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" type="button" data-open="${esc(key(groupName(it)))}">Ficha</button></div></div>`;
+  function renderReview(){const D=revData();
+    const back=`<div class="pfback"><button class="iconbtn" type="button" id="rvBack" aria-label="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="crumb">${revKind?'Centro de revisión':'Inicio'}</span></div>`;
+    if(!revKind){return `<div class="pf">${back}<h2>Centro de revisión</h2><div class="psub">Incidencias organizadas por tipo</div><div class="rvcards">${D.map(r=>`<button type="button" class="rvcard ${r.list.length?'':'ok'}" data-rv="${r.k}"><b>${r.list.length?`<span class="n">${r.list.length}</span> · `:''}${r.t}</b><small>${r.list.length?r.d:'Todo en orden'}</small></button>`).join('')}</div></div>`;}
+    const r=D.find(x=>x.k===revKind);if(!r){revKind=null;return renderReview();}
+    const withUrl=r.list.filter&&r.k!=='dup'?r.list.filter(i=>safeUrl(i.url)).length:0;
+    const acts={missing:`${$('#retryBtn').hidden?'':`<button class="btn primary" type="button" data-rva="retry">${esc($('#retryBtn').textContent)}</button>`}${withUrl?`<button class="btn" type="button" data-rva="check">Comprobar ${withUrl} con enlace</button>`:''}`,
+      nocat:$('#classifyBtn').hidden?'<p class="hint">Para clasificar sola necesitas la clave de API en Ajustes. También puedes editar cada uno.</p>':`<button class="btn primary" type="button" data-rva="classify">${esc($('#classifyBtn').textContent||'Clasificar')}</button>`,
+      nophoto:`<button class="btn primary" type="button" data-rva="photos">Buscar fotos de ${r.list.length}</button>`,
+      cur:`<button class="btn primary" type="button" data-rva="cur">Revisar monedas</button>`,
+      inh:withUrl?`<button class="btn primary" type="button" data-rva="check">Confirmar leyendo la web (${withUrl})</button>`:'',
+      err:withUrl?`<button class="btn primary" type="button" data-rva="check">Reintentar ${withUrl}</button>`:'',dup:''}[r.k]||'';
+    const body=r.k==='dup'?r.list.map(([a,b])=>`<div class="rvdup"><div><b>${esc(groupName(a))}</b><small>${esc(shopOf(a))}</small></div><div><b>${esc(groupName(b))}</b><small>${esc(shopOf(b))}</small></div><button class="btn small primary" type="button" data-dupa="${a.id}" data-dupb="${esc(key(groupName(b)))}">Unir</button></div>`).join(''):r.list.map(revRow).join('');
+    return `<div class="pf">${back}<h2>${r.t}</h2><div class="psub">${r.list.length} · ${r.d}</div><div class="pacts" style="margin-top:12px">${acts}</div><div class="rvlist">${body||'<div class="empty">Todo en orden.</div>'}</div></div>`;}
+  document.addEventListener('click',async e=>{
+    if(e.target.closest('#rvBack')){closeReview();return;}
+    const c=e.target.closest('[data-rv]');if(c){revKind=c.dataset.rv;render();window.scrollTo({top:0});setTimeout(navEnsure,0);return;}
+    const d=e.target.closest('[data-dupa]');if(d){const a=items.find(i=>i.id===d.dataset.dupa);if(a){openLink(a);lkSel.add(d.dataset.dupb);drawLink();}return;}
+    const b=e.target.closest('[data-rva]');if(!b)return;const r=revData().find(x=>x.k===revKind);
+    if(b.dataset.rva==='retry'){$('#retryBtn').click();return;}
+    if(b.dataset.rva==='classify'){$('#classifyBtn').click();return;}
+    if(b.dataset.rva==='photos'){$('#photoGo').click();return;}
+    if(b.dataset.rva==='cur'){openCurReview(false);window.scrollTo({top:0});return;}
+    if(b.dataset.rva==='check'){if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}const list=r.list.filter(i=>safeUrl(i.url));b.disabled=true;let ok=0;
+      for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');const x=await checkItem(list[i]);if(x.ok)ok++;}
+      render();setStatus(`Comprobados ${ok} de ${list.length}.`);}});
   // ---------- Ficha de producto (cabecera + secciones) ----------
   let prodKey=null;const prodPrev={y:0};
   function openProd(k){prodPrev.y=window.scrollY;prodKey=k;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
@@ -1446,12 +1512,14 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     document.body.classList.toggle('nav-home',navTab==='home');
+    {const q=$('#qn-rev');if(q)q.textContent=revCount();}
     document.querySelectorAll('#bnav [data-nav]').forEach(b=>{if(b.dataset.nav===navTab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
     if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
     const v=$('#view');
     drawSelBar();
-    document.body.classList.toggle('nav-prod',!!prodKey);
+    document.body.classList.toggle('nav-prod',!!prodKey||revOpen);
     if(prodKey){v.innerHTML=renderProd();return;}
+    if(revOpen){v.innerHTML=renderReview();return;}
     if(navTab==='home'){v.innerHTML=renderHome();return;}
     v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():tab==='shared'?renderShared():renderDiscarded());
     const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
@@ -2876,6 +2944,7 @@ Productos: ${JSON.stringify(list)}`;
     closeLink();render();setStatus(`Unidos en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, pulsa «Desunir» en la oferta.`);});
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-link]');if(!b)return;const it=items.find(i=>i.id===b.dataset.link);if(it)openLink(it);});
   $('#qJoin').addEventListener('click',()=>openLink(null));
+  $('#qRev').addEventListener('click',()=>openReview());
   $('#selTop').addEventListener('click',()=>{if(space!=='mine'){space='mine';tab='compare';}$('#selModeBtn').click();});
   $('#fLinkBtn').addEventListener('click',()=>{const src=editingId&&items.find(i=>i.id===editingId);
     const it={...(src||{}),id:editingId||'__new',product:F('fProduct').value,variant:F('fVariant').value,brand:F('fBrand').value,sku:F('fSku').value,mpn:F('fMpn').value,ean:F('fEan').value,category:F('fCategory').value,store:F('fStore').value,group:F('fGroup').value};
@@ -2959,7 +3028,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16j';
+    const APP_V='2026-11-16k';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
