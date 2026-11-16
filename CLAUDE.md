@@ -14,5 +14,6 @@
 
 ## Decisiones (16 nov 2026)
 - No se monta servidor para comprobar precios con la app cerrada: vale el funcionamiento actual (comprobación al abrir).
+- Reglas de Firestore publicadas el 16 nov 2026 (acceso a productos y listas compartidas comprobado por Carlos).
 - Pruebas funcionales pendientes: reservas con dos cuentas, notificaciones en el móvil, editar precio realmente pagado y «Comprar otra vez».
 - Siguiente fase: transformación visual con los recursos gráficos que facilite Carlos. Prioridad: diseño y experiencia, claro y oscuro. Nunca quitar ni simplificar funciones para adaptar la estética.
