@@ -1,0 +1,485 @@
+[
+{
+"id": "z1",
+"product": "Umarex Legends P08 6mm CO2",
+"brand": "Umarex",
+"store": "Mildot",
+"url": "https://mildot.es/y",
+"price": 103.95,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"status": "pending",
+"group": "Pistola Luger P08 Umarex",
+"images": [
+"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAIAAAD2HxkiAAAGW0lEQVR4Xu3aUU7cWBCGURjNYsiWyEO2Rh6ypmxnFDEiHQiN29j+XVXnPCciunU/l7vD/cPj0x2Q80/uRwO/iBDCRAhhIoQwEUKYCCFMhBAmQggTIYSJEMJECGEihDARQpgIIUyEECZCCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIEyGEiRDCRAhhIoQwEUKYCCFMhBAmQggTIYSJEMJECGEihDARQpgIIUyEECZCCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIEyGEiRDCRAhhIoQwEUKYCCFMhBAmQggTIYSJEMJECGH/hn8+y/z88W3ZH3zty9fv6/4ih7l/eHw67IexxOrellPmqYgw74DqrtNklghj4u29pcYIER7qhOG9R5CHEeFBCuV3SYoHEOG+irbnTfVIItxLm/wsxr2JcGMt27MYdyXCzQzJz2LcnAg3MDA/KW5IhJ8yPD8pbsIvcK+nwEtOYzWbcA0X7gr/tXgrm/BmCrzO+dzKJryB63UTK3Ehm3ApBd7KiS1kE37MZfokK/E6m9AnnN15iolwPbdnK07yCq+jf+fS7MSr6VteR/9CgftxtiL8mFuyNyf8ik34B/fjGM75kgh/czOO5LRfiPB/7sTxnPkzEf7iNqQ4eREqME+H0zehG3AGw6cwOsLhsz+VybOYG+HkqZ/T2IkMjXDsvE9u5lwmRjhz0lUMnM64CAfOuJxpMxoXIZzNrAinPWLrGjWpQRGOmmsDc+Y1JcI5E+1kyNSmRAinNSLCIQ/UlibMrn+EE6bYW/sJ9o8QTq55hO0fokP0nmPnCHtPbprG0+wcIZTQNsLGD86xus60Z4Rdp0XLyfaMEAppGGHLhyUv+s23YYRQS7cI+z0meavZlLtFCOW0irDZA5IrOs26VYRQkQghrE+End5PWKLNxPtECEU1ibDNQ5Gb9Jh7kwihLhFCWIcIe7yTsE6D6XeIEEorH2GDByGfVP0OlI8QqhMhhIkQwmpHWP3DAFspfRNqRwgNiBDCCkdY+g2EzdW9D4UjhB5ECGEihDARQljVCOt+Cmc/RW9F1QihDRFCmAghTIQQJkIIEyGElYyw6DfRHKDi3SgZIXQiQggTIYSJEMJECGEihDARQpgIIUyEECZCCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIKxnhl6/fw8fGWVW8GyUjhE5ECGEihDARQpgIIUyEEFY1worfRLO3oreiaoTQhgghTIQQJkIIKxxh0U/h7KTufSgcIfQgQgirHWHdNxC2Vfom1I4QGhAhhIkQwspHWPrDAJuofgfKRwjVdYiw+oOQz2gw/Q4RQmkihLAmETZ4J2GFHnNvEiHU1SfCHg9Flmsz8T4RQlEihLBWEbZ5P+FDnWbdKkKoqFuEnR6QvKfZlLtFCOU0jLDZY5JX+s23YYRQS88I+z0sedZysj0j7Dqt4VoWeHfXN0Koou0mtAyb6boG+2/CxpMbpfccO29CKKF/hL0fohO0n2D/CH04LK19gf0/E8L5jdiElmFRE9bgrE04ZKJtzJnXlE34bM5cqxs1qVkRwgmNi3DUI7aoaTMaF6GX0pObVuCsL2YuDZx0CTPnMnET+pLmnGYWOHcT6vBsxhY4PUKfD09icoEi1GHe8AJF6L00TIEi/M1tOJ4zfzb329G33IkjOe0XIvyDm3EM53xJhK+5H3tzwq+I0HvpoRT41v3D49OhQyjl549vpf69pya/99iE17g3W3GSV4jwA27P5znD67yOLuXVdAX5LWETLuU+3cqJLWQT3sxK/JD8bmIT3swNu8753MomXM9KfEV+69iE67lzl5zGajbhBoavRPl9kgg3MzBF+W1ChBsbkqL8NiTCvbSsUXt7EOG+2qQov/2I8CBFa9TeAUR4qEIpyu8wIow5YZDCixBhXrxG7WWJ8HQOaFJ1pyLCGlaXqbfzEyGE+QVuCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIEyGEiRDCRAhhIoQwEUKYCCFMhBAmQggTIYSJEMJECGEihDARQpgIIUyEECZCCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIEyGEiRDCRAhhIoQwEUKYCCFMhBAmQggTIYSJEMJECGEihDARQpgIIUyEECZCCBMhhIkQwkQIYSKEMBFCmAghTIQQJkIIEyGE/QdPOWeKTQeJmQAAAABJRU5ErkJggg=="
+]
+},
+{
+"id": "a1",
+"product": "KWC P08 CO2 Blowback",
+"brand": "KWC",
+"store": "Mildot",
+"url": "https://mildot.es/x",
+"price": 134.95,
+"shipping": 4.95,
+"freeFrom": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"platform": "Luger P08",
+"availability": "En stock",
+"status": "pending",
+"group": "Luger P08 6mm",
+"images": [
+"data:image/png;base64,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"
+],
+"history": [
+{
+"at": "2025-12-10T10:00:00Z",
+"price": 149.95
+},
+{
+"at": "2026-03-01T10:00:00Z",
+"price": 139.95
+},
+{
+"at": "2026-06-20T10:00:00Z",
+"price": 119.95
+},
+{
+"at": "2026-09-02T10:00:00Z",
+"price": 144.95
+},
+{
+"at": "2026-10-28T10:00:00Z",
+"price": 129.95
+},
+{
+"at": "2026-11-10T10:00:00Z",
+"price": 134.95
+},
+{
+"at": "2026-11-14T10:00:00Z",
+"price": 134.95
+}
+],
+"checkedAt": "2026-11-14T10:00:00Z",
+"specs": {
+"system": "1x 12 g CO₂",
+"fps": "350 fps",
+"blowback": "Sí",
+"magCap": "15 rds",
+"weight": "834 g"
+},
+"description": "Réplica full metal."
+},
+{
+"id": "a2",
+"product": "WE P08 4\" GBB",
+"brand": "WE",
+"store": "Airsoftzone",
+"url": "https://airsoftzone.com/x",
+"price": 159.9,
+"shipping": 0,
+"freeFrom": 149.9,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"platform": "Luger P08",
+"availability": "En stock",
+"status": "pending",
+"group": "Luger P08 6mm",
+"images": [
+"data:image/png;base64,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"
+]
+},
+{
+"id": "a3",
+"product": "Legends P08 6mm",
+"brand": "Umarex",
+"store": "Militaria",
+"url": "https://militaria.pl/x",
+"price": 93.97,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"availability": "Agotado",
+"status": "pending",
+"group": "Legends P08",
+"images": [
+"data:image/png;base64,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"
+]
+},
+{
+"id": "a4",
+"product": "Cargador WE P08 15 bolas",
+"brand": "WE",
+"store": "Milgear",
+"url": "https://milgear.fi/x",
+"price": 35.9,
+"shipping": 9.9,
+"discount": 0,
+"discountType": "eur",
+"category": "Cargadores",
+"images": []
+},
+{
+"id": "a5",
+"product": "Gafas balísticas",
+"store": "Amazon",
+"price": 24.9,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Equipamiento",
+"status": "pending",
+"group": "Gafas",
+"images": []
+},
+{
+"id": "a8",
+"product": "Vestido midi plisado",
+"store": "Zara",
+"price": 39.95,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Ropa",
+"sub": "Vestidos",
+"size": "M",
+"color": "Azul marino",
+"status": "pending",
+"group": "Vestido midi",
+"images": []
+},
+{
+"id": "a9",
+"product": "Botines de piel",
+"store": "Mango",
+"price": 79.99,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Calzado",
+"sub": "Botines",
+"size": "38",
+"color": "Camel",
+"status": "pending",
+"group": "Botines",
+"images": [
+"data:image/png;base64,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"
+]
+},
+{
+"id": "a10",
+"product": "Bolso bandolera",
+"store": "Parfois",
+"price": 29.99,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Complementos",
+"sub": "Bolsos",
+"color": "Negro",
+"status": "pending",
+"group": "Bolso",
+"images": []
+},
+{
+"id": "a6",
+"product": "Lego Batman",
+"store": "Lego",
+"price": 89.99,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "LEGO",
+"sub": "Batman y DC",
+"images": []
+},
+{
+"id": "g1",
+"product": "Driver Qi35",
+"store": "Golfbox",
+"price": 499,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Golf",
+"sub": "Drivers",
+"status": "pending",
+"group": "Driver",
+"images": []
+},
+{
+"id": "h1",
+"product": "Semillas tomate",
+"store": "Planeta Huerto",
+"price": 3.5,
+"shipping": 4,
+"discount": 0,
+"discountType": "eur",
+"category": "Huerto",
+"sub": "Semillas",
+"status": "pending",
+"group": "Tomate",
+"images": []
+},
+{
+"id": "t1",
+"product": "Coche teledirigido",
+"store": "Toys",
+"price": 49,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Juguetes",
+"sub": "Radiocontrol y drones",
+"status": "pending",
+"group": "Lego Batman",
+"images": [
+"data:image/png;base64,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"
+]
+},
+{
+"id": "a7",
+"product": "BBs 0,25",
+"store": "X",
+"price": 12,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"status": "pending",
+"group": "Cargador WE P08",
+"images": []
+},
+{
+"id": "m2",
+"product": "Funda pistola",
+"store": "Mildot",
+"url": "https://mildot.es/z",
+"price": 19.9,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Equipamiento",
+"status": "pending",
+"group": "Funda",
+"images": []
+},
+{
+"id": "g1x",
+"product": "Coche teledirigido",
+"store": "Toys",
+"price": 49,
+"shipping": 0,
+"freeFrom": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Juguetes",
+"people": [
+"Younes"
+],
+"prio": "alta",
+"status": "pending",
+"group": "RC",
+"images": [
+"data:image/png;base64,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"
+]
+},
+{
+"id": "g2x",
+"product": "Pañuelo seda",
+"store": "Zara",
+"price": 25.9,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Complementos",
+"people": [
+"Davinia"
+],
+"status": "pending",
+"group": "Pañuelo",
+"images": []
+},
+{
+"id": "b1x",
+"product": "BBs 0,25 bio 4000",
+"store": "Mildot",
+"url": "https://mildot.es/bb",
+"price": 21.5,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"status": "bought",
+"boughtAt": "2026-10-20T10:00:00Z",
+"paid": 21.5,
+"consumable": "1",
+"group": "BBs bio",
+"images": []
+},
+{
+"id": "d1",
+"product": "ACETECH Quark R (iGUN)",
+"store": "iGUN Airsoft",
+"price": 34.9,
+"shipping": 4.95,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"status": "pending",
+"images": []
+},
+{
+"id": "d2",
+"product": "Acetech Quark-R (Airsoftmania)",
+"store": "Airsoftmania",
+"price": 36,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Pistolas",
+"status": "pending",
+"images": []
+},
+{
+"id": "m0",
+"product": "BLS Tracer 0.20g 5000 BBs Blue",
+"store": "Anareus",
+"url": "https://a.es/0",
+"price": 25,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"sub": "BBs 6 mm",
+"status": "pending",
+"images": []
+},
+{
+"id": "m1",
+"product": "BLS Tracer 0.20g 5000 BBs Red",
+"store": "Anareus",
+"url": "https://a.es/1",
+"price": 24,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"sub": "BBs 6 mm",
+"status": "pending",
+"images": []
+},
+{
+"id": "m2",
+"product": "BLS Bio 0.25g 4000 BBs",
+"store": "Anareus",
+"url": "https://a.es/2",
+"price": 22,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"sub": "BBs 6 mm",
+"status": "pending",
+"images": []
+},
+{
+"id": "m3",
+"product": "G&G 0.28g BBs blancas",
+"store": "Anareus",
+"url": "https://a.es/3",
+"price": 15,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"sub": "BBs 6 mm",
+"status": "pending",
+"images": []
+},
+{
+"id": "m4",
+"product": "BLS Bio Tracer 0.28g verde",
+"store": "Anareus",
+"url": "https://a.es/4",
+"price": 28,
+"shipping": 0,
+"discount": 0,
+"discountType": "eur",
+"category": "Munición",
+"sub": "BBs 6 mm",
+"status": "pending",
+"images": []
+},
+{
+"id": "g0",
+"product": "Tees de bambú 70 mm bolsa de 50",
+"store": "Decathlon",
+"url": "https://d.es/0",
+"price": 6.5,
+"shipping": 0,
+"freeFrom": 30,
+"discount": 0,
+"discountType": "eur",
+"category": "Golf",
+"sub": "Tees",
+"status": "pending",
+"images": [],
+"tags": "regalo"
+},
+{
+"id": "g1",
+"product": "Tees plástico 54 mm pack de 100",
+"store": "Decathlon",
+"url": "https://d.es/1",
+"price": 5,
+"shipping": 0,
+"freeFrom": 30,
+"discount": 0,
+"discountType": "eur",
+"category": "Golf",
+"sub": "Tees",
+"status": "pending",
+"images": [],
+"tags": ""
+},
+{
+"id": "g2",
+"product": "Titleist Pro V1 bolas 3 capas caja de 12",
+"store": "Decathlon",
+"url": "https://d.es/2",
+"price": 55,
+"shipping": 0,
+"freeFrom": 30,
+"discount": 0,
+"discountType": "eur",
+"category": "Golf",
+"sub": "Bolas",
+"status": "pending",
+"images": [],
+"tags": ""
+},
+{
+"id": "g3",
+"product": "Bolas de golf recuperadas lake balls x24",
+"store": "Decathlon",
+"url": "https://d.es/3",
+"price": 19,
+"shipping": 0,
+"freeFrom": 30,
+"discount": 0,
+"discountType": "eur",
+"category": "Golf",
+"sub": "Bolas",
+"status": "pending",
+"images": [],
+"tags": ""
+}
+]

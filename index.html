@@ -1633,7 +1633,7 @@ body.nav-home .hello{display:block}
     if(cmpOpen){cmpOpen=false;render();return true;}
     if(flt.fac){flt.fac='';render();return true;}
     if(flt.sub){flt.sub='';render();return true;}
-    if(flt.cat||allMode){flt.cat='';allMode=false;saveFlt();render();return true;}
+    if(flt.cat||allMode){flt.cat='';flt.fac='';allMode=false;saveFlt();render();return true;}
     if(flt.q||flt.state){flt.q='';flt.state='';$('#q').value='';render();return true;}
     if(space!=='mine'){space='mine';tab='compare';render();return true;}
     if(navTab==='lists'&&!listHome){listHome=true;flt.person='';render();return true;}
@@ -1669,7 +1669,7 @@ body.nav-home .hello{display:block}
   // Secciones
   const NAVTABS={explore:['compare','shops'],lists:['gifts','buy','shared'],buys:['done','discarded']};
   function setNav(n){if(n==='add'){openAdd();return;}if(n==='review'){navTab='review';prodKey=null;openReview();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
-    if(n==='home'){flt.cat='';flt.sub='';allMode=false;space='mine';}
+    if(n==='home'){flt.cat='';flt.sub='';flt.fac='';allMode=false;space='mine';}
     if(n==='explore'&&!NAVTABS.explore.includes(tab))tab=space==='mine'?'compare':'shared';
     if(n==='lists'){tab='gifts';listHome=true;flt.person='';}if(n==='buys')tab='done';
     render();window.scrollTo({top:0});}
@@ -3491,7 +3491,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-17d';
+    const APP_V='2026-11-16a';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
