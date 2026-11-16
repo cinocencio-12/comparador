@@ -26,3 +26,4 @@
 - Atrás de Android: una entrada de historial por nivel, creada en cada toque (Android salta las creadas sin toque).
 - Categorías distintas en un artículo vinculado: se avisa en la ficha y en Revisión y Carlos elige; no se cambia sola.
 - Munición: subcategoría = calibre; bio, trazadora, color y peso son atributos combinables (chips de filtro), sacados de specs o del nombre.
+- Precio por unidad: campo «Unidades por pack» (units) o deducido del nombre; €/ud o €/1000 si ≥500 uds. Filtros combinables en todas las categorías: color, material, talla, específicos (golf: tees material/altura, bolas capas/nuevas-recuperadas; munición) y las etiquetas del usuario (#etiqueta).

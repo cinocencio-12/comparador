@@ -718,6 +718,8 @@ body.nav-prod .homesearch{display:none}
 .cattile.photo small{color:rgba(255,255,255,.85)}
 .apar{grid-column:1/-1}
 [hidden]{display:none!important}
+.upr{color:var(--tag-fg)!important;font-weight:750}
+.ccard .pr small.upr{display:block;width:100%;order:3}
 .subchips.facs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg)}
 .ccpick{position:fixed;inset:0;z-index:60;background:rgba(10,6,25,.6);display:flex;align-items:flex-end;justify-content:center}
 .ccpick .in{background:var(--surface);color:var(--fg);width:100%;max-width:640px;max-height:82vh;overflow:auto;border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px)}
@@ -1001,6 +1003,7 @@ body.nav-home .hello{display:block}
     <div class="f c3"><label for="fPrice">Precio</label><div class="disc"><input id="fPrice" inputmode="decimal" required><select id="fCur" aria-label="Moneda" style="width:96px"></select></div><span class="hint" id="curPrev"></span></div>
     <div class="f c3"><label for="fDisc">Descuento</label><div class="disc"><input id="fDisc" inputmode="decimal" placeholder="0"><select id="fDiscType" aria-label="Tipo"><option value="eur">€</option><option value="pct">%</option></select></div></div>
     <div class="f c3"><label for="fCode">Cupón</label><input id="fCode"></div>
+    <div class="f c3"><label for="fUnits">Unidades por pack</label><input id="fUnits" inputmode="numeric" placeholder="Bolsa de 4000 BBs → 4000"><span class="hint" id="unitsHint"></span></div>
     <label class="selbox" style="grid-column:1/-1"><input type="checkbox" id="fOutEU"> Tienda fuera de la UE (sumar IVA de importación, aduana y banco estimados)</label>
     <div class="f c3"><label for="fShip">Envío</label><div class="disc"><input id="fShip" inputmode="decimal" placeholder="0"><select id="fShipCur" aria-label="Moneda del envío" style="width:96px"></select></div></div>
     <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
@@ -1271,6 +1274,14 @@ body.nav-home .hello{display:block}
   const NOCAT='Sin categoría';
   const norm=s=>clean(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   const catOf=it=>clean(it.category)||NOCAT;
+  // Unidades por pack: dato del artículo, o deducido del nombre («5000 BBs», «pack de 12», «x24»)
+  function unitsOf(it){const u=num(it.units)||num((it.specs||{}).bbCount);if(u>1)return Math.round(u);
+    const t=' '+[it.product,it.variant].map(clean).join(' ')+' ';const N=x=>num(String(x).replace(/[.\s](?=\d{3}\b)/g,''));
+    let m=t.match(/(\d{1,3}(?:[.\s]\d{3})+|\d+)\s*(?:bbs?|bolas?|balls?|tees?|uds?\.?|unidades|unid\.?|pcs|piezas|sobres|semillas|cartuchos|balines|pellets|cápsulas|capsulas)\b/i);if(m&&N(m[1])>1)return N(m[1]);
+    m=t.match(/\b(?:pack|caja|bolsa|lote|set)\s*(?:de\s*)?(\d{1,5})\b/i);if(m&&N(m[1])>1)return N(m[1]);
+    m=t.match(/\s[x×]\s?(\d{1,4})\s/i)||t.match(/\s(\d{1,4})\s?[x×]\s/i);if(m&&N(m[1])>1)return N(m[1]);return 0;}
+  function unitPrice(it){const u=unitsOf(it);if(!u||isUnread(it))return null;const t=calc(it).total;if(!(t>0))return null;const per=u>=500?1000:1;return {v:t/u*per,per,u,lbl:per===1000?'€/1000':'€/ud'};}
+  const upTxt=x=>x?`${x.v.toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:x.v<1?3:2})} ${x.lbl}`:'';
   // Un artículo vinculado en varias tiendas va en una sola categoría: gana la concreta frente a «Otros»/vacía
   const GENERIC=/^(otros?|otras?|varios|varias|miscel[aá]nea|general|sin clasificar|sin categor[ií]a)$/i;
   let harmT=null;
@@ -1311,7 +1322,7 @@ body.nav-home .hello{display:block}
     if(!stateOk(it))return false;
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.sub&&norm(it.sub)!==norm(flt.sub))return false;
-    if(flt.fac){const a=new Set(ammoAttrs(it));if(!splitList(flt.fac).every(x=>a.has(x)))return false;}
+    if(flt.fac){const a=new Set(attrsOf(it));if(!splitList(flt.fac).every(x=>a.has(x)))return false;}
     if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
     if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p||norm(c)==='todos'))return false;}
     if(flt.tag&&!tagList(it).some(t=>norm(t)===norm(flt.tag)))return false;
@@ -1576,11 +1587,23 @@ body.nav-home .hello{display:block}
     const cs=norm(i.color||'')+' '+t;for(const [k,v] of Object.entries(BBCOL))if(new RegExp('\\b'+k).test(cs)){out.push(v);break;}
     const g=(clean(sp.bbGrams)||(t.match(/\b0[.,]\d{2}\s?g/)||[''])[0]).replace('.',',').replace(/\s/g,'');if(g)out.push(g.replace(/g$/,' g'));
     return out;}
-  function facChips(list){if(!flt.cat||!AMMO_CAT.test(flt.cat))return '';const m=new Map();list.forEach(i=>ammoAttrs(i).forEach(a=>m.set(a,(m.get(a)||0)+1)));if(m.size<2)return '';
+  const capW=w=>w?w.charAt(0).toUpperCase()+w.slice(1):'';
+  function attrsOf(i){const c=catOf(i),sp=i.specs||{},t=norm([i.product,i.variant,i.sub,i.color].join(' '));const out=[];
+    if(AMMO_CAT.test(c))out.push(...ammoAttrs(i));
+    else{
+      if(/golf/i.test(c)&&/\btees?\b/.test(t)||/^tees?$/i.test(clean(i.sub))){const mt=/bamb/.test(t)?'Bambú':/madera|wood/.test(t)?'Madera':/goma|rubber/.test(t)?'Goma':/pl[aá]stic|plastic/.test(t)?'Plástico':'';if(mt)out.push(mt);const h=t.match(/\b(\d{2,3})\s?mm\b/);if(h)out.push(h[1]+' mm');}
+      if(/golf/i.test(c)&&/\b(bolas?|balls?)\b/.test(t)){const ly=t.match(/\b(\d)\s?(?:capas|piezas|piece|pieces|layers?)\b/);if(ly)out.push(ly[1]+' capas');out.push(/recuperad|lake|reacondic|usad|segunda mano|refurb/.test(t)?'Recuperadas':'Nuevas');}
+      const col=clean(i.color).split(/[\s,/]+/)[0];if(col&&col.length<14)out.push(capW(norm(col)));
+      const mat=clean(sp.material);if(mat&&mat.length<18)out.push(capW(norm(mat)));
+      const sz=clean(i.size);if(sz&&sz.length<8)out.push('Talla '+sz);}
+    tagList(i).forEach(g=>out.push('#'+g));
+    return [...new Set(out)];}
+  function facChips(list){if(!flt.cat)return '';const m=new Map();list.forEach(i=>attrsOf(i).forEach(a=>m.set(a,(m.get(a)||0)+1)));
+    const on0=new Set(splitList(flt.fac||''));[...m.keys()].forEach(k=>{if(m.get(k)===list.length&&!on0.has(k)&&!k.startsWith('#'))m.delete(k);});if(m.size<1||(m.size<2&&!on0.size))return '';
     const on=new Set(splitList(flt.fac||''));const order=['Bio','No bio','Trazadora'];
     const ks=[...m.keys()].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);if(ia>=0||ib>=0)return (ia<0?9:ia)-(ib<0?9:ib);const ga=/g$/.test(a),gb=/g$/.test(b);return ga!==gb?(ga?1:-1):a.localeCompare(b,'es');});
     return `<div class="subchips facs">${ks.map(k=>`<button type="button" data-fac="${esc(k)}" aria-pressed="${on.has(k)}">${esc(k)} <b>${m.get(k)}</b></button>`).join('')}${on.size?'<button type="button" data-fac="">Quitar filtros</button>':''}</div>`;}
-  $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-fac]');if(!b)return;const on=new Set(splitList(flt.fac||''));const k=b.dataset.fac;if(!k)on.clear();else if(on.has(k))on.delete(k);else{if(k==='Bio')on.delete('No bio');if(k==='No bio')on.delete('Bio');on.add(k);}flt.fac=[...on].join(', ');render();});
+  $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-fac]');if(!b)return;const on=new Set(splitList(flt.fac||''));const k=b.dataset.fac;if(!k)on.clear();else if(on.has(k))on.delete(k);else{if(k==='Bio')on.delete('No bio');if(k==='No bio')on.delete('Bio');if(k==='Nuevas')on.delete('Recuperadas');if(k==='Recuperadas')on.delete('Nuevas');on.add(k);}flt.fac=[...on].join(', ');render();});
   function subChips(list){if(!flt.cat)return '';const fc=facChips(list);const m=new Map();list.forEach(i=>{const s=clean(i.sub);if(s)m.set(s,(m.get(s)||0)+1);});if(!m.size)return fc;
     return fc+`<div class="subchips"><button type="button" data-sub="" aria-pressed="${!flt.sub}">Todas</button>${[...m.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<button type="button" data-sub="${esc(k)}" aria-pressed="${norm(flt.sub)===norm(k)}">${esc(k)} <b>${n}</b></button>`).join('')}</div>`;}
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-sub]');if(!b)return;flt.sub=b.dataset.sub;render();});
@@ -1689,7 +1712,7 @@ body.nav-home .hello{display:block}
   function compactCard(g){const valid=g.offers.filter(o=>!isUnread(o));const lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):g.offers[0];
     const img=(g.offers.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||''))).find(o=>(o.images||[])[0])||{}).images;const c=calc(lt);const shops=new Set(g.offers.map(shopOf)).size;
     const noShip=!(num(lt.shipping)>0)&&!(num(lt.freeFrom)>0)&&!/gratis|free/i.test(lt.notes||'');
-    const lbl=!valid.length?'<small class="est">sin precio</small>':noShip?'<small class="est">sin portes</small>':(inh(lt,'shipping')||inh(lt,'freeFrom'))?'<small class="est">portes supuestos</small>':outsideEU(lt)?'<small class="est">total estimado</small>':'<small>coste total</small>';
+    const up=unitPrice(lt);const lbl=(up?`<small class="upr">${upTxt(up)}</small>`:'')+(!valid.length?'<small class="est">sin precio</small>':noShip?'<small class="est">sin portes</small>':(inh(lt,'shipping')||inh(lt,'freeFrom'))?'<small class="est">portes supuestos</small>':outsideEU(lt)?'<small class="est">total estimado</small>':'<small>coste total</small>');
     const allOut=g.offers.every(o=>/agotad|sin stock|no disponible|out of stock/.test(norm(o.availability)));
     const sub=[lt.brand,lt.variant].map(clean).filter(Boolean).join(' · ');
     return `<button type="button" class="ccard" data-open="${esc(key(g.name))}"><span class="ph">${img&&img[0]?imgTag(img[0],''):svgI(catIcon(g.cat))}</span><span class="bd"><h3>${esc(g.name)}</h3>${sub?`<span class="sub">${esc(sub)}</span>`:''}<span class="sub">${shops} ${shops===1?'tienda':'tiendas'}${shops>1?' · comparación activa':''}</span><span class="chips">${allOut?'<span class="chip err">Agotado</span>':''}${prioChip(lt)}</span><span class="pr"><b>${valid.length?eur(c.total):'—'}</b>${lbl}</span><span class="go">Ver ofertas y evolución ›</span></span></button>`;}
@@ -1839,7 +1862,7 @@ body.nav-home .hello{display:block}
     const badBox=badN?`<div class="badbox"><b>${badN===imgs.length?'La foto no carga':`${badN} ${badN===1?'foto no carga':'fotos no cargan'}`}</b><small>La tienda la ha cambiado o borrado. Busca otra o súbela tú.</small><div class="pacts"><button class="btn small primary" type="button" data-fixph="${lt.id}">Buscar foto en internet</button><button class="btn small" type="button" data-fixph="${lt.id}" data-g="1">Google Imágenes</button><button class="btn small" type="button" data-fixph="${lt.id}" data-up="1">Subir o pegar foto</button><button class="btn small" type="button" data-rmbad="1">Quitar ${badN===1?'la rota':'las rotas'}</button></div></div>`:'';
     const gal=`<div class="pgal">${goodImgs.length?goodImgs.map(([v,id,i])=>imgTag(v,`data-lb="${id}" data-i="${i}"`)).join(''):`<div class="noimg">${svgI(catIcon(catOf(f)))}</div>`}</div>`+badBox;
     const head=`<div class="phead"><div><span class="k">Mejor coste total</span><b class="big">${valid.length?eur(calc(lt).total):'—'}</b><span class="lbl ${lcls}">${lbl}</span></div><div class="side"><span class="chip">${shops} ${shops===1?'tienda':'tiendas'}</span>${availChip(lt)}</div></div>
-      <div class="pmeta">${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
+      <div class="pmeta">${unitPrice(lt)?`<b class="upr">${upTxt(unitPrice(lt))}</b> · pack de ${unitsOf(lt).toLocaleString('es-ES')} uds · `:''}${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
     const withUrl=offers.filter(o=>safeUrl(o.url)).length;
     const cc=new Map();offers.forEach(o=>{const c=catOf(o)+(clean(o.sub)?' › '+clean(o.sub):'');if(!cc.has(c))cc.set(c,{n:0,o});cc.get(c).n++;});
     const catBox=cc.size>1?`<div class="badbox" style="margin:0 0 10px"><b>Categorías distintas en sus tiendas</b><small>${[...cc.entries()].map(([c,v])=>`${esc(c)} (${v.n})`).join(' · ')}. Elige una para todas:</small><div class="pacts">${[...cc.entries()].map(([c,v])=>`<button class="btn small${GENERIC.test(catOf(v.o))||catOf(v.o)===NOCAT?'':' primary'}" type="button" data-setcat="${v.o.id}">${esc(c)}</button>`).join('')}</div></div>`:'';
@@ -1856,7 +1879,7 @@ body.nav-home .hello{display:block}
     const single=valid.length<2;
     const cmp=`<div class="ptab" data-pt="cmp" ${pTab==='cmp'?'':'hidden'}><p class="ptsub">${offers.length} ${offers.length===1?'oferta':'ofertas'} · precio, portes, importación y total</p><div class="in">${offers.map(o=>{const c=calc(o);const [l,lc]=costLbl(o);const isBest=!single&&o===lt;
       const imp=c.total-c.after-(c.ship||0);
-      return `<details class="orow"><summary><span class="st" style="${hueOf(shopOf(o))}"><span class="sav">${esc((shopOf(o)||'?').replace(/^www\./,'').charAt(0).toUpperCase())}</span>${esc(shopOf(o))}</span><span class="tt ${isBest?'best':''}">${isUnread(o)?'—':eur(c.total)}${safeUrl(o.url)?`<a class="gostore" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ir a la tienda ↗</a>`:''}</span><span class="bk">${isUnread(o)?'Sin leer':`${eur(c.after)}${num(o.discount)>0?' con dto.':''} · ${c.ship>0?'+'+eur(c.ship)+' portes':l==='sin portes'?'portes: sin dato':'portes gratis'}${imp>0.005?' · +'+eur(imp)+' importación':''}`} ${isBest?'<span class="chip lowtot">Mejor total</span>':''}${lc?`<span class="chip low">${l}</span>`:''}${availChip(o)}</span></summary><div class="od">${offerRow(o,false,calc(lt).total,true,{single,lowTotal:isBest})}</div></div>`;}).join('')}</div></details>`;
+      return `<details class="orow"><summary><span class="st" style="${hueOf(shopOf(o))}"><span class="sav">${esc((shopOf(o)||'?').replace(/^www\./,'').charAt(0).toUpperCase())}</span>${esc(shopOf(o))}</span><span class="tt ${isBest?'best':''}">${isUnread(o)?'—':eur(c.total)}${safeUrl(o.url)?`<a class="gostore" href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Ir a la tienda ↗</a>`:''}</span><span class="bk">${isUnread(o)?'Sin leer':`${eur(c.after)}${num(o.discount)>0?' con dto.':''} · ${c.ship>0?'+'+eur(c.ship)+' portes':l==='sin portes'?'portes: sin dato':'portes gratis'}${imp>0.005?' · +'+eur(imp)+' importación':''}${unitPrice(o)?` · <b class="upr">${upTxt(unitPrice(o))}</b> (${unitsOf(o).toLocaleString('es-ES')} uds)`:''}`} ${isBest?'<span class="chip lowtot">Mejor total</span>':''}${lc?`<span class="chip low">${l}</span>`:''}${availChip(o)}</span></summary><div class="od">${offerRow(o,false,calc(lt).total,true,{single,lowTotal:isBest})}</div></div>`;}).join('')}</div></details>`;
     // Histórico
     let yb=null;offers.forEach(o=>{const m=minIn(histPts(o),365);if(m&&(!yb||m.p<yb.p))yb={...m,o};});
     const hist=`<div class="ptab" data-pt="hist" ${pTab==='hist'?'':'hidden'}><p class="ptsub">${yb?`Lo más barato del año: ${eur(yb.p)} el ${fd(yb.t)} en ${esc(shopOf(yb.o))}`:'Mínimos, máximos y tendencia'}</p><div class="in">${offers.map(o=>`<div class="hsec"><b>${esc(shopOf(o))}</b>${trendHtml(o)}${histBox(o)}</div>`).join('')}</div></div>`;
@@ -2163,6 +2186,7 @@ Cada objeto de producto lleva estas claves:
  "ean": código EAN/GTIN/código de barras si aparece, "" si no,
  "category": tipo de producto en español, corto y genérico (ver lista de categorías abajo),
  "sub": subcategoría (ver lista de categorías abajo); "" si no encaja ninguna,
+ "units": unidades que trae el pack o bolsa (4000 BBs → 4000, caja de 12 bolas → 12, bolsa de 50 tees → 50); "" si se vende suelto,
  "size": talla seleccionada o disponible en esta oferta (ropa y calzado: "M", "38", "S/M", "3-4 años"…); si hay varias y ninguna está elegida, lista corta de las disponibles; "" si no aplica,
  "color": color de esta oferta/variante (p. ej. "Negro", "Azul marino", "Estampado flores"); "" si no aplica,
  "platform": modelo o plataforma al que pertenece o para el que es el producto (p. ej. "Hi-Capa 5.1", "Glock 17", "CAM870", "M4", "AK"); "" si no aplica,
@@ -2318,7 +2342,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,
       availability:clean(d.availability),currency:normCur(d.currency||'EUR'),country:clean(d.country).toUpperCase().slice(0,2),
-      specs:cleanSpecs(d.specs),sub:clean(d.sub),size:clean(d.size),color:clean(d.color),category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
+      specs:cleanSpecs(d.specs),sub:clean(d.sub),size:clean(d.size),color:clean(d.color),units:num(d.units)>1?String(Math.round(num(d.units))):'',category:clean(d.category),platform:clean(d.platform),compat:(Array.isArray(d.compatible)?d.compatible:String(d.compatible||'').split(',')).map(clean).filter(Boolean).join(', ')};
   }
 
   // Une lo leído en la web con lo leído en la captura: precio y variante de la captura; el resto, lo más completo.
@@ -2432,7 +2456,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fPrio','prio'],['fCons','consumable'],['fTarget','target'],['fStockAl','alertStock'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fPrio','prio'],['fCons','consumable'],['fTarget','target'],['fStockAl','alertStock'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fUnits','units'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -2639,7 +2663,9 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   F('fCur').addEventListener('focus',()=>{lastCur=F('fCur').value;});
   // Al cambiar la moneda del precio, el envío la sigue si estaba en la misma.
   F('fCur').addEventListener('change',()=>{if(F('fShipCur').value===lastCur)F('fShipCur').value=F('fCur').value;lastCur=F('fCur').value;curPreview();});
-  ['fPrice','fShip'].forEach(id=>F(id).addEventListener('input',curPreview));F('fShipCur').addEventListener('change',curPreview);
+  ['fPrice','fShip'].forEach(id=>F(id).addEventListener('input',curPreview));
+  function unitsHint(){const u=Math.round(num(F('fUnits').value))||unitsOf({product:F('fProduct').value,variant:F('fVariant').value});const p=num(F('fPrice').value)-0;$('#unitsHint').textContent=u>1&&p>0?`${u>=500?(p/u*1000).toLocaleString('es-ES',{maximumFractionDigits:2})+' €/1000':(p/u).toLocaleString('es-ES',{maximumFractionDigits:3})+' €/ud'} sin portes${num(F('fUnits').value)?'':' (deducido del nombre)'}`:'';}
+  ['fUnits','fPrice','fProduct','fVariant'].forEach(id=>F(id).addEventListener('input',unitsHint));F('fShipCur').addEventListener('change',curPreview);
 
   // Recuadro rojo en los campos vacíos importantes del formulario.
   function markMissing(){
@@ -3458,7 +3484,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-17b';
+    const APP_V='2026-11-17c';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
