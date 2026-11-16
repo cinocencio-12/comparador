@@ -831,7 +831,7 @@ body.nav-home .hello{display:block}
 <div class="wrap">
   <header class="appbar">
     <h1>Comparador</h1>
-    <button class="iconbtn" id="selTop" type="button" aria-pressed="false" aria-label="Seleccionar varios para unir o comparar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12.5 3 3 5-6"/></svg></button>
+    <button class="iconbtn" id="selTop" type="button" aria-pressed="false" aria-label="Seleccionar varios para vincular o comparar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="m8 12.5 3 3 5-6"/></svg></button>
     <button class="iconbtn" id="checkTop" type="button" aria-label="Comprobar precios y stock de lo que ves"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/></svg></button>
     <button class="iconbtn" id="openSettings" type="button" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </header>
@@ -1030,7 +1030,7 @@ body.nav-home .hello{display:block}
       <button type="button" data-qs="nocat">Sin clasificar<b id="qn-nocat"></b></button>
       <button type="button" data-qs="nophoto">Sin imágenes<b id="qn-nophoto"></b></button>
       <button type="button" class="qrev" id="qRev">Revisión <b id="qn-rev"></b></button>
-      <button type="button" class="qjoin" id="qJoin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>Unir iguales</button>
+      <button type="button" class="qjoin" id="qJoin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>Vincular iguales</button>
     </div>
     <input class="q" id="q" type="search" placeholder="Buscar: nombre, marca, referencia, tienda, descripción…" autocomplete="off" aria-label="Buscar">
     <details class="more-f" id="moreF"><summary>Filtros y herramientas</summary><div class="inner">
@@ -1049,7 +1049,7 @@ body.nav-home .hello{display:block}
       <option value="rising">Precio subiendo (ojo con falsos descuentos)</option>
       <option value="lowest">En su precio más bajo</option>
     </select>
-    <div class="full" style="grid-column:1/-1"><div class="toolbar"><button class="btn small" id="selModeBtn" type="button">Seleccionar para comparar o unir</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div></div>
+    <div class="full" style="grid-column:1/-1"><div class="toolbar"><button class="btn small" id="selModeBtn" type="button">Seleccionar para comparar o vincular</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div></div>
     </div></details>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
@@ -1083,7 +1083,7 @@ body.nav-home .hello{display:block}
   <p class="hint" id="lkWhat"></p>
   <input class="lksearch" id="lkQ" type="search" placeholder="Filtrar por palabra: rhino, vainas, mildot…" aria-label="Filtrar por palabra">
   <div class="lklist" id="lkList"></div>
-  <div class="shfoot lkfoot"><button class="btn" type="button" id="lkCancel">Cancelar</button><button class="btn primary" type="button" id="lkGo" disabled>Unir</button></div>
+  <div class="shfoot lkfoot"><button class="btn" type="button" id="lkCancel">Cancelar</button><button class="btn primary" type="button" id="lkGo" disabled>Vincular</button></div>
 </section>
 <div class="updbar" id="updBar" role="status" hidden><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span><span id="updTxt">Hay una versión nueva de la app.</span><button class="btn small" type="button" id="updLater">Luego</button><button class="btn small primary" type="button" id="updBtn">Actualizar</button></div>
 <nav class="bnav" id="bnav" aria-label="Secciones">
@@ -1120,7 +1120,7 @@ body.nav-home .hello{display:block}
 <div class="selbar" id="selBar" hidden><b id="selCount">0 seleccionados</b>
   <button class="btn small" id="selCompare" type="button">Comparar</button>
   <button class="btn small" id="selCheck" type="button">Comprobar precio</button>
-  <button class="btn small primary" id="selJoin" type="button">Unir como el mismo</button>
+  <button class="btn small primary" id="selJoin" type="button">Vincular como el mismo</button>
   <button class="btn small" id="selCancel" type="button">Cancelar</button></div>
 
 <div class="lb" id="lb" hidden role="dialog">
@@ -1316,13 +1316,13 @@ body.nav-home .hello{display:block}
     return m?groupName(m):fullName(doc);
   }
 
-  // ---------- seleccionar para comparar o unir ----------
+  // ---------- seleccionar para comparar o vincular ----------
   let selMode=false,cmpOpen=false;const sel=new Set();
   function drawSelBar(){
     $('#selBar').hidden=!selMode;$('#homeBtn').hidden=selMode;
     $('#selCount').textContent=`${sel.size} ${sel.size===1?'seleccionado':'seleccionados'}`;
     $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
-    $('#selModeBtn').textContent=selMode?'Salir de seleccionar':'Seleccionar para comparar o unir';
+    $('#selModeBtn').textContent=selMode?'Salir de seleccionar':'Seleccionar para comparar o vincular';
   }
   function compareTable(){
     const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);if(list.length<2)return '';
@@ -1360,7 +1360,7 @@ body.nav-home .hello{display:block}
     const name=[...counts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
     const olds=new Set(list.map(i=>key(groupName(i))));
     for(const it of items)if(olds.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);}
-    selMode=false;sel.clear();cmpOpen=false;render();setStatus(`Unidos como «${name}». Puedes cambiar el nombre en Editar → «Comparar junto con».`);
+    selMode=false;sel.clear();cmpOpen=false;render();setStatus(`Vinculados como «${name}». Puedes cambiar el nombre en Editar → «Comparar junto con».`);
   });
   document.addEventListener('change',e=>{const c=e.target.closest('input[data-sel]');if(!c)return;if(c.checked)sel.add(c.dataset.sel);else sel.delete(c.dataset.sel);
     c.closest('.offer')&&c.closest('.offer').classList.toggle('sel',c.checked);drawSelBar();if(cmpOpen)render();});
@@ -1652,6 +1652,22 @@ body.nav-home .hello{display:block}
   function notSame(){try{return new Set(JSON.parse(localStorage.getItem('notSame')||'[]'));}catch(e){return new Set();}}
   function dupSide(i){const c=calc(i);const det=[clean(i.brand),clean(i.variant),clean(i.size),clean(i.color)].filter(Boolean).join(' · ');const n=items.filter(x=>(x.status||'pending')==='pending'&&key(groupName(x))===key(groupName(i))).length;
     return `<div class="dside">${thumb(i)}<div class="dt"><b>${esc(groupName(i))}</b><small>${esc(shopOf(i))}${n>1?` · ${n} tiendas ya unidas`:''}</small>${det?`<small>${esc(det)}</small>`:''}<span class="dp">${isUnread(i)?'Sin leer':eur(c.total)}${!isUnread(i)&&c.ship>0?` <small>(${eur(c.after)} + ${eur(c.ship)} portes)</small>`:''}</span><span class="da"><button class="btn small" type="button" data-open="${esc(key(groupName(i)))}">Ver ficha</button>${safeUrl(i.url)?`<a class="btn small" href="${esc(safeUrl(i.url))}" target="_blank" rel="noopener">Web</a>`:''}</span></div></div>`;}
+  async function fuseItems(a,b){// conserva la oferta con lectura más reciente; la otra queda descartada con referencia
+    const t=i=>i.checkedAt||i.createdAt||'';const [k,o]=t(b)>t(a)?[b,a]:[a,b];
+    const h=new Map();[...(k.history||[]),...(o.history||[])].forEach(x=>{if(x&&x.at)h.set(x.at+'|'+x.price,x);});k.history=[...h.values()].sort((x,y)=>String(x.at).localeCompare(String(y.at)));
+    const im=[...(k.images||[])];(o.images||[]).forEach(v=>{if(!im.includes(v))im.push(v);});k.images=im;
+    ['url','brand','variant','sku','mpn','ean','platform','compat','size','color','sub','category','description','code','availability','group'].forEach(f=>{if(!clean(k[f])&&clean(o[f]))k[f]=o[f];});
+    if(clean(o.notes)&&!clean(k.notes||'').includes(clean(o.notes)))k.notes=[clean(k.notes),clean(o.notes)].filter(Boolean).join('\n');
+    if(o.specs){k.specs=Object.assign({},o.specs,k.specs||{});}
+    k.people=[...new Set([...(peopleList(k)),...(peopleList(o))])];if(!k.people.length)delete k.people;
+    if(o.tags&&o.tags.length)k.tags=[...new Set([...(k.tags||[]),...o.tags])];
+    const tg=[num(k.target),num(o.target)].filter(x=>x>0);if(tg.length)k.target=Math.min(...tg);if(o.alertStock)k.alertStock='1';
+    if(!k.prio&&o.prio)k.prio=o.prio;
+    o.status='discarded';o.discardedAt=new Date().toISOString();o.discardReason=`fusionado con la otra oferta de ${shopOf(k)}`;o.mergedInto=k.id;
+    await put('items',k);await put('items',o);return k;}
+  document.addEventListener('click',async e=>{const f=e.target.closest('[data-fuse]');if(!f)return;const a=items.find(i=>i.id===f.dataset.fuse),b=items.find(i=>i.id===f.dataset.fuse2);if(!a||!b)return;
+    if(!confirm(`¿Fusionar las dos ofertas de ${shopOf(a)}?\n\nQueda una sola con el historial, fotos y datos de ambas. La otra pasa a Descartados (no se borra).`))return;
+    f.disabled=true;const k=await fuseItems(a,b);render();setStatus(`Fusionadas en una sola oferta de ${shopOf(k)}. La otra está en Descartados por si quieres recuperarla.`);});
   function dupPairs(){const firsts=[];const seen=new Set();pendAll().forEach(i=>{const k=key(groupName(i));if(!seen.has(k)){seen.add(k);firsts.push(i);}});
     const out=[];for(let a=0;a<firsts.length;a++)for(let b=a+1;b<firsts.length;b++){try{if(similar(firsts[a],firsts[b])&&!notSame().has(pairK(firsts[a],firsts[b])))out.push([firsts[a],firsts[b]]);}catch(e){}}return out.slice(0,60);}
   function revData(nodup){const P=pendAll();
@@ -1661,7 +1677,7 @@ body.nav-home .hello{display:block}
       {k:'nophoto',t:'Sin fotografías',d:'Buscar fotos y elegir portada.',list:P.filter(i=>stIs(i,'nophoto'))},
       {k:'cur',t:'Revisar monedas',d:'Importes en otra moneda o sospechosos.',list:(typeof curSuspects==='function'?curSuspects():[])},
       {k:'inh',t:'Portes y cupones supuestos',d:'Copiados de la tienda; se confirman al leer la web.',list:P.filter(i=>i.inherited&&Object.keys(i.inherited).length)},
-      {k:'dup',t:'Posibles duplicados',d:'Mismo artículo en fichas separadas. Unir o dejar.',list:nodup?[]:dupPairs()},
+      {k:'dup',t:'Posibles duplicados',d:'Mismo artículo en fichas separadas. Vincular (otra tienda), fusionar (misma tienda) o dejar.',list:nodup?[]:dupPairs()},
       {k:'err',t:'Errores de lectura',d:'Tiendas que bloquean la lectura o fallos de conexión.',list:P.filter(i=>i.checkErr)}];}
   function revCount(){return revData(true).filter(r=>r.k!=='dup').reduce((s,r)=>s+r.list.length,0);}
   function openReview(k){revOpen=true;revKind=k||null;prodKey=null;render();window.scrollTo({top:0});setTimeout(navEnsure,0);}
@@ -1678,7 +1694,7 @@ body.nav-home .hello{display:block}
       cur:`<button class="btn primary" type="button" data-rva="cur">Revisar monedas</button>`,
       inh:withUrl?`<button class="btn primary" type="button" data-rva="check">Confirmar leyendo la web (${withUrl})</button>`:'',
       err:withUrl?`<button class="btn primary" type="button" data-rva="check">Reintentar ${withUrl}</button>`:'',dup:''}[r.k]||'';
-    const body=r.k==='dup'?`<p class="hint">Unir = el mismo artículo en tiendas distintas: queda una sola ficha con todas las ofertas, no se borra ninguna y se siguen vigilando todas. Si son artículos distintos (alternativas que quieres vigilar por separado), pulsa «Son distintos» y no se volverá a proponer.</p>`+r.list.map(([a,b])=>`<div class="rvdup v2">${dupSide(a)}${dupSide(b)}<div class="dbtn"><button class="btn small" type="button" data-notsame="${esc(pairK(a,b))}">Son distintos</button><button class="btn small primary" type="button" data-dupa="${a.id}" data-dupb="${esc(key(groupName(b)))}">Unir: es el mismo</button></div></div>`).join(''):r.list.map(revRow).join('');
+    const body=r.k==='dup'?`<p class="hint"><b>Vincular</b>: el mismo artículo en tiendas distintas; una sola ficha que compara precio, descuentos, portes e importación de cada tienda y vigila su evolución. <b>Fusionar</b>: el mismo artículo guardado dos veces en la misma tienda; queda una sola oferta con el historial, fotos y datos de las dos (la otra pasa a Descartados, no se borra). Si no son el mismo, «Son distintos» y no se vuelve a proponer.</p>`+r.list.map(([a,b])=>`<div class="rvdup v2">${dupSide(a)}${dupSide(b)}<div class="dbtn"><button class="btn small" type="button" data-notsame="${esc(pairK(a,b))}">Son distintos</button>${norm(shopOf(a))===norm(shopOf(b))?`<button class="btn small primary" type="button" data-fuse="${a.id}" data-fuse2="${b.id}">Fusionar: misma tienda</button>`:`<button class="btn small primary" type="button" data-dupa="${a.id}" data-dupb="${esc(key(groupName(b)))}">Vincular: es el mismo</button>`}</div></div>`).join(''):r.list.map(revRow).join('');
     return `<div class="pf">${back}<h2>${r.t}</h2><div class="psub">${r.list.length} · ${r.d}</div><div class="pacts" style="margin-top:12px">${acts}</div><div class="rvlist">${body||'<div class="empty">Todo en orden.</div>'}</div></div>`;}
   document.addEventListener('click',async e=>{
     if(e.target.closest('#rvBack')){closeReview();return;}
@@ -1717,7 +1733,10 @@ body.nav-home .hello{display:block}
     const head=`<div class="phead"><div><span class="k">Mejor coste total</span><b class="big">${valid.length?eur(calc(lt).total):'—'}</b><span class="lbl ${lcls}">${lbl}</span></div><div class="side"><span class="chip">${shops} ${shops===1?'tienda':'tiendas'}</span>${availChip(lt)}</div></div>
       <div class="pmeta">${lp?`Mejor precio sin portes: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}`:''}${valid.length&&lt?` · total más barato en <b>${esc(shopOf(lt))}</b>`:''}</div>`;
     const withUrl=offers.filter(o=>safeUrl(o.url)).length;
-    const acts=`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-link="${lt.id}">Unir</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
+    const bySh=new Map();(pend.length?pend:[]).forEach(o=>{const k=norm(shopOf(o));if(!bySh.has(k))bySh.set(k,[]);bySh.get(k).push(o);});
+    const reps=[...bySh.values()].filter(v=>v.length>1);
+    const fuseBox=reps.map(v=>`<div class="alertbox" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px"><span style="flex:1;min-width:0">Hay ${v.length} ofertas de <b>${esc(shopOf(v[0]))}</b>: ${v.map(o=>isUnread(o)?'sin leer':eur(calc(o).total)).join(' y ')}. Si es el mismo artículo, fusiónalas.</span><button class="btn small primary" type="button" data-fuse="${v[0].id}" data-fuse2="${v[1].id}">Fusionar</button></div>`).join('');
+    const acts=`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
     // Comparación
     const single=valid.length<2;
     const cmp=`<div class="ptab" data-pt="cmp" ${pTab==='cmp'?'':'hidden'}><p class="ptsub">${offers.length} ${offers.length===1?'oferta':'ofertas'} · precio, portes, importación y total</p><div class="in">${offers.map(o=>{const c=calc(o);const [l,lc]=costLbl(o);const isBest=!single&&o===lt;
@@ -1734,12 +1753,12 @@ body.nav-home .hello{display:block}
     const desc=pick('description');
     const tech=`<div class="ptab" data-pt="tech" ${pTab==='tech'?'':'hidden'}><p class="ptsub">Marca, referencias, compatibilidades${Object.keys(specs).length?' y características':''}</p><div class="in">${rows.length?`<table class="tech">${rows.map(([l,v])=>`<tr><th>${esc(l)}</th><td>${esc(v)}</td></tr>`).join('')}</table>`:'<p class="hint">Sin datos técnicos todavía. Pulsa «Volver a leer» en una oferta.</p>'}${desc?`<p class="pdesc">${esc(desc)}</p>`:''}</div></div>`;
     // Compras y acciones
-    const buys=`<div class="ptab" data-pt="buys" ${pTab==='buys'?'':'hidden'}><p class="ptsub">${bought.length?`Comprado ${bought.length} ${bought.length===1?'vez':'veces'}`:'Comprado, descartar, desunir y más'}</p><div class="in">${bought.map(i=>`<div class="paid"><span>${esc(shopOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</span><b>${eur(num(i.paid)||calc(i).total)}</b></div>`).join('')}
+    const buys=`<div class="ptab" data-pt="buys" ${pTab==='buys'?'':'hidden'}><p class="ptsub">${bought.length?`Comprado ${bought.length} ${bought.length===1?'vez':'veces'}`:'Comprado, descartar, desvincular y más'}</p><div class="in">${bought.map(i=>`<div class="paid"><span>${esc(shopOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</span><b>${eur(num(i.paid)||calc(i).total)}</b></div>`).join('')}
       ${bought.length&&valid.length?`<p class="hint">Ahora el mejor total es ${eur(calc(lt).total)}${num(bought[0].paid)?` (pagaste ${eur(num(bought[0].paid))})`:''}.</p>`:''}
       <div class="pacts"><button class="btn small primary" type="button" data-act="bought" data-id="${lt.id}">Comprado en ${esc(shopOf(lt))}</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-act="discard" data-id="${lt.id}">Descartar</button></div><p class="hint">Cada oferta tiene sus propias acciones dentro de «Comparativa».</p></div></div>`;
     const tg=offers.map(o=>num(o.target)).find(x=>x>0)||'';const anyOut=offers.some(isOut);const st=offers.some(o=>o.alertStock);
     const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
-    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
+    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${fuseBox}${alertBox}<div class="ptabs" role="tablist">${[['cmp','Comparativa'],['hist','Histórico'],['tech','Detalles'],['buys','Compras']].map(([k,l])=>`<button type="button" role="tab" data-ptab="${k}" aria-selected="${pTab===k}">${l}</button>`).join('')}</div>${cmp}${hist}${tech}${buys}</div>`;
   }
   document.addEventListener('click',async e=>{if(e.target.closest('#pfBack')){closeProd();return;}
     const b=e.target.closest('#pfCheck');if(!b)return;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
@@ -1858,7 +1877,7 @@ body.nav-home .hello{display:block}
       ${specsHtml(it)}
       ${it.notes?`<div class="notes">${esc(it.notes)}</div>`:''}
       ${histBox(it)}
-      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small" data-link="${it.id}">Unir</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Desunir</button>`}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
+      <div class="row-actions"><button class="btn small primary" data-act="bought" data-id="${it.id}">Comprado aquí</button><button class="btn small" data-act="edit" data-id="${it.id}">Editar</button><button class="btn small" data-act="share" data-id="${it.id}" aria-label="Compartir">${(it.shareWith||[]).length?'Compartido ('+(it.shareWith||[]).length+')':'Compartir'}</button>${safeUrl(it.url)?`<button class="btn small" data-act="check" data-id="${it.id}">Comprobar precio</button>`:''}${noPhoto.has(it.id)?`<button class="btn small" data-act="photos" data-id="${it.id}">Buscar fotos</button>`:''}<button class="btn small" data-link="${it.id}">Vincular</button>${flags.single?'':`<button class="btn small" data-act="split" data-id="${it.id}">Desvincular</button>`}<details class="more-a"><summary>Más</summary><div class="menu"><button class="btn small" data-act="dup" data-id="${it.id}">+ Otra tienda</button><button class="btn small" data-act="discard" data-id="${it.id}">Descartar</button>${safeUrl(it.url)||(it.images||[]).some(v=>isBlob(v))?`<button class="btn small" data-act="reread" data-id="${it.id}">Volver a leer</button>`:''}<button class="btn small danger" data-act="del" data-id="${it.id}">Borrar</button></div></details></div></div>`;
   }
   function renderCompare(gs){
     if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
@@ -2817,7 +2836,7 @@ Ofertas: ${JSON.stringify(data)}`;
         if(ids.length>1)joined++;
         for(const id of ids){const it=items.find(i=>i.id===id);if(it&&it.group!==clean(g.name)){it.group=clean(g.name);await put('items',it);changed++;}}}
       try{localStorage.setItem('regroup',JSON.stringify({t:Date.now(),n:items.length}));}catch(e){}
-      render();setStatus(`Agrupados: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, usa «Desunir» o «Unir».`);
+      render();setStatus(`Agrupados: ${joined} ${joined===1?'producto aparece':'productos aparecen'} en varias tiendas. Si alguno está mal unido, usa «Desvincular» o «Vincular».`);
     }catch(e){if(!silent)setStatus('No se pudo agrupar: '+(e.message||e),'err');else setStatus('');}
     finally{b.disabled=false;}
   }
@@ -3187,7 +3206,7 @@ Productos: ${JSON.stringify(list)}`;
 
 
 
-  // ---- «Unir»: juntar el mismo artículo de varias tiendas (selección múltiple) ----
+  // ---- «Vincular»: juntar el mismo artículo de varias tiendas (selección múltiple) ----
   let lkIt=null,lkForm=false;const lkSel=new Set();
   const lkToks=t=>new Set(norm(t).replace(/[^a-z0-9.\s]/g,' ').split(/\s+/).filter(w=>w.length>1&&!['de','la','el','y','con','para','en','the','and','for','a','x'].includes(w)));
   function lkScore(a,b){const A=lkToks([groupName(a),a.product,a.brand,a.sku,a.mpn,a.ean].join(' ')),B=lkToks([groupName(b),b.product,b.brand,b.sku,b.mpn,b.ean].join(' '));
@@ -3204,9 +3223,9 @@ Productos: ${JSON.stringify(list)}`;
     if(lkIt){const bv=items.filter(i=>key(groupName(i))===baseK);html+=row({k:baseK,v:bv.length?bv:[lkIt],f:lkIt},true);}
     html+=vis.map(r=>row(r)).join('')||'<span class="hint">Nada con esas palabras.</span>';
     $('#lkList').innerHTML=html;
-    const n=lkSel.size+(lkIt?1:0);$('#lkGo').disabled=n<2;$('#lkGo').textContent=n<2?(lkIt?'Marca uno o más':'Marca al menos dos'):`Unir ${n} como el mismo`;}
+    const n=lkSel.size+(lkIt?1:0);$('#lkGo').disabled=n<2;$('#lkGo').textContent=n<2?(lkIt?'Marca uno o más':'Marca al menos dos'):`Vincular ${n} como el mismo`;}
   function openLink(it,fromForm){lkIt=it||null;setTimeout(navEnsure,0);lkForm=!!fromForm;lkSel.clear();
-    $('#lkTitle').textContent=it?'Es el mismo que…':'Unir productos iguales';
+    $('#lkTitle').textContent=it?'Es el mismo que…':'Vincular productos iguales';
     $('#lkWhat').textContent=it?'Marca uno o varios que sean el mismo artículo en otras tiendas. Quedarán en una sola ficha.':'Marca los que sean el mismo artículo en tiendas distintas. Filtra por palabra para encontrarlos.';
     $('#lkQ').value='';drawLink();$('#linkBg').hidden=$('#linkSheet').hidden=false;}
   function closeLink(){$('#linkBg').hidden=$('#linkSheet').hidden=true;lkIt=null;lkSel.clear();}
@@ -3221,7 +3240,7 @@ Productos: ${JSON.stringify(list)}`;
     let n=0;const ks=new Set(keys);
     for(const it of items)if(ks.has(key(groupName(it)))&&(it.status||'pending')!=='discarded'){it.group=name;await put('items',it);n++;}
     if(lkForm)F('fGroup').value=name;
-    closeLink();render();setStatus(`Unidos en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, pulsa «Desunir» en la oferta.`);});
+    closeLink();render();setStatus(`Vinculados en «${name}» (${n} ${n===1?'oferta':'ofertas'} de otras tiendas).${lkForm?' Guarda para terminar.':''} Si te equivocas, pulsa «Desvincular» en la oferta.`);});
   $('#view').addEventListener('click',e=>{const b=e.target.closest('[data-link]');if(!b)return;const it=items.find(i=>i.id===b.dataset.link);if(it)openLink(it);});
   $('#qJoin').addEventListener('click',()=>openLink(null));
   $('#qRev').addEventListener('click',()=>openReview());
@@ -3308,7 +3327,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16q';
+    const APP_V='2026-11-16r';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
