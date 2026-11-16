@@ -675,6 +675,23 @@ form.add[data-em=steps] details.fsec>summary::after{display:none}
 .rvdup{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;background:var(--surface);border-radius:var(--r-md);padding:10px 12px;box-shadow:0 0 0 1px var(--line)}
 .rvdup b{display:block;font-size:.88rem;overflow-wrap:anywhere}.rvdup small{color:var(--muted);font-size:.78rem}
 body.nav-prod .homesearch{display:none}
+
+/* Listas */
+.lh{font:800 1.05rem var(--f-display);margin:18px 2px 8px}
+.lgroup{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.lcard{display:flex;align-items:center;gap:12px;text-align:left;border:0;background:var(--surface);color:var(--fg);border-radius:var(--r-lg);padding:12px 14px;box-shadow:0 0 0 1px var(--line);cursor:pointer;font:inherit}
+.lcard .ic{width:42px;height:42px;border-radius:13px;background:var(--share-soft);color:var(--share);display:flex;align-items:center;justify-content:center;flex:none}
+.lcard .ic svg{width:22px;height:22px}.lcard .ic .av{font:800 .9rem var(--f-display)}
+.lcard .tx{flex:1;min-width:0}.lcard .tx b{display:block}.lcard .tx small{color:var(--muted);font-size:.8rem}
+.lcard .rt{font:800 1.05rem var(--f-display);font-variation-settings:"wdth" 80;flex:none}
+.newlist{display:flex;gap:8px}.newlist input{flex:1;min-width:0;border:0;border-radius:var(--r-sm);background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);padding:10px 12px;color:var(--fg);font-size:.95rem}
+.chip.prio-alta{background:var(--danger-soft);color:var(--danger)}.chip.prio-media{background:var(--warn-soft);color:var(--warn)}.chip.prio-baja{background:var(--bg);color:var(--muted)}
+.bgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.bgrid label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--muted);font-weight:600}
+.bgrid label.w,.bgrid label.ck{grid-column:1/-1}.bgrid label.ck{flex-direction:row;align-items:center;gap:8px;color:var(--fg)}
+.bgrid input:not([type=checkbox]){border:0;border-radius:var(--r-sm);background:var(--bg);padding:9px 10px;color:var(--fg);font-size:.95rem}
+.paid{align-items:center}
+.paid>span:last-child{flex:1 1 100%;justify-content:flex-end;align-items:center}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -848,6 +865,8 @@ body.nav-prod .homesearch{display:none}
     </div></details>
     <details class="fsec" id="fs-people"><summary><span><b>Para quién y compartir</b><small>Regalos y personas con las que lo compartes</small></span></summary><div class="fg">
     <div class="f c6" id="shareField" hidden><label>Compartir este producto con</label><div class="sharebox" id="fShareBox"></div><span class="hint">Si es un regalo para esa persona, nunca se le muestra aunque lo marques.</span></div>
+    <div class="f c3"><label for="fPrio">Prioridad</label><select id="fPrio"><option value="">Sin prioridad</option><option value="alta">Alta · lo quiero ya</option><option value="media">Media</option><option value="baja">Baja · cuando baje</option></select></div>
+    <div class="f c3"><label for="fCons">Recompra</label><select id="fCons"><option value="">No es consumible</option><option value="1">Consumible (lo vuelvo a comprar)</option></select></div>
     <div class="f c6"><label>Para quién (regalo). Vacío = para ti</label><input id="fPeople" type="hidden"><div class="chipbox" data-for="fPeople" data-kind="people"></div></div>
     </div></details>
     <div class="stepnav full" id="stepNav" hidden><button class="btn" type="button" id="stepPrev">Anterior</button><span id="stepTxt"></span><button class="btn primary" type="button" id="stepNext">Siguiente</button></div>
@@ -1336,6 +1355,8 @@ body.nav-prod .homesearch{display:none}
     if(flt.cat||allMode){flt.cat='';allMode=false;saveFlt();render();return true;}
     if(flt.q||flt.state){flt.q='';flt.state='';$('#q').value='';render();return true;}
     if(space!=='mine'){space='mine';tab='compare';render();return true;}
+    if(navTab==='lists'&&!listHome){listHome=true;flt.person='';render();return true;}
+    if(navTab==='explore'&&flt.person===ME){flt.person='';allMode=false;navTab='lists';listHome=true;render();return true;}
     if(navTab!=='home'){setNav('home');return true;}
     return false;}
   window.addEventListener('popstate',()=>{if(navBack()){window.scrollTo({top:0});setTimeout(navEnsure,0);}else history.back();});
@@ -1369,7 +1390,7 @@ body.nav-prod .homesearch{display:none}
   function setNav(n){if(n==='add'){openAdd();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
     if(n==='home'){flt.cat='';flt.sub='';allMode=false;space='mine';}
     if(n==='explore'&&!NAVTABS.explore.includes(tab))tab=space==='mine'?'compare':'shared';
-    if(n==='lists')tab='gifts';if(n==='buys')tab='done';
+    if(n==='lists'){tab='gifts';listHome=true;flt.person='';}if(n==='buys')tab='done';
     render();window.scrollTo({top:0});}
   $('#bnav').addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(b)setNav(b.dataset.nav);});
   function openAdd(){$('#addBg').hidden=$('#addSheet').hidden=false;setTimeout(navEnsure,0);}
@@ -1404,9 +1425,44 @@ body.nav-prod .homesearch{display:none}
     const lbl=!valid.length?'<small class="est">sin precio</small>':noShip?'<small class="est">sin portes</small>':(inh(lt,'shipping')||inh(lt,'freeFrom'))?'<small class="est">portes supuestos</small>':outsideEU(lt)?'<small class="est">total estimado</small>':'<small>coste total</small>';
     const allOut=g.offers.every(o=>/agotad|sin stock|no disponible|out of stock/.test(norm(o.availability)));
     const sub=[lt.brand,lt.variant].map(clean).filter(Boolean).join(' · ');
-    return `<button type="button" class="ccard" data-open="${esc(key(g.name))}"><span class="ph">${img&&img[0]?imgTag(img[0],''):svgI(catIcon(g.cat))}</span><span class="bd"><h3>${esc(g.name)}</h3>${sub?`<span class="sub">${esc(sub)}</span>`:''}<span class="sub">${shops} ${shops===1?'tienda':'tiendas'}${shops>1?' · comparación activa':''}</span><span class="chips">${allOut?'<span class="chip err">Agotado</span>':''}</span><span class="pr"><b>${valid.length?eur(c.total):'—'}</b>${lbl}</span><span class="go">Ver ofertas y evolución ›</span></span></button>`;}
+    return `<button type="button" class="ccard" data-open="${esc(key(g.name))}"><span class="ph">${img&&img[0]?imgTag(img[0],''):svgI(catIcon(g.cat))}</span><span class="bd"><h3>${esc(g.name)}</h3>${sub?`<span class="sub">${esc(sub)}</span>`:''}<span class="sub">${shops} ${shops===1?'tienda':'tiendas'}${shops>1?' · comparación activa':''}</span><span class="chips">${allOut?'<span class="chip err">Agotado</span>':''}${prioChip(lt)}</span><span class="pr"><b>${valid.length?eur(c.total):'—'}</b>${lbl}</span><span class="go">Ver ofertas y evolución ›</span></span></button>`;}
 
 
+
+  // ---------- Listas: portada de listas, prioridades ----------
+  const PRIO={alta:['Prioridad alta',3],media:['Prioridad media',2],baja:['Prioridad baja',1]};
+  const prioN=i=>(PRIO[i.prio]||[0,0])[1];
+  const prioChip=i=>PRIO[i.prio]?`<span class="chip prio-${i.prio}">${PRIO[i.prio][0]}</span>`:'';
+  function bestOfGroups(list){const g=new Map();list.forEach(i=>{if(isUnread(i))return;const k=key(groupName(i));const t=calc(i).total;if(!g.has(k)||t<g.get(k).t)g.set(k,{i,t});});return [...g.values()];}
+  function renderListsHome(){const P=items.filter(i=>(i.status||'pending')==='pending');const bud=budgets();
+    const mine=bestOfGroups(P.filter(i=>!peopleList(i).length));
+    const card=(attrs,ic,title,sub,right)=>`<button type="button" class="lcard" ${attrs}><span class="ic">${ic}</span><span class="tx"><b>${title}</b><small>${sub}</small></span>${right?`<span class="rt">${right}</span>`:''}</button>`;
+    const people=allPeople();
+    return `<div class="pf"><h2>Mis listas</h2><div class="psub">Deseos, regalos y lo compartido</div>
+      <div class="lgroup">${card('data-list="me"',svgI('me'),'Mis deseos',`${mine.length} ${mine.length===1?'producto':'productos'}${mine.some(x=>x.i.prio==='alta')?' · '+mine.filter(x=>x.i.prio==='alta').length+' con prioridad alta':''}`,eur(mine.reduce((a,b)=>a+b.t,0)))}
+      ${card('data-list="buy"',svgI('bag'),'Listo para comprar','Lo más barato de cada cosa, por tienda','')}</div>
+      <h3 class="lh">Regalos</h3><div class="lgroup">${people.map(p=>{const l=bestOfGroups(P.filter(i=>peopleList(i).some(x=>norm(x)===norm(p))));const b=num(bud[norm(p)]);const t=l.reduce((a,c)=>a+c.t,0);
+        return card(`data-list="p" data-p="${esc(p)}"`,`<span class="av">${esc(initials(p))}</span>`,`Para ${esc(p)}`,`${l.length} ${l.length===1?'idea':'ideas'}${b?` · presupuesto ${eur(b)}`:''}`,eur(t));}).join('')||'<p class="hint">Aún no hay regalos.</p>'}
+      <form class="newlist" id="newList"><input id="newListName" placeholder="Nueva lista de regalos: nombre de la persona" aria-label="Nombre de la persona"><button class="btn small primary" type="submit">Crear</button></form></div>
+      ${owners().length?`<h3 class="lh">Compartido conmigo</h3><div class="lgroup">${owners().map(([k,o])=>card(`data-space="${esc(k)}"`,`<span class="av">${esc(initials(o.name))}</span>`,`De ${esc(clean(o.name).split(/\s|@/)[0])}`,`${[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt').length} compartidos`,'')).join('')}</div>`:''}
+    </div>`;}
+  function renderBuyCount(){return true;}
+  let listHome=true;
+  document.addEventListener('click',e=>{const c=e.target.closest('[data-list]');if(!c)return;const k=c.dataset.list;listHome=false;
+    if(k==='me'){navTab='explore';tab='compare';flt.person=ME;allMode=true;}
+    else if(k==='buy'){tab='buy';}
+    else{tab='gifts';flt.person=c.dataset.p;}
+    render();window.scrollTo({top:0});setTimeout(navEnsure,0);});
+  document.addEventListener('submit',e=>{if(e.target.id!=='newList')return;e.preventDefault();const n=clean($('#newListName').value);if(!n)return;openForm(null);F('fPeople').value=n;drawAllChips();const d=F('fPeople').closest('details.fsec');if(d)d.open=true;setStatus(`Añade el primer regalo para ${n} y guarda: su lista aparecerá en Listas.`);});
+  // ---------- Compras: precio pagado, cantidad, notas y recompra ----------
+  function renderRebuy(){const done=items.filter(i=>i.status==='bought'&&i.consumable);if(!done.length)return '';
+    const last=new Map();done.forEach(i=>{const k=key(groupName(i));if(!last.has(k)||(i.boughtAt||'')>(last.get(k).boughtAt||''))last.set(k,i);});
+    return `<details class="acc" open><summary><span class="tx"><b>Recompra</b><small>Consumibles: último precio pagado frente al de ahora</small></span></summary><div class="in">${[...last.values()].map(i=>{const paid=num(i.paid)||calc(i).total,now=calc(i).total,d=now-paid;const days=i.boughtAt?Math.round((Date.now()-new Date(i.boughtAt))/864e5):null;
+      return `<div class="paid" style="flex-wrap:wrap"><span style="flex:1;min-width:0"><b>${esc(fullName(i))}</b><br><small class="hint">${esc(shopOf(i))} · pagaste ${eur(paid)}${days!=null?` hace ${days} días`:''}${i.checkedAt>(i.boughtAt||'')&&Math.abs(d)>0.005?` · ahora <b style="color:${d<0?'var(--accent)':'var(--danger)'}">${eur(now)}</b>`:''}</small></span><span style="display:flex;gap:6px">${safeUrl(i.url)?`<button class="btn small" data-act="check" data-id="${i.id}">Precio</button>`:''}<button class="btn small primary" data-act="rebuy" data-id="${i.id}">Comprar otra vez</button></span></div>`;}).join('')}</div></details>`;}
+  const boughtEdit=i=>`<details class="hist bedit"><summary>Precio pagado, cantidad y notas</summary><div class="bgrid"><label>Pagado (€)<input data-bpaid="${i.id}" inputmode="decimal" value="${esc(numIn(num(i.paid)||calc(i).total))}"></label><label>Cantidad<input data-bqty="${i.id}" inputmode="numeric" value="${esc(String(i.qty||1))}"></label><label class="w">Notas de la compra<input data-bnote="${i.id}" value="${esc(i.buyNote||'')}" placeholder="Pedido, talla, a quién…"></label><label class="ck"><input type="checkbox" data-bcons="${i.id}" ${i.consumable?'checked':''}> Consumible: avísame para la recompra</label></div></details>`;
+  document.addEventListener('change',async e=>{const t=e.target;const id=t.dataset.bpaid||t.dataset.bqty||t.dataset.bnote||t.dataset.bcons;if(!id)return;const it=items.find(i=>i.id===id);if(!it)return;
+    if(t.dataset.bpaid)it.paid=num(t.value);if(t.dataset.bqty)it.qty=Math.max(1,Math.round(num(t.value))||1);if(t.dataset.bnote)it.buyNote=clean(t.value);if(t.dataset.bcons)it.consumable=t.checked?'1':'';
+    await put('items',it);setStatus('Compra actualizada.');if(t.dataset.bcons||t.dataset.bpaid)render();});
   // ---------- Centro de revisión ----------
   let revOpen=false,revKind=null;
   const stIs=(it,k)=>{const keep=flt.state;flt.state=k;const r=stateOk(it);flt.state=keep;return r;};
@@ -1517,9 +1573,10 @@ body.nav-prod .homesearch{display:none}
     if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
     const v=$('#view');
     drawSelBar();
-    document.body.classList.toggle('nav-prod',!!prodKey||revOpen);
+    document.body.classList.toggle('nav-prod',!!prodKey||revOpen||(navTab==='lists'&&listHome&&space==='mine'));
     if(prodKey){v.innerHTML=renderProd();return;}
     if(revOpen){v.innerHTML=renderReview();return;}
+    if(navTab==='lists'&&listHome&&space==='mine'){v.innerHTML=renderListsHome();return;}
     if(navTab==='home'){v.innerHTML=renderHome();return;}
     v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():tab==='shared'?renderShared():renderDiscarded());
     const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
@@ -1686,12 +1743,12 @@ body.nav-prod .homesearch{display:none}
       const pendTot=[...g.values()].reduce((a,b)=>a+b.t,0),spent=bought.reduce((a,i)=>a+(num(i.paid)||calc(i).total),0);
       const b=num(bud[norm(p)]);const over=b>0&&spent+pendTot>b;
       const row=(i,st)=>`<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div>
-        <div class="meta">${st==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b>':'Pendiente'} · ${esc(shopOf(i))}${st!=='bought'&&trendInfo(i).rising?' · <b style="color:var(--danger)">precio subiendo</b>':''}</div></div></div>
+        <div class="meta">${st==='bought'?'<b style="color:var(--accent)">✓ Comprado</b>':'Pendiente '+prioChip(i)} · ${esc(shopOf(i))}${st!=='bought'&&trendInfo(i).rising?' · <b style="color:var(--danger)">precio subiendo</b>':''}</div></div></div>
         <div class="total">${eur(st==='bought'?(num(i.paid)||calc(i).total):calc(i).total)}</div>
         <div class="row-actions">${st==='bought'?'':`<button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button>`}<button class="btn small" data-act="edit" data-id="${i.id}">Editar</button></div></div>`;
       return `<article class="person"><header><h3>🎁 ${esc(p)}</h3><label class="bud">Presupuesto <input data-bud="${esc(norm(p))}" inputmode="decimal" value="${esc(numIn(b))}" placeholder="€"></label></header>
         <div class="sum"><span>Comprado: <b>${eur(spent)}</b> (${bought.length})</span><span>Pendiente: <b>${eur(pendTot)}</b> (${g.size})</span><span class="${over?'over':''}">Total: <b>${eur(spent+pendTot)}</b>${b>0?` de ${eur(b)}${over?' · te pasas '+eur(spent+pendTot-b):' · quedan '+eur(b-spent-pendTot)}`:''}</span></div>
-        ${[...g.values()].map(x=>row(x.i,'pending')).join('')}${bought.map(i=>row(i,'bought')).join('')}
+        ${[...g.values()].sort((a,b)=>prioN(b.i)-prioN(a.i)).map(x=>row(x.i,'pending')).join('')}${bought.map(i=>row(i,'bought')).join('')}
         <div style="padding:10px 14px"><button class="btn small primary" type="button" data-addfor="${esc(p)}">+ Añadir regalo para ${esc(p)}</button></div></article>`;}).join('')}</div>`;
   }
   $('#view').addEventListener('change',e=>{const t=e.target.closest('[data-bud]');if(!t)return;const b=budgets();b[t.dataset.bud]=num(t.value);try{localStorage.setItem('budgets',JSON.stringify(b));}catch(err){}setTimeout(render,0);});
@@ -1707,8 +1764,9 @@ body.nav-prod .homesearch{display:none}
     const done=items.filter(i=>i.status==='bought'&&matches(i)).sort((a,b)=>(b.boughtAt||'').localeCompare(a.boughtAt||''));
     if(!done.length)return `<div class="empty">Lo que marques como comprado aparecerá aquí.</div>`;
     const sum=done.reduce((s,i)=>s+(num(i.paid)||calc(i).total),0);
-    return `<div class="list">${done.map(i=>{const paid=num(i.paid)||calc(i).total;const now=calc(i).total;const ch=i.checkedAt&&i.checkedAt>(i.boughtAt||'')&&Math.abs(now-paid)>0.005;
+    return renderRebuy()+`<div class="list">${done.map(i=>{const paid=num(i.paid)||calc(i).total;const now=calc(i).total;const ch=i.checkedAt&&i.checkedAt>(i.boughtAt||'')&&Math.abs(now-paid)>0.005;
       return `<div class="buyrow"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div><div class="meta">${esc(shopOf(i))} · ${esc(catOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}${ch?` · <b style="color:${now<paid?'var(--accent)':'var(--danger)'}">ahora ${eur(now)}</b>`:''} ${availChip(i)}</div></div></div><div class="total">${eur(paid)}</div>
+      ${boughtEdit(i)}
       ${histHtml(i)}
       ${(()=>{const alts=items.filter(a=>a.status==='alt'&&a.altOf===i.id);if(!alts.length)return '';
         return `<details class="hist"><summary>Alternativas que miraste (${alts.length})</summary><div class="list" style="margin-top:6px">${alts.map(a=>{const d=calc(a).total-paid;
@@ -2041,7 +2099,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fPrio','prio'],['fCons','consumable'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -3028,7 +3086,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16k';
+    const APP_V='2026-11-16l';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
