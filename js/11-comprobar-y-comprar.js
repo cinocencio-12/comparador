@@ -1,8 +1,10 @@
 // Comparador · 11-comprobar-y-comprar.js
 // Parte del código de la app, que se carga en orden desde index.html (ver js/LEEME.md).
   // ---------- comprobar precio y disponibilidad ----------
-  // Vuelve a leer la web de la oferta y guarda el precio en el histórico.
-  async function checkItem(it){
+  // Vuelve a leer la web de la oferta. mode 'price': precio, portes e histórico (y stock de paso);
+  // mode 'stock': solo la disponibilidad, sin tocar el precio ni el histórico.
+  async function checkItem(it,mode){
+    if(mode==='stock')return checkStock(it);
     it.checkErr='';
     if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
     const before=calc(it).total;const wasOut=/agotad|sin stock|no disponible|out of stock/.test(norm(it.availability));
@@ -19,6 +21,18 @@
       await put('items',it);
       const after=calc(it).total,diff=after-before;
       return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${num(d.price)>0?eur(after)+(Math.abs(diff)>0.005?` (${diff<0?'baja':'sube'} ${eur(Math.abs(diff))})`:' (sin cambios)'):'precio no encontrado'}${it.availability?' · '+it.availability:''}.`};
+    }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
+  }
+  async function checkStock(it){
+    it.checkErr='';
+    if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
+    const isOut=a=>/agotad|sin stock|no disponible|out of stock/.test(norm(a));const prev=it.availability||'';const wasOut=isOut(prev);
+    try{
+      const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
+      it.availability=d.availability||'';it.checkedAt=new Date().toISOString();it.stockAt=it.checkedAt;
+      evalAlerts(it,wasOut);await put('items',it);
+      const now=it.availability,back=wasOut&&now&&!isOut(now),gone=!wasOut&&isOut(now);
+      return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${now?'stock: '+now:'la tienda no indica stock'}${back?' · ¡vuelve a haber!':gone?' · se ha agotado':prev&&norm(prev)===norm(now)?' (sin cambios)':''}.`};
     }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
   }
   $('#checkTop').addEventListener('click',()=>{if(!selMode){if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}prodKey=null;revOpen=false;$('#selModeBtn').click();setStatus('Marca los productos que quieres comprobar y pulsa «Comprobar» abajo.');return;}

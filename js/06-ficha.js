@@ -36,7 +36,7 @@
     const fuseBox=reps.map(v=>`<div class="alertbox" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:10px 14px;border-radius:14px"><span style="flex:1;min-width:0">Hay ${v.length} ofertas de <b>${esc(shopOf(v[0]))}</b>: ${v.map(o=>isUnread(o)?'sin leer':eur(calc(o).total)).join(' y ')}. Si es el mismo artículo, fusiónalas.</span><button class="btn small primary" type="button" data-fuse="${v[0].id}" data-fuse2="${v[1].id}">Fusionar</button></div>`).join('');
     const lu=safeUrl(lt.url)||(offers.find(o=>safeUrl(o.url))||{}).url;const lsh=safeUrl(lt.url)?shopOf(lt):shopOf(offers.find(o=>safeUrl(o.url))||lt);
     const goBig=lu?`<a class="gobig" href="${esc(safeUrl(lu))}" target="_blank" rel="noopener"><span>Ver el artículo en <b>${esc(lsh)}</b><small>Abre la página de la tienda</small></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6"/><path d="M20 4 10 14"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>`:`<div class="gobig none">Este artículo no tiene enlace a la tienda. Edítalo y pega la dirección.</div>`;
-    const acts=goBig+`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck">Comprobar ${withUrl>1?withUrl+' precios':'precio'}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
+    const acts=goBig+`<div class="pacts">${withUrl?`<button class="btn small primary" type="button" id="pfCheck" data-mode="price">Comprobar precio${withUrl>1?' ('+withUrl+')':''}</button><button class="btn small primary" type="button" id="pfStockChk" data-mode="stock">Comprobar stock${withUrl>1?' ('+withUrl+')':''}</button>`:''}<button class="btn small" type="button" data-act="share" data-id="${lt.id}">Compartir</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-link="${lt.id}">Vincular</button><button class="btn small" type="button" data-act="dup" data-id="${lt.id}">+ Otra tienda</button></div>`;
     // Comparación
     const single=valid.length<2;
     const cmp=`<div class="ptab" data-pt="cmp" ${pTab==='cmp'?'':'hidden'}><p class="ptsub">${offers.length} ${offers.length===1?'oferta':'ofertas'} · precio, portes, importación y total</p><div class="in">${offers.map(o=>{const c=calc(o);const [l,lc]=costLbl(o);const isBest=!single&&o===lt;
@@ -69,15 +69,15 @@
       setStatus('He quitado la foto rota del formulario. Elige otra y pulsa Guardar.');return;}
     if(e.target.closest('[data-rmbad]')){let n=0;for(const o of prodItems()){const im=(o.images||[]).filter(v=>!isBad(v));if(im.length!==(o.images||[]).length){n+=(o.images||[]).length-im.length;o.images=im;await put('items',o);}}await scanPhotos();render();setStatus(`${n} ${n===1?'foto rota quitada':'fotos rotas quitadas'}. Puedes buscar otra en Revisión → Sin fotografías.`);return;}
     if(e.target.closest('#pfBack')){closeProd();return;}
-    const b=e.target.closest('#pfCheck');if(!b)return;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
-    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));b.disabled=true;b.classList.add('working');
+    const b=e.target.closest('#pfCheck,#pfStockChk');if(!b)return;const mode=b.dataset.mode;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
+    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));document.querySelectorAll('#pfCheck,#pfStockChk').forEach(x=>x.disabled=true);b.classList.add('working');
     const msgs=[];let fail=0;
     for(let i=0;i<list.length;i++){const sh=shopOf(list[i]),t0=Date.now(),n=list.length>1?` (${i+1} de ${list.length})`:'';
-      const tick=()=>{const s=Math.round((Date.now()-t0)/1000);const paso=s<4?'Abriendo la web de':s<20?'Leyendo precio, portes y stock en':'Sigue leyendo (algunas webs tardan)';
+      const tick=()=>{const s=Math.round((Date.now()-t0)/1000);const paso=s<4?'Abriendo la web de':s<20?(mode==='stock'?'Mirando el stock en':'Leyendo precio y portes en'):'Sigue leyendo (algunas webs tardan)';
         const t=`${paso} ${s<20?sh:''}${n}… ${s} s`.replace('  ',' ');b.textContent=`${s} s · ${sh}`;setStatus(t,'busy');};
       tick();const iv=setInterval(tick,1000);
-      try{const r=await checkItem(list[i]);if(!r.ok)fail++;msgs.push(r.msg);}finally{clearInterval(iv);}}
-    render();setStatus(msgs.length===1?msgs[0]:`Comprobadas ${list.length} ofertas${fail?` (${fail} no se pudieron leer)`:''}: `+msgs.join(' · '),fail&&fail===list.length?'err':'');});
+      try{const r=await checkItem(list[i],mode);if(!r.ok)fail++;msgs.push(r.msg);}finally{clearInterval(iv);}}
+    render();setStatus(msgs.length===1?msgs[0]:`${mode==='stock'?'Stock comprobado en':'Precio comprobado en'} ${list.length} ofertas${fail?` (${fail} no se pudieron leer)`:''}: `+msgs.join(' · '),fail&&fail===list.length?'err':'');});
   function render(){
     renderSpaces();
     setTimeout(navEnsure,0);

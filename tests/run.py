@@ -274,6 +274,14 @@ async def p_comprobar(a):
     await a.pg.wait_for_timeout(2500)
     st = await a.pg.inner_text('#statusTxt')
     comprobar('399' in st, f'al acabar no dice el resultado: {st}')
+    # Botón aparte de stock: solo toca la disponibilidad, no el precio ni el histórico
+    comprobar(await a.n('#pfStockChk') == 1, 'falta el botón «Comprobar stock» en la ficha')
+    antes = await a.pg.evaluate("(()=>{const it=items.find(i=>/Carl/.test(i.product)&&i.url);it.availability='Agotado';it.price=777;return (it.history||[]).length})()")
+    await a.pg.click('#pfStockChk'); await a.pg.wait_for_timeout(3200)
+    st = await a.pg.inner_text('#statusTxt')
+    r = await a.pg.evaluate("(()=>{const it=items.find(i=>/Carl/.test(i.product)&&i.url);return [it.price,(it.history||[]).length,it.availability]})()")
+    comprobar(r[0] == 777 and r[1] == antes and r[2] == 'En stock', f'«Comprobar stock» ha tocado el precio o el histórico: {r}')
+    comprobar('stock' in st.lower() and 'vuelve a haber' in st, f'«Comprobar stock» no dice el resultado: {st}')
 
 
 async def p_importes(a):
