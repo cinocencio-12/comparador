@@ -692,6 +692,14 @@ body.nav-prod .homesearch{display:none}
 .bgrid input:not([type=checkbox]){border:0;border-radius:var(--r-sm);background:var(--bg);padding:9px 10px;color:var(--fg);font-size:.95rem}
 .paid{align-items:center}
 .paid>span:last-child{flex:1 1 100%;justify-content:flex-end;align-items:center}
+
+.alertset{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:var(--surface);border-radius:var(--r-md);padding:10px 14px;box-shadow:0 0 0 1px var(--line);margin:0 0 12px;font-size:.88rem}
+.alertset b{font:800 .95rem var(--f-display)}
+.alertset input[inputmode]{width:90px;border:0;border-radius:8px;background:var(--bg);padding:7px 9px;color:var(--fg);font-size:.95rem;margin-left:4px}
+.alertset label.ck{display:flex;align-items:center;gap:6px}
+.alertset input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.track ul.hits{margin:8px 0 0}.track ul.hits li{cursor:pointer}
+.chip.resv{background:var(--share-soft);color:var(--share)}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -798,6 +806,7 @@ body.nav-prod .homesearch{display:none}
       <div class="actions"><button class="btn small" type="button" id="addContact">+ Añadir persona</button></div>
       <span class="hint">Solo ve lo que marques en cada producto (o lo nuevo, si marcas «compartir lo nuevo»). Los regalos para esa persona nunca se le muestran.</span></div>
     <label class="selbox full"><input type="checkbox" id="watchOn"> Vigilar precios: al abrir la app, comprobar solos los productos con enlace</label>
+    <div class="f c6"><button class="btn small" type="button" id="notifOn">Activar avisos en el móvil</button><span class="hint" id="notifTxt"> Para que las bajadas a tu precio objetivo y la vuelta de stock salgan como notificación.</span></div>
     <div class="f c3"><label for="watchDays">Cada cuántos días</label><input id="watchDays" inputmode="numeric"></div>
     <div class="f c3"><label for="watchMax">Máximo por apertura</label><input id="watchMax" inputmode="numeric"></div>
     <p class="hint full" style="margin:0">Cada comprobación cuesta unos céntimos. Las tiendas que bloquean la lectura se saltan.</p>
@@ -841,6 +850,8 @@ body.nav-prod .homesearch{display:none}
     <label class="selbox" style="grid-column:1/-1"><input type="checkbox" id="fOutEU"> Tienda fuera de la UE (sumar IVA de importación, aduana y banco estimados)</label>
     <div class="f c3"><label for="fShip">Envío</label><div class="disc"><input id="fShip" inputmode="decimal" placeholder="0"><select id="fShipCur" aria-label="Moneda del envío" style="width:96px"></select></div></div>
     <div class="f c3"><label for="fFree">Envío gratis desde</label><input id="fFree" inputmode="decimal"></div>
+    <div class="f c3"><label for="fTarget">Avísame si el total baja de (€)</label><input id="fTarget" inputmode="decimal" placeholder="Sin aviso"></div>
+    <div class="f c3"><label for="fStockAl">Aviso de stock</label><select id="fStockAl"><option value="">No avisar</option><option value="1">Avísame si vuelve a haber stock</option></select></div>
     </div></details>
     <details class="fsec" id="fs-refs"><summary><span><b>Referencias y compatibilidades</b><small>SKU, fabricante, EAN, compatible con, etiquetas</small></span></summary><div class="fg">
     <div class="f c2"><label for="fSku">Ref. tienda / SKU</label><input id="fSku"></div>
@@ -1406,7 +1417,7 @@ body.nav-prod .homesearch{display:none}
     const best=pend.reduce((s,g)=>{const v=g.offers.filter(o=>!isUnread(o));return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0);
     const M={
       stats:()=>`<section class="hmod"><h2>Tu biblioteca de compras</h2><div class="stats"><div class="stat"><span>Productos</span><b>${pend.length}</b></div><div class="stat"><span>Ofertas</span><b>${allPend.length}</b></div><div class="stat wide"><span>Si compras lo más barato de cada cosa<small><br>con portes e importación estimada</small></span><b>${eur(best)}</b></div></div></section>`,
-      track:()=>{const t=homeTrack();return `<section class="hmod"><div class="track"><h2 style="margin:0;font:800 1.05rem var(--f-display)">Seguimiento de precios</h2><div class="row"><span class="dn">↓ ${t.dns.length} ${t.dns.length===1?'bajada':'bajadas'}</span><span class="up">↑ ${t.ups.length} ${t.ups.length===1?'subida':'subidas'}</span></div>${t.dns.length?`<ul>${t.dns.slice(0,3).map(([i,d,b])=>`<li><span>${esc(fullName(i))} · ${esc(shopOf(i))}</span><b class="dn">−${eur(d)} → ${eur(b)}</b></li>`).join('')}</ul>`:`<p class="hint" style="margin:8px 0 0">Pulsa ⟳ arriba para comprobar precios y ver qué baja.</p>`}</div></section>`;},
+      track:()=>{const t=homeTrack();const hit=bestOfGroups(allPend.filter(i=>num(i.target)>0&&!isUnread(i)&&calc(i).total<=num(i.target)+0.005));const watch=new Set(allPend.filter(hasAlert).map(i=>key(groupName(i)))).size;return `<section class="hmod"><div class="track"><h2 style="margin:0;font:800 1.05rem var(--f-display)">Seguimiento de precios</h2>${hit.length?`<ul class="hits">${hit.map(x=>`<li data-open="${esc(key(groupName(x.i)))}"><span>🎯 ${esc(groupName(x.i))} · ${esc(shopOf(x.i))}</span><b class="dn">${eur(x.t)}</b></li>`).join('')}</ul>`:''}${watch?`<p class="hint" style="margin:6px 0 0">${watch} ${watch===1?'producto vigilado':'productos vigilados'} con aviso.</p>`:''}<div class="row"><span class="dn">↓ ${t.dns.length} ${t.dns.length===1?'bajada':'bajadas'}</span><span class="up">↑ ${t.ups.length} ${t.ups.length===1?'subida':'subidas'}</span></div>${t.dns.length?`<ul>${t.dns.slice(0,3).map(([i,d,b])=>`<li><span>${esc(fullName(i))} · ${esc(shopOf(i))}</span><b class="dn">−${eur(d)} → ${eur(b)}</b></li>`).join('')}</ul>`:`<p class="hint" style="margin:8px 0 0">Pulsa ⟳ arriba para comprobar precios y ver qué baja.</p>`}</div></section>`;},
       cats:()=>`<section class="hmod"><h2>Categorías<button type="button" id="hCustom">Personalizar</button></h2>${pend.length?catGrid(pend.map(g=>g.offers[0]),()=>0):'<div class="empty">Nada guardado aún. Pulsa «Añadir» abajo o, en la tienda, Compartir → Comparador.</div>'}</section>`,
       review:()=>{const n=k=>+($('#qn-'+k).textContent||0);const a=n('missing'),b=n('nocat'),c=n('nophoto');if(!a&&!b&&!c)return `<section class="hmod"><button type="button" class="revline" id="hReview">Centro de revisión · todo en orden<span class="go">Abrir ›</span></button></section>`;
         return `<section class="hmod"><button type="button" class="revline" id="hReview">Centro de revisión${a?` · <b>${a}</b> sin datos`:''}${b?` · <b>${b}</b> sin clasificar`:''}${c?` · <b>${c}</b> sin fotos`:''}<span class="go">Revisar ›</span></button></section>`;},
@@ -1429,6 +1440,24 @@ body.nav-prod .homesearch{display:none}
 
 
 
+
+  // ---------- Avisos: precio objetivo y vuelta de stock ----------
+  const hasAlert=i=>(num(i.target)>0||!!i.alertStock)?1:0;
+  const isOut=i=>/agotad|sin stock|no disponible|out of stock/.test(norm(i.availability));
+  async function notify(title,body,tag){try{const al=JSON.parse(localStorage.getItem('alertLog')||'[]');al.unshift({t:Date.now(),title,body});localStorage.setItem('alertLog',JSON.stringify(al.slice(0,50)));}catch(e){}
+    try{if('Notification' in window&&Notification.permission==='granted'){const reg=await navigator.serviceWorker.getRegistration();if(reg)await reg.showNotification(title,{body,icon:'icons/icon-192.png',badge:'icons/icon-96.png',tag:tag||String(Date.now())});else new Notification(title,{body});}}catch(e){}}
+  function evalAlerts(it,wasOut){const t=num(it.target);const tot=calc(it).total;
+    if(t>0&&num(it.price)>0&&tot<=t+0.005&&!(it.lastAlert&&Math.abs(num(it.lastAlert.p)-tot)<0.01)){it.lastAlert={p:tot,at:new Date().toISOString()};notify(`Precio objetivo: ${fullName(it)}`,`${eur(tot)} en ${shopOf(it)} (tu objetivo: ${eur(t)})`,'t'+it.id);setStatus(`🎯 ${fullName(it)} baja a ${eur(tot)} en ${shopOf(it)}: por debajo de tu objetivo de ${eur(t)}.`);}
+    if(t>0&&tot>t+0.005)it.lastAlert=null;
+    if(it.alertStock&&wasOut&&!isOut(it)&&clean(it.availability)){notify(`Vuelve a haber stock: ${fullName(it)}`,`${shopOf(it)} · ${it.availability} · ${eur(tot)}`,'s'+it.id);setStatus(`📦 ${fullName(it)} vuelve a estar disponible en ${shopOf(it)}.`);}}
+  function drawNotif(){const b=$('#notifOn');if(!b)return;if(!('Notification' in window)){b.disabled=true;$('#notifTxt').textContent=' Este navegador no permite notificaciones.';return;}
+    if(Notification.permission==='granted'){b.textContent='Avisos activados';b.disabled=true;}else if(Notification.permission==='denied'){b.disabled=true;$('#notifTxt').textContent=' Bloqueados: actívalos en los permisos de la app en Android.';}}
+  $('#notifOn').addEventListener('click',async()=>{try{await Notification.requestPermission();}catch(e){}drawNotif();if(Notification.permission==='granted')notify('Comparador','Avisos activados. Te avisaré de bajadas a tu precio objetivo y de vuelta de stock.','test');});
+  drawNotif();
+  // Objetivo para todo el producto (todas sus tiendas) desde la ficha
+  document.addEventListener('change',async e=>{const t=e.target;if(t.id==='pfTarget'||t.id==='pfStock'){const list=prodItems().filter(o=>(o.status||'pending')==='pending');
+    for(const o of list){if(t.id==='pfTarget'){o.target=num(t.value)||null;o.lastAlert=null;}else o.alertStock=t.checked?'1':'';await put('items',o);}
+    setStatus(t.id==='pfTarget'?(num(t.value)>0?`Te avisaré cuando el total baje de ${eur(num(t.value))} en cualquier tienda. Activa «Vigilar precios» en Ajustes para que se compruebe solo al abrir la app.`:'Aviso de precio quitado.'):(t.checked?'Te avisaré si vuelve a haber stock.':'Aviso de stock quitado.'));render();}});
   // ---------- Listas: portada de listas, prioridades ----------
   const PRIO={alta:['Prioridad alta',3],media:['Prioridad media',2],baja:['Prioridad baja',1]};
   const prioN=i=>(PRIO[i.prio]||[0,0])[1];
@@ -1549,7 +1578,9 @@ body.nav-prod .homesearch{display:none}
     const buys=`<details class="acc"><summary><span class="tx"><b>Compras y acciones</b><small>${bought.length?`Comprado ${bought.length} ${bought.length===1?'vez':'veces'}`:'Comprado, descartar, desunir y más'}</small></span></summary><div class="in">${bought.map(i=>`<div class="paid"><span>${esc(shopOf(i))}${i.boughtAt?' · '+new Date(i.boughtAt).toLocaleDateString('es-ES'):''}</span><b>${eur(num(i.paid)||calc(i).total)}</b></div>`).join('')}
       ${bought.length&&valid.length?`<p class="hint">Ahora el mejor total es ${eur(calc(lt).total)}${num(bought[0].paid)?` (pagaste ${eur(num(bought[0].paid))})`:''}.</p>`:''}
       <div class="pacts"><button class="btn small primary" type="button" data-act="bought" data-id="${lt.id}">Comprado en ${esc(shopOf(lt))}</button><button class="btn small" type="button" data-act="edit" data-id="${lt.id}">Editar</button><button class="btn small" type="button" data-act="discard" data-id="${lt.id}">Descartar</button></div><p class="hint">Cada oferta tiene sus propias acciones dentro de «Comparación de ofertas».</p></div></details>`;
-    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${cmp}${hist}${tech}${buys}</div>`;
+    const tg=offers.map(o=>num(o.target)).find(x=>x>0)||'';const anyOut=offers.some(isOut);const st=offers.some(o=>o.alertStock);
+    const alertBox=`<div class="alertset"><b>Avísame</b><label>cuando el total baje de <input id="pfTarget" inputmode="decimal" value="${tg?esc(numIn(tg)):''}" placeholder="€"></label><label class="ck"><input type="checkbox" id="pfStock" ${st?'checked':''}> si vuelve a haber stock${anyOut?'':' (ahora hay)'}</label>${tg&&valid.length&&calc(lt).total<=tg?`<span class="chip lowtot">Objetivo alcanzado</span>`:''}</div>`;
+    return `<div class="pf">${back}<h2>${esc(name)}</h2>${sub?`<div class="psub">${esc(sub)}</div>`:''}${gal}${head}${acts}${alertBox}${cmp}${hist}${tech}${buys}</div>`;
   }
   document.addEventListener('click',async e=>{if(e.target.closest('#pfBack')){closeProd();return;}
     const b=e.target.closest('#pfCheck');if(!b)return;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
@@ -1743,7 +1774,7 @@ body.nav-prod .homesearch{display:none}
       const pendTot=[...g.values()].reduce((a,b)=>a+b.t,0),spent=bought.reduce((a,i)=>a+(num(i.paid)||calc(i).total),0);
       const b=num(bud[norm(p)]);const over=b>0&&spent+pendTot>b;
       const row=(i,st)=>`<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${esc(fullName(i))}</div>
-        <div class="meta">${st==='bought'?'<b style="color:var(--accent)">✓ Comprado</b>':'Pendiente '+prioChip(i)} · ${esc(shopOf(i))}${st!=='bought'&&trendInfo(i).rising?' · <b style="color:var(--danger)">precio subiendo</b>':''}</div></div></div>
+        <div class="meta">${st==='bought'?'<b style="color:var(--accent)">✓ Comprado</b>':'Pendiente '+prioChip(i)+myResvChip(i)} · ${esc(shopOf(i))}${st!=='bought'&&trendInfo(i).rising?' · <b style="color:var(--danger)">precio subiendo</b>':''}</div></div></div>
         <div class="total">${eur(st==='bought'?(num(i.paid)||calc(i).total):calc(i).total)}</div>
         <div class="row-actions">${st==='bought'?'':`<button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button>`}<button class="btn small" data-act="edit" data-id="${i.id}">Editar</button></div></div>`;
       return `<article class="person"><header><h3>🎁 ${esc(p)}</h3><label class="bud">Presupuesto <input data-bud="${esc(norm(p))}" inputmode="decimal" value="${esc(numIn(b))}" placeholder="€"></label></header>
@@ -2099,7 +2130,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // ---------- formulario (crear y editar) ----------
   const F=id=>$('#'+id);
-  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fPrio','prio'],['fCons','consumable'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
+  const FORM=[['fUrl','url'],['fProduct','product'],['fVariant','variant'],['fBrand','brand'],['fGroup','group'],['fPrio','prio'],['fCons','consumable'],['fTarget','target'],['fStockAl','alertStock'],['fCategory','category'],['fSub','sub'],['fSize','size'],['fColor','color'],['fPlatform','platform'],['fCompat','compat'],['fTags','tags'],['fPeople','people'],['fSku','sku'],['fMpn','mpn'],['fEan','ean'],['fStore','store'],['fPrice','price'],['fDisc','discount'],['fDiscType','discountType'],['fCode','code'],['fShip','shipping'],['fFree','freeFrom'],['fDesc','description'],['fNotes','notes']];
   let formImgs=[];
   function renderImgEdit(){
     const box=$('#imgEdit');box.querySelectorAll('.th').forEach(n=>n.remove());const add=box.querySelector('.addimg');
@@ -2505,7 +2536,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   async function checkItem(it){
     it.checkErr='';
     if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
-    const before=calc(it).total;
+    const before=calc(it).total;const wasOut=/agotad|sin stock|no disponible|out of stock/.test(norm(it.availability));
     if(!(it.history||[]).length&&num(it.price)>0)it.history=[{at:it.createdAt||new Date().toISOString(),price:calc(it).after,total:calc(it).total,avail:it.availability||''}];
     try{
       const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
@@ -2515,6 +2546,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
       ['brand','sku','mpn','ean','description'].forEach(k=>{if(!clean(it[k])&&d[k])it[k]=d[k];});
       const now=new Date().toISOString();it.checkedAt=now;
       if(num(d.price)>0){(it.history=it.history||[]).push({at:now,price:calc(it).after,total:calc(it).total,avail:it.availability});if(it.history.length>500)it.history=it.history.slice(-500);}
+      evalAlerts(it,wasOut);
       await put('items',it);
       const after=calc(it).total,diff=after-before;
       return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${num(d.price)>0?eur(after)+(Math.abs(diff)>0.005?` (${diff<0?'baja':'sube'} ${eur(Math.abs(diff))})`:' (sin cambios)'):'precio no encontrado'}${it.availability?' · '+it.availability:''}.`};
@@ -2578,7 +2610,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   async function autoWatch(){
     const w=watchCfg();if(!w.on||!cfg.key||watching)return;
     const due=items.filter(i=>(i.status||'pending')==='pending'&&safeUrl(i.url)&&i.checkErr!=='blocked'&&!isUnread(i)&&(!i.checkedAt||Date.now()-new Date(i.checkedAt).getTime()>w.days*DAY))
-      .sort((a,b)=>(a.checkedAt||'').localeCompare(b.checkedAt||'')).slice(0,w.max);
+      .sort((a,b)=>(hasAlert(b)-hasAlert(a))||(a.checkedAt||'').localeCompare(b.checkedAt||'')).slice(0,w.max);
     if(!due.length)return;watching=true;let ups=0,downs=0;
     for(let i=0;i<due.length;i++){setStatus(`Vigilando precios ${i+1} de ${due.length}…`,'busy');const b=calc(due[i]).after;const r=await checkItem(due[i]);
       if(r.ok){const d=calc(due[i]).after-b;if(d>0.005)ups++;if(d<-0.005)downs++;}}
@@ -2914,25 +2946,40 @@ Productos: ${JSON.stringify(list)}`;
     unsubs.push(fs.collection('profiles').where('sharedWith','array-contains',lc(me.email)).onSnapshot(snap=>{
       const owners=new Set();
       snap.forEach(p=>{const uidO=p.id;owners.add(uidO);if(sharedOwners.has(uidO)){sharedOwners.get(uidO).name=p.data().name||p.data().email;return;}
-        const o={name:p.data().name||p.data().email,items:new Map(),unsub:null};sharedOwners.set(uidO,o);
+        const o={name:p.data().name||p.data().email,items:new Map(),unsub:null,resv:new Map(),runsub:null};sharedOwners.set(uidO,o);
+        o.runsub=fs.collection('reservations').doc(uidO).collection('items').onSnapshot(r=>{o.resv.clear();r.forEach(d=>o.resv.set(d.id,d.data()));reRender();},()=>{});
         o.unsub=fs.collection('users').doc(uidO).collection('items').where('visibleTo','array-contains',lc(me.email)).onSnapshot(async s2=>{
           for(const ch of s2.docChanges()){const d=ch.doc.data();d.id=ch.doc.id;if(ch.type==='removed'){o.items.delete(d.id);continue;}
             const it=await fromCloud(d,uidO);o.items.set(d.id,it);fetchImages(it,uidO,false);}
           $('#tab-shared').hidden=![...sharedOwners.values()].some(x=>x.items.size);reRender();},()=>{});});
-      for(const [k,o] of sharedOwners)if(!owners.has(k)){o.unsub&&o.unsub();sharedOwners.delete(k);}
+      for(const [k,o] of sharedOwners)if(!owners.has(k)){o.unsub&&o.unsub();o.runsub&&o.runsub();sharedOwners.delete(k);}
       $('#tab-shared').hidden=![...sharedOwners.values()].some(x=>x.items.size);reRender();
     },()=>{}));
   }
+
+  // ---- Reservas de regalos: «lo compro yo» sin que se entere quien lo pide ----
+  const myResv=new Map();
+  function listenMyResv(){if(!me)return;unsubs.push(fs.collection('reservations').doc(me.uid).collection('items').where('hideOwner','==',false).onSnapshot(r=>{myResv.clear();r.forEach(d=>myResv.set(d.id,d.data()));reRender();},()=>{}));}
+  function resvBtn(ownerUid,o,i){const r=o.resv&&o.resv.get(i.id);const mine=r&&lc(r.by)===lc(me&&me.email);
+    if(r&&!mine)return `<span class="chip resv">Reservado por ${esc(r.byName||r.by)}</span>`;
+    return `<button class="btn small ${mine?'primary':''}" type="button" data-resv="${esc(ownerUid)}" data-rid="${esc(i.id)}">${mine?'✓ Lo compro yo · quitar':'Lo compro yo'}</button>`;}
+  document.addEventListener('click',async e=>{const b=e.target.closest('[data-resv]');if(!b||!me)return;const o=sharedOwners.get(b.dataset.resv);if(!o)return;const it=o.items.get(b.dataset.rid);if(!it)return;
+    const ref=fs.collection('reservations').doc(b.dataset.resv).collection('items').doc(it.id);const r=o.resv.get(it.id);b.disabled=true;
+    try{if(r&&lc(r.by)===lc(me.email)){await ref.delete();setStatus('Reserva quitada.');}
+      else{await ref.set({by:lc(me.email),byName:(me.displayName||me.email).split(' ')[0],at:new Date().toISOString(),hideOwner:!peopleList(it).length,name:fullName(it)});
+        setStatus(peopleList(it).length?`Reservado: ${o.name} y los demás verán que lo compras tú.`:`Reservado en secreto: ${o.name} no lo verá; los demás con quien lo comparte, sí.`);}}
+    catch(err){setStatus('No se pudo reservar: faltan las reglas nuevas de Firestore (firestore.rules).','err');}b.disabled=false;});
+  const myResvChip=i=>{const r=myResv.get(i.id);return r?`<span class="chip resv">Lo compra ${esc(r.byName||r.by)}</span>`:'';};
   function renderShared(){
-    const owners=[...sharedOwners.entries()].filter(([k,o])=>o.items.size&&(space==='mine'||k===space)).map(([,o])=>o);
+    const oents=[...sharedOwners.entries()].filter(([k,o])=>o.items.size&&(space==='mine'||k===space));const owners=oents.map(([,o])=>o);
     if(!owners.length)return `<div class="empty">Nadie ha compartido nada contigo todavía.</div>`;
     if(space!=='mine'&&showGrid()&&!allMode){const all=[...owners[0].items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt');if(all.length)return catGrid(all,i=>calc(i).total);}
     const backS=flt.cat?catBack([...owners[0].items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i)).length):'';
     const inCatS=flt.cat?[...owners[0].items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&catOf(i)===flt.cat):[];
-    return backS+subChips(inCatS)+`<div class="list">${owners.map(o=>{const list=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i));
+    return backS+subChips(inCatS)+`<div class="list">${oents.map(([ouid,o])=>{const list=[...o.items.values()].filter(i=>i.status!=='discarded'&&i.status!=='alt'&&matches(i));
       return `<article class="person"><header><h3>👥 ${esc(o.name)}</h3><span class="hint">${list.length} productos</span></header>
         ${list.map(i=>{const u=safeUrl(i.url);return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${(i.images||[]).length?imgTag(i.images[0],'class="pic"'):''}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
-          <div class="meta">${i.status==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b> · ':''}${esc(shopOf(i))} · ${esc(catOf(i))}</div></div></div><div class="total">${eur(calc(i).total)}</div></div>`;}).join('')}</article>`;}).join('')}</div>`;
+          <div class="meta">${i.status==='bought'?'<b style="color:#1F8A5B">✓ Comprado</b> · ':''}${esc(shopOf(i))} · ${esc(catOf(i))}</div></div></div><div class="total">${eur(calc(i).total)}</div>${i.status==='bought'?'':`<div class="row-actions">${resvBtn(ouid,o,i)}</div>`}</div>`;}).join('')}</article>`;}).join('')}</div>`;
   }
   // ---- perfil y contactos ----
   async function saveProfile(){
@@ -3051,7 +3098,7 @@ Productos: ${JSON.stringify(list)}`;
     ls.set('cloudOwner',me.uid);
     try{const p=await fs.collection('profiles').doc(me.uid).get();profile=p.exists?{contacts:[],defShare:[],...p.data()}:{contacts:[],defShare:[]};
       if(!p.exists)await saveProfile();}catch(e){}
-    drawContacts();listenMine();listenShared();render();
+    drawContacts();listenMine();listenShared();listenMyResv();render();
   }
   async function onLogout(){
     unsubs.forEach(u=>{try{u();}catch(e){}});unsubs=[];for(const o of sharedOwners.values())o.unsub&&o.unsub();sharedOwners.clear();
@@ -3086,7 +3133,7 @@ Productos: ${JSON.stringify(list)}`;
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-16l';
+    const APP_V='2026-11-16m';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
