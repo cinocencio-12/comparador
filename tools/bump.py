@@ -14,6 +14,8 @@ else:
         new = hoy + chr(ord(old[len(hoy)]) + 1)
     else:
         new = hoy + 'a'
+    if new <= old:  # nunca hacia atrás (p. ej. si el reloj va en otra zona horaria)
+        new = old[:-1] + chr(ord(old[-1]) + 1)
 cambiados = []
 for raiz, _, fs in os.walk(R):
     if '.git' in raiz or 'tests' in raiz or 'docs' in raiz:
