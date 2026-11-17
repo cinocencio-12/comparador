@@ -4,7 +4,7 @@
   // ---------- ¿Es buen momento para comprar? ----------
   // Junta el historial de todas las tiendas del artículo (precio con descuento, sin portes) y lo compara con el actual.
   function moment(offers){
-    const valid=offers.filter(o=>!isUnread(o)&&num(o.price)>0);if(!valid.length)return null;
+    const valid=offers.filter(o=>canBuy(o)&&num(o.price)>0);if(!valid.length)return null;
     const now=Math.min(...valid.map(o=>calc(o).after));const lim=Date.now()-90*DAYMS;
     const pts=offers.flatMap(o=>histPts(o).filter(x=>x.t>=lim).map(x=>({...x,o})));
     if(pts.length<3)return null;

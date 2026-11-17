@@ -102,7 +102,7 @@
   document.addEventListener('click',e=>{const b=e.target.closest('[data-vw]');if(b){openG.clear();setPref('view',b.dataset.vw);render();return;}
     const c=e.target.closest('[data-open]');if(c){openProd(c.dataset.open);return;}
     const k=e.target.closest('[data-collapse]');if(k){openG.delete(k.dataset.collapse);render();}});
-  function compactCard(g){const valid=g.offers.filter(o=>!isUnread(o));const lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):g.offers[0];
+  function compactCard(g){const valid=g.offers.filter(canBuy);const lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):g.offers[0];
     const img=(g.offers.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||''))).find(o=>(o.images||[])[0])||{}).images;const c=calc(lt);const shops=new Set(g.offers.map(shopOf)).size;
     const noShip=!(num(lt.shipping)>0)&&!(num(lt.freeFrom)>0)&&!/gratis|free/i.test(lt.notes||'');
     const up=unitPrice(lt);const lbl=(up?`<small class="upr">${upTxt(up)}</small>`:'')+(!valid.length?'<small class="est">sin precio</small>':noShip?'<small class="est">sin portes</small>':(inh(lt,'shipping')||inh(lt,'freeFrom'))?'<small class="est">portes supuestos</small>':outsideEU(lt)?'<small class="est">total estimado</small>':'<small>coste total</small>');

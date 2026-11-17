@@ -53,6 +53,10 @@
   const peopleList=it=>splitList(it.people).filter(p=>norm(p)!==norm(ME));
   const allPeople=()=>{const m=new Map();items.forEach(i=>peopleList(i).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,p);}));return [...m.values()].sort((a,b)=>a.localeCompare(b,'es'));};
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
+  // «Esta tienda no envía»: basta con que un artículo de la tienda lo tenga marcado (así los nuevos de esa tienda también cuentan).
+  const shipBlocked=o=>{const s=norm(shopOf(o));return !!s&&items.some(i=>i.noShip&&norm(shopOf(i))===s);};
+  const canBuy=o=>!isUnread(o)&&!shipBlocked(o);
+  const byBuyable=(a,b)=>(shipBlocked(a)-shipBlocked(b))||calc(a).total-calc(b).total;
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
   const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
   const flt={q:'',cat:'',sub:'',plat:'',shop:'',tag:'',state:'',person:''}; // cada vez que abres la app empieza sin filtros
@@ -130,7 +134,7 @@
   document.querySelector('h1').addEventListener('click',goHome);document.querySelector('h1').style.cursor='pointer';
   $('#q').addEventListener('search',e=>{flt.q=e.target.value.trim();saveFlt();render();});
 
-  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort((a,b)=>calc(a).total-calc(b).total);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
+  function groups(status){const map=new Map();items.filter(i=>(i.status||'pending')===status&&matches(i)).forEach(i=>{const k=key(groupName(i));if(!map.has(k))map.set(k,{name:groupName(i),offers:[]});map.get(k).offers.push(i);});const arr=[...map.values()];arr.forEach(g=>{g.offers.sort(byBuyable);g.cat=catOf(g.offers[0]);});arr.sort((a,b)=>(a.cat===NOCAT)-(b.cat===NOCAT)||a.cat.localeCompare(b.cat,'es')||a.name.localeCompare(b.name,'es'));return arr;}
   // Busca con qué producto ya guardado comparar: mismo EAN o ref. de fabricante, o nombre muy parecido (mismas palabras clave).
   const STOP=new Set(['de','del','la','el','los','las','para','con','y','en','a','the','for','with','and','of','airsoft','replica','réplica','version','versión','gbb','co2']);
   const toks=it=>new Set(norm([it.brand,it.product,it.variant].join(' ')).replace(/[^a-z0-9.\s-]/g,' ').split(/[\s-]+/).filter(t=>t&&!STOP.has(t)));

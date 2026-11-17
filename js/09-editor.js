@@ -19,7 +19,7 @@
   function fillForm(it){
     FORM.forEach(([id,k])=>{const v=it[k];F(id).value=(k==='discountType')?(v||'eur'):(v===0&&['discount','shipping','freeFrom'].includes(k)?'':(MONEY_IDS.includes(id)&&v!==''&&v!=null&&num(v)?fmtIn(num(v)):(v??'')));});
     // Si se leyó en otra moneda, el formulario muestra los importes originales.
-    F('fOutEU').checked=it.product?outsideEU(it):false;F('fVatExcl').checked=!!it.vatExcl;
+    F('fOutEU').checked=it.product?outsideEU(it):false;F('fVatExcl').checked=!!it.vatExcl;F('fNoShip').checked=it.product?shipBlocked(it):false;
     const o=it.orig;F('fCur').innerHTML=curOpts(o?o.currency:'EUR');F('fShipCur').innerHTML=curOpts(o?(o.shipCurrency||o.currency):'EUR');
     const src=o||it;F('fPrice').value=numIn(src.price);F('fShip').value=numIn(src.shipping);F('fFree').value=numIn(src.freeFrom);
     F('fDisc').value=it.discountType==='eur'?numIn(o?o.discount:it.discount):numIn(it.discount);curPreview();

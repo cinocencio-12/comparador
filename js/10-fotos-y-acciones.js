@@ -100,7 +100,7 @@
     e.preventDefault();
     const d={};FORM.forEach(([id,k])=>{d[k]=F(id).value.trim();});if(me)d.shareWith=formShare();
     ['price','discount','shipping','freeFrom'].forEach(k=>d[k]=parseIn(d[k]));
-    convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;d.vatExcl=F('fVatExcl').checked;
+    convertItem(d,F('fCur').value,F('fShipCur').value);d.outsideEU=F('fOutEU').checked;d.vatExcl=F('fVatExcl').checked;d.noShip=F('fNoShip').checked;
     {const o={};cpInh.forEach((v,k)=>{if(k==='shipping'?num(d.shipping)>0:k==='freeFrom'?num(d.freeFrom)>0:clean(d.code))o[k]=v;});d.inherited=Object.keys(o).length?o:null;}
     d.specs=readSpecs();
     d.url=safeUrl(d.url);d.ean=d.ean.replace(/\s/g,'');d.incomplete=false;
@@ -108,7 +108,10 @@
     if(!d.group)d.group=fullName(d);
     if(editingId){const it=items.find(i=>i.id===editingId);Object.assign(it,d,{images:formImgs,curChecked:true});await put('items',it);}
     else{const it={id:uid(),...d,images:formImgs,status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
-    closeForm();try{await scanPhotos();}catch(err){}render();setStatus('Guardado.');
+    // «No envía» es de la tienda: al desmarcarlo se quita de todos sus artículos.
+    let shipMsg='';{const sh=norm(d.store||hostOf(d.url||''));if(sh){const same=items.filter(i=>norm(shopOf(i))===sh);
+      if(!d.noShip){for(const i of same)if(i.noShip){i.noShip=false;await put('items',i);}}else shipMsg=` ${shopOf(same[0]||d)} marcada como «no envía» (${same.length} ${same.length===1?'artículo':'artículos'}): no cuenta como mejor precio.`;}}
+    closeForm();try{await scanPhotos();}catch(err){}render();setStatus('Guardado.'+shipMsg);
   });
 
   // ---------- acciones ----------

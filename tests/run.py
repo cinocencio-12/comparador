@@ -315,6 +315,18 @@ async def p_ficha_tecnica(a):
     await a.foto('ficha-tecnica')
 
 
+async def p_no_envia(a):
+    await a.abrir(extra=EXTRA)
+    # Una tienda que no envía no cuenta como mejor precio, aunque sea la más barata; vale también para artículos nuevos de esa tienda
+    r = await a.pg.evaluate("""()=>{const A={id:'ne1',product:'Réplica X',group:'Réplica X',store:'Airsoft Galicia',price:100,shipping:0,status:'pending',images:[],noShip:true};
+      const B={id:'ne2',product:'Réplica X',group:'Réplica X',store:'Otra Tienda',price:150,shipping:0,status:'pending',images:[]};
+      const C={id:'ne3',product:'Réplica Y',group:'Réplica Y',store:'Airsoft Galicia',price:50,shipping:0,status:'pending',images:[]};
+      items.push(A,B,C);return [canBuy(A),canBuy(B),canBuy(C),[A,B].sort(byBuyable)[0].id]}""")
+    comprobar(r == [False, True, False, 'ne2'], f'«no envía» mal: {r}')
+    html = await a.pg.evaluate("availChip(items.find(i=>i.id==='ne3'))")
+    comprobar('No envía' in html, 'no se ve «No envía» en la oferta')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

@@ -39,3 +39,4 @@
 - Ficha: botones separados «Comprobar precio» y «Comprobar stock» (este solo toca la disponibilidad).
 - Editor: «Rellenar con lo de esta tienda» copia portes, envío gratis, cupón, moneda, UE e IVA del artículo más reciente de la misma tienda que lo tenga; solo lo vacío y quedan como supuestos.
 - Ficha técnica con listas fijas (SPECS: 4.º elemento = opciones, 5.º = varias a la vez): sistema, gas compatible (varias), batería (tipo, voltaje, mAh, C, conector, formato, incluida), pilas (tipo y número), cargador incluido, culata, raíles y tipo de raíl (varias), calibre, hop-up, modo de disparo, cargador. Un valor antiguo fuera de la lista se conserva como opción más. FPS, m/s y julios admiten rangos («120–250 fps»).
+- «Esta tienda no me lo envía» (`noShip`, en Editar): es de la tienda (basta un artículo marcado; desmarcar lo quita de todos). Sus ofertas salen al final con chip «No envía» y no cuentan para mejor precio, totales, consejos ni avisos.

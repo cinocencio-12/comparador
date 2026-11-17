@@ -13,8 +13,8 @@
   function renderProd(){
     const all=prodItems();if(!all.length){prodKey=null;return renderCompare(groups('pending'));}
     const pend=all.filter(i=>(i.status||'pending')==='pending'),bought=all.filter(i=>i.status==='bought');
-    const offers=(pend.length?pend:all).slice().sort((a,b)=>calc(a).total-calc(b).total);
-    const valid=offers.filter(o=>!isUnread(o));const lt=valid[0]||offers[0];
+    const offers=(pend.length?pend:all).slice().sort(byBuyable);
+    const valid=offers.filter(canBuy);const lt=valid[0]||offers[0];
     const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null;
     const f=offers[0];const name=groupName(f);const sub=[f.brand,f.variant].map(clean).filter(Boolean).join(' · ');
     const imgs=[];offers.slice().sort((a,b)=>String(b.coverAt||'').localeCompare(String(a.coverAt||''))).forEach(o=>(o.images||[]).forEach((v,i)=>{if(!imgs.some(x=>x[0]===v))imgs.push([v,o.id,i]);}));
@@ -85,7 +85,7 @@
     const pend=groups('pending');
     $('#sProducts').textContent=pend.length;
     $('#sOffers').textContent=items.filter(i=>(i.status||'pending')==='pending').length;
-    $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(o=>!isUnread(o));return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
+    $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(canBuy);return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
     ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
@@ -116,7 +116,8 @@
     if(!clean(it.description))m.push(['descripción','fDesc']);
     return m;}
   const missBox=it=>{const m=missingList(it);return m.length?`<div class="miss">Falta: ${m.map(([t,f])=>`<button type="button" data-act="fix" data-f="${f}" data-id="${it.id}">${t}</button>`).join('')}</div>`:'';};
-  function availChip(it){const a=norm(it.availability);if(!a)return '';
+  function availChip(it){return (shipBlocked(it)?'<span class="chip err">No envía</span>':'')+availChip0(it);}
+  function availChip0(it){const a=norm(it.availability);if(!a)return '';
     if(/agotad|sin stock|no disponible|out of stock/.test(a))return '<span class="chip err">Agotado</span>';
     if(/pocas|ultimas|últimas|low/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
     if(/pedido|reserva|preorder/.test(a))return `<span class="chip low">${esc(it.availability)}</span>`;
@@ -195,7 +196,7 @@
   let upSort=false;
   document.addEventListener('click',e=>{if(e.target.closest('[data-upsort]')){upSort=!upSort;render();}});
   function renderCompare(gs){
-    if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(o=>!isUnread(o));bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
+    if(gs.length&&showGrid()&&!allMode){const bestOf=new Map();gs.forEach(g=>{const v=g.offers.filter(canBuy);bestOf.set(g.offers[0].id,v.length?Math.min(...v.map(o=>calc(o).total)):0);});
       return catGrid(gs.map(g=>g.offers[0]),i=>bestOf.get(i.id)||0);}
     const back=flt.cat?catBack(gs.length):(allMode&&showGrid()?`<div class="catback" style="${hueOf('Todo')}"><button class="iconbtn" type="button" data-cat="" aria-label="Volver a categorías"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button><span class="ic">${svgI('all')}</span><h2>Todo<small>${gs.length} productos</small></h2></div>`:'');
     const inCat=flt.cat?items.filter(i=>(i.status||'pending')==='pending'&&catOf(i)===flt.cat):[];
@@ -210,7 +211,7 @@
     let last=null;const counts={};gs.forEach(g=>counts[g.cat]=(counts[g.cat]||0)+1);
     return `<div class="list">${gs.map(g=>{const bt=calc(g.offers[0]).total;const names=new Set(g.offers.map(o=>key(o.product)));
       const head=g.cat!==last&&!flt.cat?`<div class="cathead">${esc(g.cat)}<span>${counts[g.cat]}</span></div>`:'';last=g.cat;
-      const valid=g.offers.filter(o=>!isUnread(o));const single=valid.length<2;
+      const valid=g.offers.filter(canBuy);const single=valid.length<2;
       const lp=valid.length?valid.reduce((a,b)=>calc(b).after<calc(a).after?b:a):null,lt=valid.length?valid.reduce((a,b)=>calc(b).total<calc(a).total?b:a):null;
       const line=lp?`<div class="bestline"><span>Mejor precio: <b>${eur(calc(lp).after)}</b> en ${esc(shopOf(lp))}</span><span>Mejor total (portes e importación): <b>${eur(calc(lt).total)}</b> en ${esc(shopOf(lt))}</span>${(()=>{let b=null;g.offers.forEach(o=>{const m=minIn(histPts(o),365);if(m&&(!b||m.p<b.p))b={...m,o};});return b&&g.offers.some(o=>histPts(o).length>1)?`<span>Lo más barato del año: <b>${eur(b.p)}</b> el ${fd(b.t)} en ${esc(shopOf(b.o))}</span>`:'';})()}</div>`:'';
       if(pref('view')==='compact'&&!selMode&&!cmpOpen&&!openG.has(key(g.name)))return head+compactCard(g);
@@ -221,7 +222,7 @@
     const pend=items.filter(i=>(i.status||'pending')==='pending'&&matches(i));
     if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
     // ¿Es esta la oferta más barata de su producto?
-    const best=new Map(),cnt=new Map();items.filter(i=>(i.status||'pending')==='pending'&&!isUnread(i)).forEach(i=>{const k=key(groupName(i)),t=calc(i).after;cnt.set(k,(cnt.get(k)||0)+1);if(!best.has(k)||t<best.get(k))best.set(k,t);});
+    const best=new Map(),cnt=new Map();items.filter(i=>(i.status||'pending')==='pending'&&canBuy(i)).forEach(i=>{const k=key(groupName(i)),t=calc(i).after;cnt.set(k,(cnt.get(k)||0)+1);if(!best.has(k)||t<best.get(k))best.set(k,t);});
     const map=new Map();pend.forEach(i=>{const k=norm(shopOf(i));if(!map.has(k))map.set(k,{name:shopOf(i),list:[]});map.get(k).list.push(i);});
     const shops=[...map.values()].map(sh=>{
       const sub=sh.list.reduce((a,i)=>a+calc(i).after,0);

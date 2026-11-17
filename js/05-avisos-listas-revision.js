@@ -21,7 +21,7 @@
   const PRIO={alta:['Prioridad alta',3],media:['Prioridad media',2],baja:['Prioridad baja',1]};
   const prioN=i=>(PRIO[i.prio]||[0,0])[1];
   const prioChip=i=>PRIO[i.prio]?`<span class="chip prio-${i.prio}">${PRIO[i.prio][0]}</span>`:'';
-  function bestOfGroups(list){const g=new Map();list.forEach(i=>{if(isUnread(i))return;const k=key(groupName(i));const t=calc(i).total;if(!g.has(k)||t<g.get(k).t)g.set(k,{i,t});});return [...g.values()];}
+  function bestOfGroups(list){const g=new Map();list.forEach(i=>{if(!canBuy(i))return;const k=key(groupName(i));const t=calc(i).total;if(!g.has(k)||t<g.get(k).t)g.set(k,{i,t});});return [...g.values()];}
   function renderListsHome(){const P=items.filter(i=>(i.status||'pending')==='pending');const bud=budgets();
     const mine=bestOfGroups(P.filter(i=>!peopleList(i).length));
     const cov=(l,hue,ic)=>{const ph=l.map(x=>x.i||x).find(i=>(i.images||[]).length&&src(i.images[0]));return `<span class="cov" style="${hueOf(hue)}">${ph?`<img src="${esc(src(ph.images[0]))}" alt="" loading="lazy" referrerpolicy="no-referrer">`:ic}</span>`;};
