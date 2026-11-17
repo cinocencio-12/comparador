@@ -403,6 +403,29 @@ async def p_mantener_y_borrar(a):
     comprobar(await a.pg.evaluate("!items.some(i=>i.id==='lp1'||i.id==='lp2')"), 'no borra los seleccionados')
 
 
+async def p_seguridad_xss(a):
+    # Datos maliciosos (de una web leída, de una lista compartida o de un enlace #import=) no pueden ejecutar código:
+    # si lo hicieran podrían robar la clave de Anthropic del dispositivo.
+    P = '<img src=x onerror="window.__xss=1">'
+    mal = {'id': 'xss1', 'product': 'Malo ' + P, 'group': 'Malo ' + P, 'variant': P, 'brand': P, 'store': P, 'url': 'javascript:window.__xss=2',
+           'price': 10, 'shipping': 1, 'code': P, 'category': P, 'sub': P, 'platform': P, 'tags': P, 'compat': P, 'description': P, 'notes': P,
+           'availability': P, 'people': [P], 'status': 'pending', 'images': ['javascript:window.__xss=3', '" onerror="window.__xss=4'],
+           'specs': {'system': P, 'gas': P, 'included': P}, 'history': [{'at': '2026-11-01T00:00:00Z', 'price': 12}]}
+    mal2 = dict(mal, id='xss2', store='Otra', price=9)
+    await a.abrir(extra=EXTRA + [mal, mal2])
+    for nav in ['home', 'explore', 'lists', 'review', 'buys']:
+        if await a.n(f'[data-nav={nav}]'):
+            await a.pg.click(f'[data-nav={nav}]'); await a.pg.wait_for_timeout(250)
+    await a.pg.evaluate("()=>{prodKey=key(groupName(items.find(i=>i.id==='xss1')));navTab='explore';render();}"); await a.pg.wait_for_timeout(300)
+    for t in await a.pg.query_selector_all('[data-ptab]'):
+        try: await t.click(); await a.pg.wait_for_timeout(150)
+        except Exception: pass
+    await a.pg.click('[data-act=edit]') if await a.n('[data-act=edit]') else None
+    await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("[window.__xss||0, [...document.querySelectorAll('a[href^=\"javascript\" i]')].length, [...document.querySelectorAll('img')].filter(i=>/__xss/.test(i.getAttribute('onerror')||'')).length]")
+    comprobar(r == [0, 0, 0], f'se ha podido inyectar código: {r}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
