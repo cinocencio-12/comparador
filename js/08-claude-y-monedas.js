@@ -257,7 +257,7 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
 
   // Tras compartir: si ya tenías ese artículo, se dice y se abre su ficha para vincular o fusionar
   function afterShare(it){try{const k=key(groupName(it));const same=items.filter(i=>i!==it&&(i.status||'pending')==='pending'&&key(groupName(i))===k);
-      if(same.length){openProd(k);setStatus(same.some(o=>norm(shopOf(o))===norm(shopOf(it)))?`Ya lo tenías de ${shopOf(it)}: arriba puedes fusionar las dos ofertas.`:`Añadido a «${groupName(it)}» como otra tienda: ya lo comparas con ${same.length} ${same.length===1?'oferta':'ofertas'}.`);return;}
+      if(same.length){openProd(k);setStatus(same.some(o=>shopKey(o)===shopKey(it))?`Ya lo tenías de ${shopOf(it)}: arriba puedes fusionar las dos ofertas.`:`Añadido a «${groupName(it)}» como otra tienda: ya lo comparas con ${same.length} ${same.length===1?'oferta':'ofertas'}.`);return;}
       const m=items.find(i=>i!==it&&(i.status||'pending')==='pending'&&!isUnread(i)&&likely(it,i)&&!notSame().has(pairK(it,i)));
       if(m){openProd(k);setStatus(`Parece «${groupName(m)}» (${shopOf(m)}), que ya tenías. Al final de la ficha puedes vincularlo o decir que no es el mismo.`);}}catch(e){}}
   // ---------- recibir una página enviada con el marcador «Guardar en Comparador» ----------

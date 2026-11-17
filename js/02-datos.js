@@ -54,13 +54,16 @@
   const allPeople=()=>{const m=new Map();items.forEach(i=>peopleList(i).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,p);}));return [...m.values()].sort((a,b)=>a.localeCompare(b,'es'));};
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
   // «Esta tienda no envía»: basta con que un artículo de la tienda lo tenga marcado (así los nuevos de esa tienda también cuentan).
-  const shipBlocked=o=>{const s=norm(shopOf(o));return !!s&&items.some(i=>i.noShip&&norm(shopOf(i))===s);};
+  const shipBlocked=o=>{const s=shopKey(o);return !!s&&items.some(i=>i.noShip&&shopKey(i)===s);};
   const canBuy=o=>!isUnread(o)&&!shipBlocked(o);
   const byBuyable=(a,b)=>(shipBlocked(a)-shipBlocked(b))||calc(a).total-calc(b).total;
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
   const TAG_DEF=['Cañón','Hop-up','Goma hop-up','Muelle','Pistón','Gatillo','Válvula','Juntas','Cargador','Óptica','Silenciador','Empuñadura','Funda','Correa','Batería','Gas'];
   const flt={q:'',cat:'',sub:'',plat:'',shop:'',tag:'',state:'',person:''}; // cada vez que abres la app empieza sin filtros
   const shopOf=it=>clean(it.store)||hostOf(it.url)||'Sin tienda';
+  // Misma tienda aunque el nombre cambie: «iGUN Airsoft», «Igunairsoft», «igunairsoft.com» → igunairsoft.
+  const shopKeyName=s=>norm(s).replace(/^https?:\/\//,'').replace(/^www\./,'').replace(/\.(com|es|net|eu|org|shop|store|pt|fr|de|it)(\.[a-z]{2})?\/?.*$/,'').replace(/[^a-z0-9]/g,'');
+  const shopKey=it=>shopKeyName(shopOf(it));
   function ls0(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}}
   function saveFlt(){try{localStorage.setItem('fq',flt.q);localStorage.setItem('fcat',flt.cat);localStorage.setItem('fplat',flt.plat);localStorage.setItem('fshop',flt.shop);localStorage.setItem('ftag',flt.tag);}catch(e){}}
   function stateOk(it){
@@ -82,7 +85,7 @@
     if(flt.cat&&catOf(it)!==flt.cat)return false;
     if(flt.sub&&norm(it.sub)!==norm(flt.sub))return false;
     if(flt.fac){const a=new Set(attrsOf(it));if(!splitList(flt.fac).every(x=>a.has(x)))return false;}
-    if(flt.shop&&norm(shopOf(it))!==norm(flt.shop))return false;
+    if(flt.shop&&shopKey(it)!==norm(flt.shop))return false;
     if(flt.plat){const p=norm(flt.plat);if(norm(it.platform)!==p&&!compatList(it).some(c=>norm(c)===p||norm(c)==='todos'))return false;}
     if(flt.tag&&!tagList(it).some(t=>norm(t)===norm(flt.tag)))return false;
     if(flt.q){const hay=norm([it.product,it.variant,it.brand,it.sku,it.mpn,it.ean,it.store,it.category,it.sub,it.size,it.color,it.platform,it.compat,tagList(it).join(' '),it.description,it.notes,it.group].join(' '));
@@ -96,7 +99,7 @@
     $('#fCat').innerHTML=`<option value="">Todas las categorías</option>`+cats.map(([c,n])=>`<option value="${esc(c)}" ${c===flt.cat?'selected':''}>${esc(c)} (${n})</option>`).join('');
     $('#fPlat').innerHTML=`<option value="">Todos los modelos</option>`+plats.map(p=>`<option value="${esc(p.name)}" ${norm(p.name)===norm(flt.plat)?'selected':''}>${esc(p.name)} (${p.n})</option>`).join('');
     if(document.activeElement!==$('#q'))$('#q').value=flt.q;
-    const shops=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=norm(shopOf(i));if(!shops.has(k))shops.set(k,{name:shopOf(i),n:0});shops.get(k).n++;});
+    const shops=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=shopKey(i);if(!shops.has(k))shops.set(k,{name:shopOf(i),n:0});shops.get(k).n++;});
     $('#fShop').innerHTML=`<option value="">Todas las tiendas</option>`+[...shops.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.shop)?'selected':''}>${esc(x.name)} (${x.n} pendientes)</option>`).join('');
     const tags=new Map();items.forEach(i=>tagList(i).forEach(t=>{const k=norm(t);if(!tags.has(k))tags.set(k,{name:t,n:0});tags.get(k).n++;}));
     $('#fTag').innerHTML=`<option value="">Todas las etiquetas</option>`+[...tags.values()].sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}" ${norm(x.name)===norm(flt.tag)?'selected':''}>${esc(x.name)} (${x.n})</option>`).join('');

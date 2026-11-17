@@ -348,6 +348,20 @@ async def p_editar_a_la_vez(a):
     comprobar(r == [['Munición', 'viejo, trazadora', 'Sí'], ['Munición', 'trazadora', 'Sí']], f'editar a la vez mal: {r}')
 
 
+async def p_misma_tienda(a):
+    await a.abrir(extra=EXTRA)
+    r = await a.pg.evaluate("""()=>{const A={id:'mt1',product:'Luger',store:'iGUN Airsoft',price:200,shipping:6.9,freeFrom:150,status:'pending',images:[],checkedAt:new Date().toISOString()};
+      const B={id:'mt2',product:'Vainas',store:'',url:'https://www.igunairsoft.com/x',price:20,status:'pending',images:[]};
+      const C={id:'mt3',product:'Casquillos',store:'Igunairsoft',price:25,status:'pending',images:[]};items.push(A,B,C);
+      return [shopKey(A),shopKey(B),shopKey(C)]}""")
+    comprobar(len(set(r)) == 1, f'la misma tienda con nombres distintos no se reconoce: {r}')
+    await a.pg.evaluate("()=>{selMode=true;['mt2','mt3'].forEach(id=>sel.add(id));render();}")
+    await a.pg.click('#selBulk'); await a.pg.wait_for_timeout(200)
+    await a.pg.fill('#bkStore', 'iGUN Airsoft'); await a.pg.check('#bkShip'); await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(400)
+    r = await a.pg.evaluate("['mt2','mt3'].map(id=>{const i=items.find(x=>x.id===id);return [i.store,i.shipping,i.freeFrom]})")
+    comprobar(r == [['iGUN Airsoft', 6.9, 150], ['iGUN Airsoft', 6.9, 150]], f'no unifica tienda o no copia portes: {r}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

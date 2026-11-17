@@ -22,7 +22,7 @@
     const P=items.filter(i=>(i.status||'pending')==='pending'&&!isUnread(i)&&num(i.price)>0);
     const G=new Map();P.forEach(i=>{const k=key(groupName(i));if(!G.has(k))G.set(k,[]);G.get(k).push(i);});
     const best=new Map();G.forEach((v,k)=>best.set(k,v.reduce((a,b)=>calc(b).total<calc(a).total?b:a)));
-    const shops=new Map();P.forEach(i=>{const s=norm(shopOf(i));if(!shops.has(s))shops.set(s,[]);shops.get(s).push(i);});
+    const shops=new Map();P.forEach(i=>{const s=shopKey(i);if(!shops.has(s))shops.set(s,[]);shops.get(s).push(i);});
     const tips=[];
     shops.forEach(list=>{
       const F=Math.max(...list.map(i=>num(i.freeFrom)));const C=Math.max(...list.map(i=>num(i.shipping)));if(!(F>0&&C>0))return;

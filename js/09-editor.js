@@ -97,8 +97,8 @@
     if(!Object.keys(it.inherited).length)delete it.inherited;}
   const lacks=(it,k)=>k==='shipping'?!(num(it.shipping)>0)&&!(num(it.freeFrom)>0)&&!/gratis|free/i.test(it.notes||''):k==='freeFrom'?!(num(it.freeFrom)>0):!clean(it.code);
   // Copia portes / mínimo de portes gratis / cupón a los artículos de la misma tienda a los que les falte. Nunca pisa datos leídos de la web.
-  async function storeFill(src,keys,exceptId){const shop=norm(shopOf(src));let n=0;const vals={shipping:num(src.shipping),freeFrom:num(src.freeFrom),code:clean(src.code)};
-    for(const it of items){if(it.id===src.id||it.id===exceptId||(it.status||'pending')!=='pending'||norm(shopOf(it))!==shop)continue;let ch=false;
+  async function storeFill(src,keys,exceptId){const shop=shopKey(src);let n=0;const vals={shipping:num(src.shipping),freeFrom:num(src.freeFrom),code:clean(src.code)};
+    for(const it of items){if(it.id===src.id||it.id===exceptId||(it.status||'pending')!=='pending'||shopKey(it)!==shop)continue;let ch=false;
       for(const k of keys){if(!INH_KEYS.includes(k))continue;if(k==='shipping'&&!(vals.shipping>0))continue;if(k==='freeFrom'&&!(vals.freeFrom>0))continue;if(k==='code'&&!vals.code)continue;
         if(lacks(it,k)||inh(it,k)){it[k]=vals[k];it.inherited={...(it.inherited||{}),[k]:src.id};ch=true;}}
       if(ch){await put('items',it);n++;}}
@@ -107,8 +107,8 @@
   function shopSource(list){return list.filter(i=>!inh(i,'shipping')&&(num(i.shipping)>0||num(i.freeFrom)>0)).sort((a,b)=>(b.checkedAt||b.updatedAt||'')>(a.checkedAt||a.updatedAt||'')?1:-1)[0];}
   // ---------- Rellenar con lo de esta tienda (un toque) ----------
   // Para cada dato toma el artículo más reciente de la misma tienda que lo tenga (mejor si se leyó de la web). Solo rellena lo vacío.
-  function shopFillForm(){const shop=norm(fv('fStore'));if(!shop)return{msg:'Escribe primero la tienda.',err:1};
-    const peers=items.filter(i=>i.id!==editingId&&norm(shopOf(i))===shop&&!isUnread(i))
+  function shopFillForm(){const shop=shopKeyName(fv('fStore'));if(!shop)return{msg:'Escribe primero la tienda.',err:1};
+    const peers=items.filter(i=>i.id!==editingId&&shopKey(i)===shop&&!isUnread(i))
       .sort((a,b)=>(b.checkedAt||b.updatedAt||b.createdAt||'')>(a.checkedAt||a.updatedAt||a.createdAt||'')?1:-1);
     if(!peers.length)return{msg:`No hay otros artículos de ${fv('fStore')}.`,err:1};
     const pick=(has,k)=>peers.find(i=>has(i)&&!inh(i,k))||peers.find(has);const done=[];
@@ -153,10 +153,10 @@
     ['desc','Descripción',0,s=>clean(s.description),()=>fv('fDesc'),v=>{F('fDesc').value=v;}],
     ['specs','Ficha técnica',0,s=>hasSpecs(s)?Object.keys(s.specs).length+' datos':'',()=>{const n=Object.keys(readSpecs()).length;return n?n+' datos':'';},(v,s)=>{fillSpecs(cpMode==='over'?cleanSpecs(s.specs):mergeSpecs(readSpecs(),s.specs));}]];
   const short=t=>{t=vOf(t);return t.length>60?t.slice(0,58)+'…':t;};
-  function cpListDraw(){const q=norm($('#cpQ').value).split(' ').filter(Boolean);const st=norm(fv('fStore'));
+  function cpListDraw(){const q=norm($('#cpQ').value).split(' ').filter(Boolean);const st=shopKeyName(fv('fStore'));
     const list=items.filter(i=>i.id!==editingId&&!isUnread(i)).filter(i=>!q.length||q.every(t=>norm([fullName(i),i.brand,shopOf(i),catOf(i),i.sku].join(' ')).includes(t)))
-      .sort((a,b)=>((st&&norm(shopOf(b))===st)-(st&&norm(shopOf(a))===st))||(b.updatedAt||0)-(a.updatedAt||0)).slice(0,60);
-    $('#cpList').innerHTML=list.map(i=>`<button type="button" data-cp="${i.id}" class="cpitem">${(i.images||[])[0]?imgTag(i.images[0],''):'<span class="ph"></span>'}<span class="t"><b>${esc(fullName(i))}</b><small>${esc(shopOf(i))} · ${eur(calc(i).total)}</small></span>${st&&norm(shopOf(i))===st?'<span class="sg">Misma tienda</span>':''}</button>`).join('')||'<span class="hint">Nada con esas palabras.</span>';}
+      .sort((a,b)=>((st&&shopKey(b)===st)-(st&&shopKey(a)===st))||(b.updatedAt||0)-(a.updatedAt||0)).slice(0,60);
+    $('#cpList').innerHTML=list.map(i=>`<button type="button" data-cp="${i.id}" class="cpitem">${(i.images||[])[0]?imgTag(i.images[0],''):'<span class="ph"></span>'}<span class="t"><b>${esc(fullName(i))}</b><small>${esc(shopOf(i))} · ${eur(calc(i).total)}</small></span>${st&&shopKey(i)===st?'<span class="sg">Misma tienda</span>':''}</button>`).join('')||'<span class="hint">Nada con esas palabras.</span>';}
   function cpRowsDraw(){const s=cpSrc;let html='';
     let gh='';for(const r of CF){if(r[0]==='g'){gh=`<div class="cpg">${r[1]}</div>`;continue;}
       const [k,l,def,get,cur]=r;const nv=vOf(get(s)),cv=vOf(cur());if(!nv)continue;
@@ -170,7 +170,7 @@
   $('#cpQ').addEventListener('input',cpListDraw);
   $('#cpList').addEventListener('click',e=>{const b=e.target.closest('[data-cp]');if(!b)return;cpSrc=items.find(i=>i.id===b.dataset.cp);if(!cpSrc)return;
     $('#cpFrom').textContent=`Desde: ${fullName(cpSrc)} · ${shopOf(cpSrc)}. Marca lo que quieres copiar.`;
-    {const shop=norm(shopOf(cpSrc));const n=items.filter(i=>i.id!==cpSrc.id&&i.id!==editingId&&(i.status||'pending')==='pending'&&norm(shopOf(i))===shop&&INH_KEYS.some(k=>lacks(i,k))).length;
+    {const shop=shopKey(cpSrc);const n=items.filter(i=>i.id!==cpSrc.id&&i.id!==editingId&&(i.status||'pending')==='pending'&&shopKey(i)===shop&&INH_KEYS.some(k=>lacks(i,k))).length;
      $('#cpShopBox').hidden=!n;$('#cpShopTxt').textContent=`Copiar también portes, mínimo y cupón a ${n} ${n===1?'artículo':'artículos'} de ${shopOf(cpSrc)} que no los tienen (quedan como supuestos; lo que se lea de la web siempre manda)`;}$('#cpPick').hidden=true;$('#cpFields').hidden=false;cpRowsDraw();});
   $('#cpMode').addEventListener('click',e=>{const b=e.target.closest('[data-cm]');if(!b)return;cpMode=b.dataset.cm;cpRowsDraw();});
   $('#cpBack').addEventListener('click',()=>{$('#cpPick').hidden=false;$('#cpFields').hidden=true;});
@@ -189,22 +189,26 @@
   function openBulk(){const n=sel.size;if(!n)return;
     const opts='<option value="">— ninguno —</option>'+SPECS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('');
     [1,2].forEach(n=>{$('#bkSpec'+n).innerHTML=opts;bkValField(n);});
-    ['bkCat','bkSub','bkBrand','bkPlat','bkTags','bkCompat'].forEach(id=>$('#'+id).value='');
+    ['bkCat','bkSub','bkStore','bkBrand','bkPlat','bkTags','bkCompat'].forEach(id=>$('#'+id).value='');$('#bkShip').checked=false;
+    $('#bkStoreList').innerHTML=[...new Set(items.map(i=>clean(i.store)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')).map(x=>`<option value="${esc(x)}">`).join('');
     $('#bkTitle').textContent=`Editar ${n} ${n===1?'artículo':'artículos'} a la vez`;$('#bkBg').hidden=$('#bkSheet').hidden=false;}
   function closeBulk(){$('#bkBg').hidden=$('#bkSheet').hidden=true;}
   [1,2].forEach(n=>$('#bkSpec'+n).addEventListener('change',()=>bkValField(n)));
   $('#selBulk').addEventListener('click',openBulk);$('#bkCancel').addEventListener('click',closeBulk);$('#bkBg').addEventListener('click',closeBulk);
   async function bulkApply(ids,ch){let n=0;
     for(const id of ids){const it=items.find(i=>i.id===id);if(!it)continue;
-      if(ch.category)it.category=ch.category;if(ch.sub)it.sub=ch.sub;if(ch.brand)it.brand=ch.brand;if(ch.platform)it.platform=ch.platform;
+      if(ch.store)it.store=ch.store;if(ch.category)it.category=ch.category;if(ch.sub)it.sub=ch.sub;if(ch.brand)it.brand=ch.brand;if(ch.platform)it.platform=ch.platform;
       if(ch.tags)it.tags=[...new Set([...tagList(it),...splitList(ch.tags)])].join(', ');
       if(ch.compat)it.compat=[...new Set([...compatList(it),...splitList(ch.compat)])].join(', ');
       if(ch.specs&&Object.keys(ch.specs).length)it.specs=cleanSpecs({...(it.specs||{}),...ch.specs});
       await put('items',it);n++;}
+    if(ch.ship){// para cada tienda de los seleccionados, toma su mejor fuente de portes y rellena lo que falte
+      const shops=new Set(ids.map(id=>items.find(i=>i.id===id)).filter(Boolean).map(shopKey));
+      for(const k of shops){const peers=items.filter(i=>shopKey(i)===k);const src=shopSource(peers)||peers.find(i=>num(i.freeFrom)>0||clean(i.code));if(src)ch.filled=(ch.filled||0)+await storeFill(src,INH_KEYS);}}
     return n;}
   $('#bkApply').addEventListener('click',async()=>{const v=id=>clean($('#'+id).value);
-    const ch={category:v('bkCat'),sub:v('bkSub'),brand:v('bkBrand'),platform:v('bkPlat'),tags:v('bkTags'),compat:v('bkCompat'),specs:{}};
+    const ch={store:v('bkStore'),ship:$('#bkShip').checked,category:v('bkCat'),sub:v('bkSub'),brand:v('bkBrand'),platform:v('bkPlat'),tags:v('bkTags'),compat:v('bkCompat'),specs:{}};
     [1,2].forEach(n=>{const k=$('#bkSpec'+n).value,val=v('bkVal'+n);if(k&&val)ch.specs[k]=val;});
-    const what=[ch.category&&'categoría',ch.sub&&'subcategoría',ch.brand&&'marca',ch.platform&&'modelo',ch.tags&&'etiquetas',ch.compat&&'«Aplica a»',Object.keys(ch.specs).length&&'ficha técnica'].filter(Boolean);
+    const what=[ch.store&&'tienda',ch.ship&&'portes de la tienda',ch.category&&'categoría',ch.sub&&'subcategoría',ch.brand&&'marca',ch.platform&&'modelo',ch.tags&&'etiquetas',ch.compat&&'«Aplica a»',Object.keys(ch.specs).length&&'ficha técnica'].filter(Boolean);
     if(!what.length){setStatus('Rellena al menos un dato.','err');return;}
-    const n=await bulkApply([...sel],ch);closeBulk();selMode=false;sel.clear();render();setStatus(`Cambiado en ${n} ${n===1?'artículo':'artículos'}: ${what.join(', ')}.`);});
+    const n=await bulkApply([...sel],ch);closeBulk();selMode=false;sel.clear();render();setStatus(`Cambiado en ${n} ${n===1?'artículo':'artículos'}: ${what.join(', ')}.${ch.ship?` Portes rellenados en ${ch.filled||0}.`:''}`);});
