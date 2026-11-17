@@ -163,7 +163,7 @@
   function drawSelBar(){
     $('#selBar').hidden=!selMode;$('#homeBtn').hidden=selMode;
     $('#selCount').textContent=`${sel.size} ${sel.size===1?'seleccionado':'seleccionados'}`;
-    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
+    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selBulk').disabled=!sel.size;$('#selBulk').textContent=sel.size?`Editar ${sel.size} a la vez`:'Editar a la vez';$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
     $('#selModeBtn').textContent=selMode?'Salir de seleccionar':'Seleccionar para comparar o vincular';
   }
   function compareTable(){

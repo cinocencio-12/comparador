@@ -327,6 +327,27 @@ async def p_no_envia(a):
     comprobar('No envía' in html, 'no se ve «No envía» en la oferta')
 
 
+async def p_editar_a_la_vez(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{items.push({id:'bk1',product:'Bolas A',store:'T1',price:5,status:'pending',images:[],tags:'viejo'},{id:'bk2',product:'Bolas B',store:'T2',price:6,status:'pending',images:[]});}""")
+    # En Revisión se puede seleccionar
+    await a.pg.click('[data-nav=review]'); await a.pg.wait_for_timeout(300)
+    await a.pg.click('#checkTop'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.querySelectorAll('[data-nav]')")
+    await a.pg.evaluate("""()=>{['bk1','bk2'].forEach(id=>sel.add(id));render();}""")
+    nsel = await a.pg.evaluate("""()=>{const b=document.querySelector('[data-rv]');if(b)b.click();return document.querySelectorAll('.rvrow [data-sel]').length}""")
+    comprobar(nsel > 0, 'en Revisión no salen casillas para seleccionar')
+    rv = await a.pg.evaluate("revOpen||navTab==='review'")
+    comprobar(rv, 'al pulsar seleccionar en Revisión se sale de Revisión')
+    await a.pg.click('#selBulk'); await a.pg.wait_for_timeout(200)
+    await a.pg.fill('#bkCat', 'Munición'); await a.pg.fill('#bkTags', 'trazadora')
+    await a.pg.select_option('#bkSpec1', 'bbTracer'); await a.pg.wait_for_timeout(100); await a.pg.select_option('#bkVal1', 'Sí')
+    await a.foto('editar-a-la-vez')
+    await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("['bk1','bk2'].map(id=>{const i=items.find(x=>x.id===id);return [i.category,i.tags,(i.specs||{}).bbTracer]})")
+    comprobar(r == [['Munición', 'viejo, trazadora', 'Sí'], ['Munición', 'trazadora', 'Sí']], f'editar a la vez mal: {r}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

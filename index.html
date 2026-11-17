@@ -13,10 +13,10 @@
 <meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-<link rel="stylesheet" href="css/01-base.css?v=2026-11-17o">
-<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17o">
-<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17o">
-<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17o">
+<link rel="stylesheet" href="css/01-base.css?v=2026-11-17p">
+<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-17p">
+<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-17p">
+<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-17p">
 </head>
 <body>
 <div class="wrap">
@@ -289,6 +289,25 @@
   <button type="button" data-nav="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l2 2 4-4"/><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/></svg><span>Revisión</span><i class="badge" id="navRevN" hidden></i></button>
   <button type="button" data-nav="buys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 13H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span>Compras</span></button>
 </nav>
+<div class="sheet-bg" id="bkBg" hidden></div>
+<section class="sheet" id="bkSheet" role="dialog" aria-modal="true" aria-labelledby="bkTitle" hidden>
+  <div class="grab"></div>
+  <h2 id="bkTitle">Editar a la vez</h2>
+  <p class="hint" id="bkHint">Solo se cambia lo que rellenes; lo vacío se deja como está.</p>
+  <div class="fg">
+    <div class="f c3"><label for="bkCat">Categoría</label><input id="bkCat" list="catList" placeholder="Munición, Pistolas…"></div>
+    <div class="f c3"><label for="bkSub">Subcategoría</label><input id="bkSub" list="subList" placeholder="BBs 6 mm…"></div>
+    <div class="f c3"><label for="bkBrand">Marca</label><input id="bkBrand"></div>
+    <div class="f c3"><label for="bkPlat">Modelo / plataforma</label><input id="bkPlat" list="platList"></div>
+    <div class="f c3"><label for="bkTags">Añadir etiquetas</label><input id="bkTags" placeholder="trazadora, bio…"></div>
+    <div class="f c3"><label for="bkCompat">Añadir «Aplica a»</label><input id="bkCompat" placeholder="M4, Glock…"></div>
+    <div class="f c3"><label for="bkSpec1">Ficha técnica</label><select id="bkSpec1"></select></div>
+    <div class="f c3"><label for="bkVal1">Valor</label><span id="bkValBox1"><input id="bkVal1"></span></div>
+    <div class="f c3"><label for="bkSpec2">Otro dato</label><select id="bkSpec2"></select></div>
+    <div class="f c3"><label for="bkVal2">Valor</label><span id="bkValBox2"><input id="bkVal2"></span></div>
+  </div>
+  <div class="shfoot"><button class="btn" type="button" id="bkCancel">Cancelar</button><button class="btn primary" type="button" id="bkApply">Aplicar</button></div>
+</section>
 <div class="sheet-bg" id="cpBg" hidden></div>
 <section class="sheet" id="cpSheet" role="dialog" aria-modal="true" aria-labelledby="cpTitle" hidden>
   <div class="grab"></div>
@@ -315,6 +334,7 @@
 <div class="selbar" id="selBar" hidden><b id="selCount">0 seleccionados</b>
   <button class="btn small" id="selCompare" type="button">Comparar</button>
   <button class="btn small" id="selCheck" type="button">Comprobar precio</button>
+  <button class="btn small" id="selBulk" type="button">Editar a la vez</button>
   <button class="btn small primary" id="selJoin" type="button">Vincular como el mismo</button>
   <button class="btn small" id="selCancel" type="button">Cancelar</button></div>
 
@@ -325,21 +345,21 @@
   <div class="bar lbacts"><button id="lbFirst" type="button">★ Poner como principal</button><button id="lbCat" type="button">Portada de la categoría</button><button id="lbDel" type="button">Quitar foto</button></div>
 </div>
 
-<script src="js/01-base.js?v=2026-11-17o"></script>
-<script src="js/02-datos.js?v=2026-11-17o"></script>
-<script src="js/03-vistas.js?v=2026-11-17o"></script>
-<script src="js/04-inicio-y-navegacion.js?v=2026-11-17o"></script>
-<script src="js/05-avisos-listas-revision.js?v=2026-11-17o"></script>
-<script src="js/06-ficha.js?v=2026-11-17o"></script>
-<script src="js/07-ajustes-categorias.js?v=2026-11-17o"></script>
-<script src="js/08-claude-y-monedas.js?v=2026-11-17o"></script>
-<script src="js/09-editor.js?v=2026-11-17o"></script>
-<script src="js/10-fotos-y-acciones.js?v=2026-11-17o"></script>
-<script src="js/11-comprobar-y-comprar.js?v=2026-11-17o"></script>
-<script src="js/12-nube.js?v=2026-11-17o"></script>
-<script src="js/13-consejos.js?v=2026-11-17o"></script>
-<script src="js/14-compatibles.js?v=2026-11-17o"></script>
-<script src="js/15-costes.js?v=2026-11-17o"></script>
-<script src="js/16-arranque.js?v=2026-11-17o"></script>
+<script src="js/01-base.js?v=2026-11-17p"></script>
+<script src="js/02-datos.js?v=2026-11-17p"></script>
+<script src="js/03-vistas.js?v=2026-11-17p"></script>
+<script src="js/04-inicio-y-navegacion.js?v=2026-11-17p"></script>
+<script src="js/05-avisos-listas-revision.js?v=2026-11-17p"></script>
+<script src="js/06-ficha.js?v=2026-11-17p"></script>
+<script src="js/07-ajustes-categorias.js?v=2026-11-17p"></script>
+<script src="js/08-claude-y-monedas.js?v=2026-11-17p"></script>
+<script src="js/09-editor.js?v=2026-11-17p"></script>
+<script src="js/10-fotos-y-acciones.js?v=2026-11-17p"></script>
+<script src="js/11-comprobar-y-comprar.js?v=2026-11-17p"></script>
+<script src="js/12-nube.js?v=2026-11-17p"></script>
+<script src="js/13-consejos.js?v=2026-11-17p"></script>
+<script src="js/14-compatibles.js?v=2026-11-17p"></script>
+<script src="js/15-costes.js?v=2026-11-17p"></script>
+<script src="js/16-arranque.js?v=2026-11-17p"></script>
 </body>
 </html>

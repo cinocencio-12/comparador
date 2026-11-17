@@ -182,3 +182,29 @@
     drawAllChips();curPreview();
     ['fStore','fCur','fShip','fFree','fCode','fBrand','fCategory','fSku','fDesc','imgEdit'].forEach(id=>{const el=F(id)||$('#'+id);const d=el&&el.closest('details.fsec');if(d)d.open=true;});
     closeCopy();setStatus(`Copiado de ${shopOf(cpSrc)}: ${done.join(', ')}. Revisa portes y cupón antes de guardar.`);});
+
+  // ---------- Editar a la vez (los seleccionados) ----------
+  function bkValField(n){const k=$('#bkSpec'+n).value;const [,,ph,op,multi]=specOpt(k);const box=$('#bkValBox'+n);
+    box.innerHTML=op?`<select id="bkVal${n}"><option value="">—</option>${op.map(o=>`<option>${esc(o)}</option>`).join('')}</select>`:`<input id="bkVal${n}" placeholder="${esc(ph||'')}">`;}
+  function openBulk(){const n=sel.size;if(!n)return;
+    const opts='<option value="">— ninguno —</option>'+SPECS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('');
+    [1,2].forEach(n=>{$('#bkSpec'+n).innerHTML=opts;bkValField(n);});
+    ['bkCat','bkSub','bkBrand','bkPlat','bkTags','bkCompat'].forEach(id=>$('#'+id).value='');
+    $('#bkTitle').textContent=`Editar ${n} ${n===1?'artículo':'artículos'} a la vez`;$('#bkBg').hidden=$('#bkSheet').hidden=false;}
+  function closeBulk(){$('#bkBg').hidden=$('#bkSheet').hidden=true;}
+  [1,2].forEach(n=>$('#bkSpec'+n).addEventListener('change',()=>bkValField(n)));
+  $('#selBulk').addEventListener('click',openBulk);$('#bkCancel').addEventListener('click',closeBulk);$('#bkBg').addEventListener('click',closeBulk);
+  async function bulkApply(ids,ch){let n=0;
+    for(const id of ids){const it=items.find(i=>i.id===id);if(!it)continue;
+      if(ch.category)it.category=ch.category;if(ch.sub)it.sub=ch.sub;if(ch.brand)it.brand=ch.brand;if(ch.platform)it.platform=ch.platform;
+      if(ch.tags)it.tags=[...new Set([...tagList(it),...splitList(ch.tags)])].join(', ');
+      if(ch.compat)it.compat=[...new Set([...compatList(it),...splitList(ch.compat)])].join(', ');
+      if(ch.specs&&Object.keys(ch.specs).length)it.specs=cleanSpecs({...(it.specs||{}),...ch.specs});
+      await put('items',it);n++;}
+    return n;}
+  $('#bkApply').addEventListener('click',async()=>{const v=id=>clean($('#'+id).value);
+    const ch={category:v('bkCat'),sub:v('bkSub'),brand:v('bkBrand'),platform:v('bkPlat'),tags:v('bkTags'),compat:v('bkCompat'),specs:{}};
+    [1,2].forEach(n=>{const k=$('#bkSpec'+n).value,val=v('bkVal'+n);if(k&&val)ch.specs[k]=val;});
+    const what=[ch.category&&'categoría',ch.sub&&'subcategoría',ch.brand&&'marca',ch.platform&&'modelo',ch.tags&&'etiquetas',ch.compat&&'«Aplica a»',Object.keys(ch.specs).length&&'ficha técnica'].filter(Boolean);
+    if(!what.length){setStatus('Rellena al menos un dato.','err');return;}
+    const n=await bulkApply([...sel],ch);closeBulk();selMode=false;sel.clear();render();setStatus(`Cambiado en ${n} ${n===1?'artículo':'artículos'}: ${what.join(', ')}.`);});

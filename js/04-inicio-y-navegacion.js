@@ -3,7 +3,7 @@
   // ---------- botón «atrás» del móvil: vuelve un paso dentro de la app en vez de salir ----------
   const vis=id=>{const e=document.getElementById(id);return e&&!e.hidden;};
   function navDeep(){return vis('linkSheet')||vis('shareSheet')||vis('form')||vis('settings')||vis('addSheet')||!!prodKey||revOpen||navTab!=='home'||selMode||cmpOpen||!!flt.sub||!!flt.cat||allMode||!!flt.q||!!flt.state||space!=='mine';}
-  function navLevel(){return [vis('cpSheet'),vis('addSheet'),vis('linkSheet'),vis('shareSheet'),vis('form'),!!prodKey,revOpen,vis('settings'),selMode,cmpOpen,!!flt.sub,!!flt.fac,!!(flt.cat||allMode),!!(flt.q||flt.state),space!=='mine',navTab==='lists'&&!listHome,navTab==='explore'&&flt.person===ME,navTab!=='home'].filter(Boolean).length;}
+  function navLevel(){return [vis('cpSheet'),vis('bkSheet'),vis('addSheet'),vis('linkSheet'),vis('shareSheet'),vis('form'),!!prodKey,revOpen,vis('settings'),selMode,cmpOpen,!!flt.sub,!!flt.fac,!!(flt.cat||allMode),!!(flt.q||flt.state),space!=='mine',navTab==='lists'&&!listHome,navTab==='explore'&&flt.person===ME,navTab!=='home'].filter(Boolean).length;}
   let hDepth=0;
   function navEnsure(){try{const d=navLevel()+1;while(hDepth<d){history.pushState({cmp:1,d:hDepth+1},'');hDepth++;}}catch(e){}}
   // Cada toque deja las entradas de «atrás» preparadas (con toque, Android no las salta)
@@ -11,6 +11,7 @@
   document.addEventListener('change',()=>setTimeout(navEnsure,0),true);
   function navBack(){
     if(vis('cpSheet')){closeCopy();return true;}
+    if(vis('bkSheet')){closeBulk();return true;}
     if(vis('addSheet')){closeAdd();return true;}
     if(vis('linkSheet')){closeLink();return true;}
     if(vis('shareSheet')){closeShare();return true;}

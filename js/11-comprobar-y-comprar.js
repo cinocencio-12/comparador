@@ -35,7 +35,7 @@
       return{ok:true,msg:`${fullName(it)} (${shopOf(it)}): ${now?'stock: '+now:'la tienda no indica stock'}${back?' · ¡vuelve a haber!':gone?' · se ha agotado':prev&&norm(prev)===norm(now)?' (sin cambios)':''}.`};
     }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
   }
-  $('#checkTop').addEventListener('click',()=>{if(!selMode){if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}prodKey=null;revOpen=false;$('#selModeBtn').click();setStatus('Marca los productos que quieres comprobar y pulsa «Comprobar» abajo.');return;}
+  $('#checkTop').addEventListener('click',()=>{if(!selMode){if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}prodKey=null;if(navTab!=='review')revOpen=false;$('#selModeBtn').click();setStatus('Marca los productos y elige abajo: comparar, comprobar, editar a la vez o vincular.');return;}
     $('#selCheck').click();});
   $('#checkAllBtn').addEventListener('click',async()=>{
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
