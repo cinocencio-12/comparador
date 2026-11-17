@@ -189,7 +189,7 @@
   function openBulk(){const n=sel.size;if(!n)return;
     const opts='<option value="">— ninguno —</option>'+SPECS.map(([k,l])=>`<option value="${k}">${esc(l)}</option>`).join('');
     [1,2].forEach(n=>{$('#bkSpec'+n).innerHTML=opts;bkValField(n);});
-    ['bkCat','bkSub','bkStore','bkBrand','bkPlat','bkTags','bkCompat'].forEach(id=>$('#'+id).value='');$('#bkShip').checked=false;
+    ['bkCat','bkSub','bkStore','bkBrand','bkPlat','bkTags','bkCompat'].forEach(id=>$('#'+id).value='');$('#bkShip').checked=false;['bkShipV','bkFreeV','bkCodeV'].forEach(id=>$('#'+id).value='');$('#bkShipPick').innerHTML='';
     $('#bkStoreList').innerHTML=[...new Set(items.map(i=>clean(i.store)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es')).map(x=>`<option value="${esc(x)}">`).join('');
     $('#bkTitle').textContent=`Editar ${n} ${n===1?'artículo':'artículos'} a la vez`;$('#bkBg').hidden=$('#bkSheet').hidden=false;}
   function closeBulk(){$('#bkBg').hidden=$('#bkSheet').hidden=true;}
@@ -202,13 +202,31 @@
       if(ch.compat)it.compat=[...new Set([...compatList(it),...splitList(ch.compat)])].join(', ');
       if(ch.specs&&Object.keys(ch.specs).length)it.specs=cleanSpecs({...(it.specs||{}),...ch.specs});
       await put('items',it);n++;}
-    if(ch.ship){// para cada tienda de los seleccionados, toma su mejor fuente de portes y rellena lo que falte
-      const shops=new Set(ids.map(id=>items.find(i=>i.id===id)).filter(Boolean).map(shopKey));
-      for(const k of shops){const peers=items.filter(i=>shopKey(i)===k);const src=shopSource(peers)||peers.find(i=>num(i.freeFrom)>0||clean(i.code));if(src)ch.filled=(ch.filled||0)+await storeFill(src,INH_KEYS);}}
+    for(const id of ids){const it=items.find(i=>i.id===id);if(!it)continue;let c=false;
+      const setShip=(k,v)=>{it[k]=v;if(it.orig){it.orig[k]=v;if(k==='shipping'){it.orig.shipCurrency='EUR';it.orig.shipRate=1;}}if(it.inherited){delete it.inherited[k];if(!Object.keys(it.inherited).length)delete it.inherited;}c=true;};
+      if(ch.shipV!=null)setShip('shipping',ch.shipV);if(ch.freeV!=null)setShip('freeFrom',ch.freeV);if(ch.codeV)setShip('code',ch.codeV);
+      if(ch.pick){const src=items.find(x=>x.id===ch.pick[shopKey(it)]);if(src&&src.id!==it.id){
+        const vals={shipping:num(src.shipping),freeFrom:num(src.freeFrom),code:clean(src.code)};
+        for(const k of INH_KEYS){if(!(k==='code'?vals.code:vals[k]>0))continue;if(lacks(it,k)||inh(it,k)){it[k]=vals[k];if(it.orig&&k!=='code'){it.orig[k]=vals[k];if(k==='shipping'){it.orig.shipCurrency='EUR';it.orig.shipRate=1;}}it.inherited={...(it.inherited||{}),[k]:src.id};c=true;}}
+        if(c)ch.filled=(ch.filled||0)+1;}}
+      if(c)await put('items',it);}
     return n;}
   $('#bkApply').addEventListener('click',async()=>{const v=id=>clean($('#'+id).value);
-    const ch={store:v('bkStore'),ship:$('#bkShip').checked,category:v('bkCat'),sub:v('bkSub'),brand:v('bkBrand'),platform:v('bkPlat'),tags:v('bkTags'),compat:v('bkCompat'),specs:{}};
+    const nv=id=>{const x=v(id);return x===''?null:parseIn(x);};
+    const pick={};document.querySelectorAll('#bkShipPick select[data-shop]').forEach(x=>{if(x.value)pick[x.dataset.shop]=x.value;});
+    const ch={store:v('bkStore'),shipV:nv('bkShipV'),freeV:nv('bkFreeV'),codeV:v('bkCodeV'),pick:$('#bkShip').checked&&Object.keys(pick).length?pick:null,category:v('bkCat'),sub:v('bkSub'),brand:v('bkBrand'),platform:v('bkPlat'),tags:v('bkTags'),compat:v('bkCompat'),specs:{}};
     [1,2].forEach(n=>{const k=$('#bkSpec'+n).value,val=v('bkVal'+n);if(k&&val)ch.specs[k]=val;});
-    const what=[ch.store&&'tienda',ch.ship&&'portes de la tienda',ch.category&&'categoría',ch.sub&&'subcategoría',ch.brand&&'marca',ch.platform&&'modelo',ch.tags&&'etiquetas',ch.compat&&'«Aplica a»',Object.keys(ch.specs).length&&'ficha técnica'].filter(Boolean);
+    const what=[ch.store&&'tienda',ch.shipV!=null&&'portes',ch.freeV!=null&&'envío gratis desde',ch.codeV&&'cupón',ch.pick&&'portes copiados de su tienda',ch.category&&'categoría',ch.sub&&'subcategoría',ch.brand&&'marca',ch.platform&&'modelo',ch.tags&&'etiquetas',ch.compat&&'«Aplica a»',Object.keys(ch.specs).length&&'ficha técnica'].filter(Boolean);
     if(!what.length){setStatus('Rellena al menos un dato.','err');return;}
-    const n=await bulkApply([...sel],ch);closeBulk();selMode=false;sel.clear();render();setStatus(`Cambiado en ${n} ${n===1?'artículo':'artículos'}: ${what.join(', ')}.${ch.ship?` Portes rellenados en ${ch.filled||0}.`:''}`);});
+    const n=await bulkApply([...sel],ch);closeBulk();selMode=false;sel.clear();render();setStatus(`Cambiado en ${n} ${n===1?'artículo':'artículos'}: ${what.join(', ')}.${ch.pick?` Copiados en ${ch.filled||0}.`:''}`);});
+
+  // Al marcar «copiar de su tienda»: por cada tienda de los seleccionados, elegir de qué artículo (si hay varios distintos).
+  function bkShipPickDraw(){const box=$('#bkShipPick');if(!$('#bkShip').checked){box.innerHTML='';return;}
+    const selIt=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);const shops=[...new Set(selIt.map(shopKey))];
+    box.innerHTML=shops.map(k=>{const peers=items.filter(i=>shopKey(i)===k&&i.status!=='discarded'&&(num(i.shipping)>0||num(i.freeFrom)>0||clean(i.code)))
+        .sort((a,b)=>(inh(a,'shipping')-inh(b,'shipping'))||((b.checkedAt||b.updatedAt||'')>(a.checkedAt||a.updatedAt||'')?1:-1));
+      const seen=new Set();const opts=peers.filter(i=>{const sig=[num(i.shipping),num(i.freeFrom),clean(i.code)].join('|');if(seen.has(sig))return false;seen.add(sig);return true;});
+      const name=shopOf(selIt.find(i=>shopKey(i)===k));
+      const lbl=i=>[num(i.shipping)>0?eur(num(i.shipping))+' portes':'',num(i.freeFrom)>0?'gratis desde '+eur(num(i.freeFrom)):'',clean(i.code)?'cupón '+clean(i.code):''].filter(Boolean).join(' · ')+` — ${short(fullName(i))}`;
+      return `<div class="f" style="margin-top:6px"><label>${esc(name)}</label>${opts.length?`<select data-shop="${esc(k)}">${opts.length>1?'<option value="">— elige de cuál —</option>':''}${opts.map(i=>`<option value="${i.id}">${esc(lbl(i))}</option>`).join('')}</select>`:'<span class="hint">Ningún artículo de esta tienda tiene portes: escríbelos arriba.</span>'}</div>`;}).join('');}
+  $('#bkShip').addEventListener('change',bkShipPickDraw);

@@ -357,9 +357,25 @@ async def p_misma_tienda(a):
     comprobar(len(set(r)) == 1, f'la misma tienda con nombres distintos no se reconoce: {r}')
     await a.pg.evaluate("()=>{selMode=true;['mt2','mt3'].forEach(id=>sel.add(id));render();}")
     await a.pg.click('#selBulk'); await a.pg.wait_for_timeout(200)
-    await a.pg.fill('#bkStore', 'iGUN Airsoft'); await a.pg.check('#bkShip'); await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(400)
+    await a.pg.fill('#bkStore', 'iGUN Airsoft'); await a.pg.check('#bkShip'); await a.pg.wait_for_timeout(100)
+    await a.pg.select_option('#bkShipPick select', 'mt1')
+    await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(400)
     r = await a.pg.evaluate("['mt2','mt3'].map(id=>{const i=items.find(x=>x.id===id);return [i.store,i.shipping,i.freeFrom]})")
     comprobar(r == [['iGUN Airsoft', 6.9, 150], ['iGUN Airsoft', 6.9, 150]], f'no unifica tienda o no copia portes: {r}')
+    # Portes escritos a mano para varios a la vez, y elegir de cuál copiar si hay varios distintos
+    await a.pg.evaluate("""()=>{items.push({id:'mt4',product:'Otro',store:'iGUN Airsoft',price:9,shipping:4.5,status:'pending',images:[]},{id:'mt5',product:'Nuevo',store:'igunairsoft',price:9,status:'pending',images:[]},
+      {id:'mt6',product:'X',store:'Nadie',price:3,status:'pending',images:[]},{id:'mt7',product:'Y',store:'Nadie',price:4,status:'pending',images:[]});selMode=true;sel.clear();sel.add('mt5');render();}""")
+    await a.pg.click('#selBulk'); await a.pg.wait_for_timeout(200); await a.pg.check('#bkShip'); await a.pg.wait_for_timeout(100)
+    n = await a.pg.evaluate("document.querySelectorAll('#bkShipPick select option[value]:not([value=\"\"])').length")
+    comprobar(n >= 2, f'con dos portes distintos en la tienda no deja elegir: {n}')
+    await a.pg.select_option('#bkShipPick select', 'mt4'); await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(300)
+    comprobar(await a.pg.evaluate("items.find(i=>i.id==='mt5').shipping") == 4.5, 'no copia los portes elegidos')
+    await a.pg.evaluate("()=>{selMode=true;sel.clear();['mt6','mt7'].forEach(id=>sel.add(id));render();}")
+    await a.pg.click('#selBulk'); await a.pg.wait_for_timeout(200); await a.pg.fill('#bkShipV', '5,95'); await a.pg.fill('#bkFreeV', '100')
+    await a.foto('portes-a-la-vez')
+    await a.pg.click('#bkApply'); await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("['mt6','mt7'].map(id=>{const i=items.find(x=>x.id===id);return [i.shipping,i.freeFrom]})")
+    comprobar(r == [[5.95, 100], [5.95, 100]], f'portes a mano para varios mal: {r}')
 
 
 async def p_mantener_y_borrar(a):
@@ -372,6 +388,14 @@ async def p_mantener_y_borrar(a):
     await a.pg.mouse.move(box[0], box[1]); await a.pg.mouse.down(); await a.pg.wait_for_timeout(700); await a.pg.mouse.up(); await a.pg.wait_for_timeout(200)
     r = await a.pg.evaluate("[selMode,sel.has('lp1')]")
     comprobar(r == [True, True], f'mantener pulsado no empieza a seleccionar: {r}')
+    # Sigue donde estaba: no vuelve arriba al empezar a seleccionar
+    await a.pg.evaluate("()=>{for(let i=0;i<30;i++)items.push({id:'lpx'+i,product:'Sin leer · relleno '+i,store:'T',status:'pending',images:[]});selMode=false;sel.clear();render();}")
+    await a.pg.wait_for_timeout(200)
+    box = await a.pg.evaluate("(()=>{const r=document.querySelectorAll('[data-lp]');const el=r[r.length-3];el.scrollIntoView({block:'center'});const b=el.getBoundingClientRect();return [b.x+b.width/2,b.y+b.height/2,window.scrollY]})()")
+    await a.pg.mouse.move(box[0], box[1]); await a.pg.mouse.down(); await a.pg.wait_for_timeout(700); await a.pg.mouse.up(); await a.pg.wait_for_timeout(200)
+    y = await a.pg.evaluate("window.scrollY")
+    comprobar(box[2] > 300 and abs(y - box[2]) < 80, f'al marcar el primero vuelve arriba: antes {box[2]}, después {y}')
+    await a.pg.evaluate("()=>{sel.clear();sel.add('lp1');}")
     await a.pg.evaluate("()=>{sel.add('lp2');render();}")
     await a.pg.click('#selDel'); await a.pg.wait_for_timeout(100)
     comprobar(await a.pg.evaluate("items.some(i=>i.id==='lp1')"), 'borra al primer toque')
