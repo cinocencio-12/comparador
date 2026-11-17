@@ -166,7 +166,7 @@
   function drawSelBar(){
     $('#selBar').hidden=!selMode;$('#homeBtn').hidden=selMode;
     $('#selCount').textContent=`${sel.size} ${sel.size===1?'seleccionado':'seleccionados'}`;
-    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selBulk').disabled=!sel.size;$('#selBulk').textContent=sel.size?`Editar ${sel.size} a la vez`:'Editar a la vez';$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
+    $('#selCompare').disabled=sel.size<2;$('#selJoin').disabled=sel.size<2;$('#selCheck').disabled=!sel.size;$('#selBulk').disabled=!sel.size;$('#selDel').disabled=!sel.size;if(!$('#selDel').classList.contains('armed'))$('#selDel').textContent=sel.size?`Borrar ${sel.size}`:'Borrar';$('#selBulk').textContent=sel.size?`Editar ${sel.size} a la vez`:'Editar a la vez';$('#selCheck').textContent=sel.size?`Comprobar ${sel.size}`:'Comprobar precio';
     $('#selModeBtn').textContent=selMode?'Salir de seleccionar':'Seleccionar para comparar o vincular';
   }
   function compareTable(){
@@ -210,3 +210,23 @@
   document.addEventListener('change',e=>{const c=e.target.closest('input[data-sel]');if(!c)return;if(c.checked)sel.add(c.dataset.sel);else sel.delete(c.dataset.sel);
     c.closest('.offer')&&c.closest('.offer').classList.toggle('sel',c.checked);drawSelBar();if(cmpOpen)render();});
 
+
+  // ---------- borrar los seleccionados (dos toques) y mantener pulsado para empezar a seleccionar ----------
+  let selDelT=null;
+  $('#selDel').addEventListener('click',async()=>{const b=$('#selDel');if(!sel.size)return;
+    if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent=`¿Borrar ${sel.size}? Pulsa otra vez`;clearTimeout(selDelT);selDelT=setTimeout(()=>{b.classList.remove('armed');drawSelBar();},4000);return;}
+    clearTimeout(selDelT);b.classList.remove('armed');const ids=[...sel];
+    for(const id of ids){for(const a of items.filter(a=>a.status==='alt'&&a.altOf===id)){a.status='discarded';a.discardedAt=new Date().toISOString();a.discardReason='alternativa de una compra borrada';await put('items',a);}
+      await del('items',id);}
+    items=items.filter(i=>!ids.includes(i.id));selMode=false;sel.clear();render();setStatus(`Borrados ${ids.length} ${ids.length===1?'artículo':'artículos'}.`);});
+  // Mantener pulsado un artículo (0,5 s) → entra en modo seleccionar con ese artículo marcado.
+  {let lpT=null,lpX=0,lpY=0,lpFired=false;
+    const idsOf=el=>{const r=el.closest('[data-lp]');if(r)return [r.dataset.lp];const s=el.closest('[data-sel]');if(s)return [s.dataset.sel];
+      const o=el.closest('[data-open]');if(o){const k=o.dataset.open;return items.filter(i=>key(groupName(i))===k&&(i.status||'pending')==='pending').map(i=>i.id);}return [];};
+    document.addEventListener('pointerdown',e=>{lpFired=false;if(e.button>0||e.target.closest('input,select,textarea,a,#selBar'))return;const ids=idsOf(e.target);if(!ids.length)return;lpFired=false;lpX=e.clientX;lpY=e.clientY;
+      clearTimeout(lpT);lpT=setTimeout(()=>{lpFired=true;setTimeout(()=>{lpFired=false;},800);if(!selMode){selMode=true;if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}}const all=ids.every(id=>sel.has(id));ids.forEach(id=>all?sel.delete(id):sel.add(id));
+        try{navigator.vibrate&&navigator.vibrate(30);}catch(_){}render();},500);});
+    const cancel=e=>{if(lpT&&(e.type!=='pointermove'||Math.hypot(e.clientX-lpX,e.clientY-lpY)>10)){clearTimeout(lpT);lpT=null;}};
+    ['pointerup','pointercancel','pointermove'].forEach(t=>document.addEventListener(t,cancel,{passive:true}));
+    document.addEventListener('click',e=>{if(lpFired){lpFired=false;e.preventDefault();e.stopPropagation();}},true);
+    document.addEventListener('contextmenu',e=>{if(idsOf(e.target).length)e.preventDefault();});}

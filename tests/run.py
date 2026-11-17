@@ -362,6 +362,23 @@ async def p_misma_tienda(a):
     comprobar(r == [['iGUN Airsoft', 6.9, 150], ['iGUN Airsoft', 6.9, 150]], f'no unifica tienda o no copia portes: {r}')
 
 
+async def p_mantener_y_borrar(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{items.push({id:'lp1',product:'Sin leer · prueba 1',store:'Amzn',status:'pending',images:[]},{id:'lp2',product:'Sin leer · prueba 2',store:'Amazon',status:'pending',images:[]});}""")
+    await a.pg.click('[data-nav=review]'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.querySelector('[data-rv]')&&document.querySelector('[data-rv]').click()"); await a.pg.wait_for_timeout(300)
+    box = await a.pg.evaluate("(()=>{const r=document.querySelector('[data-lp=lp1]');if(!r)return null;r.scrollIntoView({block:'center'});const b=r.getBoundingClientRect();return [b.x+b.width/2,b.y+b.height/2]})()")
+    comprobar(box is not None, 'la fila de Revisión no se puede mantener pulsada')
+    await a.pg.mouse.move(box[0], box[1]); await a.pg.mouse.down(); await a.pg.wait_for_timeout(700); await a.pg.mouse.up(); await a.pg.wait_for_timeout(200)
+    r = await a.pg.evaluate("[selMode,sel.has('lp1')]")
+    comprobar(r == [True, True], f'mantener pulsado no empieza a seleccionar: {r}')
+    await a.pg.evaluate("()=>{sel.add('lp2');render();}")
+    await a.pg.click('#selDel'); await a.pg.wait_for_timeout(100)
+    comprobar(await a.pg.evaluate("items.some(i=>i.id==='lp1')"), 'borra al primer toque')
+    await a.pg.click('#selDel'); await a.pg.wait_for_timeout(400)
+    comprobar(await a.pg.evaluate("!items.some(i=>i.id==='lp1'||i.id==='lp2')"), 'no borra los seleccionados')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

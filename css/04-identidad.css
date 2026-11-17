@@ -136,3 +136,6 @@ body.nav-home .hello{display:block}
 #specGrid .spchip{display:inline-flex!important;align-items:center;gap:6px;padding:6px 12px!important;min-height:0!important;width:auto!important;margin:0!important;text-align:left;line-height:1.2;white-space:nowrap;border-radius:999px}
 #specGrid .spchip input{width:16px!important;height:16px!important;min-height:0!important;padding:0!important;margin:0!important;flex:none}
 #specGrid .spchip span{padding:0!important}
+/* Mantener pulsado para seleccionar: sin menú ni selección de texto del sistema */
+.rvrow,.ccard,[data-open]{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.rvrow .rvsel{margin-bottom:6px}
