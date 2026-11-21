@@ -102,3 +102,39 @@
   function shopsOthers(usedKeys){const rest=Object.keys(shops).filter(k=>shopRecK(k)&&!usedKeys.has(k)).sort((a,b)=>(shops[a].name||a).localeCompare(shops[b].name||b,'es'));
     return `<div class="actions" style="margin:14px 0 8px"><button class="btn small primary" type="button" id="shopNew">+ Nueva tienda</button></div>${rest.length?`<h3 style="margin:10px 0 6px">Otras tiendas guardadas</h3><div class="list">${rest.map(k=>{const r=shops[k];const u=safeUrl(r.url);
       return `<article class="product"><header><h3>${esc(r.name||k)}</h3><button class="btn small" type="button" data-shopcard="${esc(k)}">Ficha de la tienda</button></header><div style="padding:0 14px 12px">${shopChips(k)}${u?`<a class="btn small" style="margin-top:8px" href="${esc(u)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</div></article>`;}).join('')}</div>`:''}`;}
+
+  // ---------- Sugerencias: el valor más repetido entre los artículos de la tienda ----------
+  // Para portes, envío gratis, cupón, país e IVA: cuenta los valores que tienen sus artículos (no los copiados) y propone el mayoritario
+  // a los que no lo tienen (se guarda en la ficha de la tienda) o a todos (además cambia el dato de los que tienen otro).
+  const SUG_F=[['shipping','Portes',i=>num(i.shipping)>0&&!inh(i,'shipping')?String(Math.round(num(i.shipping)*100)/100):'',v=>eur(+v)],
+    ['freeFrom','Envío gratis desde',i=>num(i.freeFrom)>0&&!inh(i,'freeFrom')?String(Math.round(num(i.freeFrom)*100)/100):'',v=>eur(+v)],
+    ['code','Cupón',i=>!inh(i,'code')?clean(i.code):'',v=>v],
+    ['country','País',i=>clean(i.country).toUpperCase(),v=>(SHOP_COUNTRIES.find(x=>x[0]===v)||[0,v])[1]],
+    ['vat','Precios',i=>i.vatExcl?'no':'',v=>v==='no'?'sin IVA':'con IVA']];
+  function shopSuggest(k){const list=items.filter(i=>shopKey(i)===k&&i.status!=='discarded'&&!isUnread(i));if(list.length<2)return [];const r=shopRecK(k)||{};const out=[];
+    for(const [f,label,get,show] of SUG_F){const cnt=new Map();list.forEach(i=>{const v=get(i);if(v)cnt.set(v,(cnt.get(v)||0)+1);});if(!cnt.size)continue;
+      const [val,n]=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0];
+      if(f==='vat'&&n<list.length/2)continue;
+      const cur=f==='shipping'||f==='freeFrom'?(num(r[f])>0?String(Math.round(num(r[f])*100)/100):''):clean(r[f]||'');
+      const missing=list.filter(i=>!get(i)&&!(f==='code'&&clean(i.code))).length,other=list.filter(i=>get(i)&&get(i)!==val).length;
+      if(cur===val&&!other)continue;if(!missing&&!other&&cur)continue;
+      out.push({f,label,val,txt:show(val),n,total:list.length,missing,other,cur:cur?show(cur):'',alts:[...cnt.entries()].filter(e=>e[0]!==val).map(e=>`${show(e[0])} (${e[1]})`)});}
+    return out;}
+  function sugHtml(k){const s=shopSuggest(k);if(!s.length)return '';
+    return `<div class="notes" style="margin:0 14px 10px;display:block"><b>Datos comunes de sus artículos</b>${s.map(x=>`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px">
+      <span style="flex:1;min-width:180px">${esc(x.label)}: <b>${esc(x.txt)}</b> en ${x.n} de ${x.total}${x.alts.length?` · otros: ${esc(x.alts.join(', '))}`:''}${x.cur&&x.cur!==x.txt?` · la ficha dice ${esc(x.cur)}`:''}</span>
+      ${x.missing||!x.cur?`<button class="btn small primary" type="button" data-sugfill="${esc(k)}|${x.f}">Aplicar a ${x.missing?`los ${x.missing} sin dato`:'la tienda'}</button>`:''}
+      ${x.other?`<button class="btn small" type="button" data-sugall="${esc(k)}|${x.f}">Aplicar a todos (${x.total})</button>`:''}</div>`).join('')}</div>`;}
+  async function sugApply(k,f,all){const x=shopSuggest(k).find(s=>s.f===f);if(!x)return;
+    const patch={[f]:f==='shipping'||f==='freeFrom'?numIn(+x.val):x.val};await shopSave(k,patch);let ch=0;
+    if(all)for(const i of items.filter(i=>shopKey(i)===k&&i.status!=='discarded')){
+      if(f==='vat'){if(!i.vatExcl){i.vatExcl=true;ch++;await put('items',i);}continue;}
+      if(f==='country'){if(clean(i.country).toUpperCase()!==x.val){i.country=x.val;ch++;await put('items',i);}continue;}
+      const nv=f==='code'?x.val:+x.val;const has=f==='code'?clean(i.code):num(i[f])>0;
+      if(has&&String(f==='code'?clean(i[f]):Math.round(num(i[f])*100)/100)!==String(f==='code'?nv:Math.round(nv*100)/100)){i[f]=nv;if(i.orig&&f!=='code'){i.orig[f]=nv;if(f==='shipping'){i.orig.shipCurrency='EUR';i.orig.shipRate=1;}}if(i.inherited)delete i.inherited[f];ch++;await put('items',i);}}
+    render();setStatus(`${x.label}: ${x.txt} guardado en la ficha de ${(shopRecK(k)||{}).name||k}${all?` y cambiado en ${ch} ${ch===1?'artículo':'artículos'} que tenían otro valor`:`; vale para los ${x.missing} que no lo tenían`}.`);}
+  document.addEventListener('click',async e=>{const b=e.target.closest('[data-sugfill],[data-sugall]');if(!b)return;const all=!!b.dataset.sugall;const [k,f]=(b.dataset.sugfill||b.dataset.sugall).split('|');
+    if(all&&!b.classList.contains('armed')){b.classList.add('armed');const t=b.textContent;b.textContent='¿Cambiar también los que tienen otro? Pulsa otra vez';setTimeout(()=>{b.classList.remove('armed');b.textContent=t;},4000);return;}
+    b.disabled=true;await sugApply(k,f,all);});
+  // Cuántas tiendas tienen sugerencias (para el aviso de arriba de «Tiendas»).
+  const sugCount=()=>[...new Set(items.filter(i=>i.status!=='discarded').map(shopKey))].filter(k=>k&&shopSuggest(k).some(x=>x.missing||!x.cur)).length;

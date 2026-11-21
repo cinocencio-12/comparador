@@ -55,3 +55,4 @@
 - Portes, envío gratis, IVA, país y «no envía» de la tienda valen para todos sus artículos que no tengan su propio dato (`shipOf`, `freeOf`, `hasShipInfo`, `vatExclOf`; el del artículo manda). Así deja de faltar «envío» en Revisión.
 - Se guarda en localStorage `shops` y, con sesión, en `profiles/{uid}.shops` (merge por tienda, gana `updatedAt`); sin cambiar reglas de Firestore. Ojo: el perfil lo leen las personas con las que se comparte.
 - Pestaña «Tiendas» (antes «Por tienda») en Explorar: chips con la ficha, botón «Ficha de la tienda», «+ Nueva tienda» y «Otras tiendas guardadas».
+- Sugerencias en «Tiendas» (`shopSuggest`): para portes, envío gratis, cupón, país e IVA cuenta los valores de sus artículos (no los copiados) y propone el mayoritario («6,90 € en 2 de 5 · otros: 4,50 € (1)»). «Aplicar a los N sin dato» lo guarda en la ficha de la tienda; «Aplicar a todos» (doble toque) además cambia los artículos que tenían otro valor.

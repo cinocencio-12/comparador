@@ -455,6 +455,23 @@ async def p_tiendas(a):
     comprobar(await a.n('[data-shopcard=tiendanueva]') == 1, 'una tienda sin artículos no aparece en Tiendas')
 
 
+async def p_tiendas_sugerencias(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{const b={status:'pending',images:[],store:'Sug Shop',category:'Vainas'};
+      items.push({...b,id:'sg1',product:'A',price:10,shipping:6.9},{...b,id:'sg2',product:'B',price:11,shipping:6.9,freeFrom:100},{...b,id:'sg3',product:'C',price:12,shipping:4.5},
+                 {...b,id:'sg4',product:'D',price:13},{...b,id:'sg5',product:'E',price:14});render();}""")
+    s = await a.pg.evaluate("shopSuggest('sugshop').map(x=>[x.f,x.val,x.n,x.missing,x.other])")
+    comprobar(['shipping', '6.9', 2, 2, 1] in s, f'no propone el valor mayoritario de portes: {s}')
+    await a.pg.click('[data-nav=explore]'); await a.pg.wait_for_timeout(200); await a.pg.click('#tab-shops'); await a.pg.wait_for_timeout(300)
+    await a.pg.evaluate("document.querySelector('[data-sugfill=\"sugshop|shipping\"]').scrollIntoView({block:'center'})")
+    await a.foto('tiendas-sugerencias')
+    await a.pg.click('[data-sugfill="sugshop|shipping"]'); await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("['sg3','sg4'].map(id=>calc(items.find(i=>i.id===id)).ship)")
+    comprobar(r == [4.5, 6.9], f'«aplicar a los sin dato» mal (el que tiene otro valor no se toca): {r}')
+    await a.pg.click('[data-sugall="sugshop|shipping"]'); await a.pg.wait_for_timeout(100); await a.pg.click('[data-sugall="sugshop|shipping"]'); await a.pg.wait_for_timeout(300)
+    comprobar(await a.pg.evaluate("items.find(i=>i.id==='sg3').shipping") == 6.9, '«aplicar a todos» no cambia el que tenía otro valor')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

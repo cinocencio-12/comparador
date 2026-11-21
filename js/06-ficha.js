@@ -233,13 +233,14 @@
         const v=base*c.vat/100,b=fx?base*c.bank/100:0;imp=v+c.fee+b;impTxt=`⚠ Fuera de la UE · importación estimada: ${eur(v)} IVA + ${eur(c.fee)} aduana${b?` + ${eur(b)} banco`:''} = ${eur(imp)}`;}
       return{...sh,sub,ship,free,shipNow,imp,impTxt,total:sub+shipNow+imp};
     }).sort((a,b)=>b.list.length-a.list.length||a.name.localeCompare(b.name,'es'));
-    return `<div class="list">${shops.map(sh=>{
+    const nSug=sugCount();
+    return `${nSug?`<div class="notes" style="margin-bottom:10px"><b>${nSug} ${nSug===1?'tienda tiene':'tiendas tienen'} datos comunes</b> que puedes aplicar a los artículos a los que les faltan: míralos en el recuadro de cada tienda.</div>`:''}<div class="list">${shops.map(sh=>{
       const url=sh.list.map(i=>safeUrl(i.url)).find(Boolean);
       let shipTxt=sh.shipNow===0?(sh.ship>0||sh.free>0?'Envío gratis':'Envío: sin dato'):`Envío ${eur(sh.shipNow)}`;
       const left=sh.free>0&&sh.sub<sh.free?`<div class="notes">Te faltan <b>${eur(sh.free-sh.sub)}</b> para el envío gratis (desde ${eur(sh.free)}).</div>`:'';
       const rS=shopRecK(sh.k);const srcS=rS&&(num(rS.shipping)>0||num(rS.freeFrom)>0||rS.freeAlways==='1')?null:shopSource(sh.list);const missN=srcS?sh.list.filter(i=>i!==srcS&&INH_KEYS.some(k=>lacks(i,k))).length:0;
       const fillBtn=missN?`<div class="notes" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${missN} sin portes o cupón.<button class="btn small" type="button" data-shopfill="${srcS.id}">Copiar de ${esc(fullName(srcS)).slice(0,30)}</button></div>`:'';
-      return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span><button class="btn small" type="button" data-shopcard="${esc(sh.k)}">Ficha de la tienda</button></header><div style="padding:0 14px 10px">${shopChips(sh.k)}</div>${fillBtn}
+      return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span><button class="btn small" type="button" data-shopcard="${esc(sh.k)}">Ficha de la tienda</button></header><div style="padding:0 14px 10px">${shopChips(sh.k)}</div>${sugHtml(sh.k)||fillBtn}
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
             ${missingList(i).length?`<div class="meta" style="color:var(--danger);font-weight:700">Falta: ${missingList(i).map(x=>x[0]).join(', ')}</div>`:''}
