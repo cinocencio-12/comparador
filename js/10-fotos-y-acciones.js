@@ -110,6 +110,7 @@
     else{const it={id:uid(),...d,images:formImgs,status:'pending',createdAt:new Date().toISOString()};await put('items',it);items.push(it);}
     // «No envía» es de la tienda: al desmarcarlo se quita de todos sus artículos.
     let shipMsg='';{const sh=shopKeyName(d.store||hostOf(d.url||''));if(sh){const same=items.filter(i=>shopKey(i)===sh);
+      const r=shopRecK(sh);if(d.noShip&&r&&r.ships!=='no')await shopSave(sh,{ships:'no'});if(!d.noShip&&r&&r.ships==='no')await shopSave(sh,{ships:''});
       if(!d.noShip){for(const i of same)if(i.noShip){i.noShip=false;await put('items',i);}}else shipMsg=` ${shopOf(same[0]||d)} marcada como «no envía» (${same.length} ${same.length===1?'artículo':'artículos'}): no cuenta como mejor precio.`;}}
     closeForm();try{await scanPhotos();}catch(err){}render();setStatus('Guardado.'+shipMsg);
   });

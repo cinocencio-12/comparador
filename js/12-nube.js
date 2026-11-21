@@ -61,7 +61,8 @@
     if(pending.size){clearTimeout(pendTimer);pendTimer=setTimeout(flush,15000);}
   }
   window.__cloud=null;
-  const cloudApi={put(v){if(!me)return;pending.set(v.id,'put');setSync('☁ Guardando…');clearTimeout(pendTimer);pendTimer=setTimeout(flush,700);},
+  const cloudApi={saveShop(k,rec){if(!me)return;fs.collection('profiles').doc(me.uid).set({shops:{[k]:rec}},{merge:true}).catch(e=>console.warn('tienda',e));},
+    put(v){if(!me)return;pending.set(v.id,'put');setSync('☁ Guardando…');clearTimeout(pendTimer);pendTimer=setTimeout(flush,700);},
     del(id){if(!me)return;pending.set(id,'del');clearTimeout(pendTimer);pendTimer=setTimeout(flush,700);}};
 
   // Convierte un documento de la nube en producto, con las fotos que ya estén en el móvil.
@@ -143,7 +144,7 @@
   async function saveProfile(){
     if(!me)return;profile.contacts=(profile.contacts||[]).filter(c=>c.name||c.email);
     await fs.collection('profiles').doc(me.uid).set({email:lc(me.email),name:me.displayName||me.email,contacts:profile.contacts,
-      sharedWith:[...new Set(profile.contacts.map(c=>lc(c.email)).filter(Boolean))],defShare:profile.defShare||[]});
+      sharedWith:[...new Set(profile.contacts.map(c=>lc(c.email)).filter(Boolean))],defShare:profile.defShare||[]},{merge:true});
     for(const it of items)if((it.shareWith||[]).length)cloudApi.put(it); // recalcula a quién se ve
   }
   function drawContacts(){
@@ -253,16 +254,20 @@
   async function onLogin(user){
     me=user;window.__cloud=cloudApi;drawAuth();
     const owner=ls.get('cloudOwner','');
-    if(owner&&owner!==me.uid){items=[];for(const i of await getAll('items'))await delLocal('items',i.id);}
+    if(owner&&owner!==me.uid){items=[];for(const i of await getAll('items'))await delLocal('items',i.id);shops={};shopsSaveLocal();}
     else if(!owner){for(const it of items){if(!it.updatedAt)it.updatedAt=Date.now();cloudApi.put(it);}} // primera vez: sube lo que había en este dispositivo
     ls.set('cloudOwner',me.uid);
     try{const p=await fs.collection('profiles').doc(me.uid).get();profile=p.exists?{contacts:[],defShare:[],...p.data()}:{contacts:[],defShare:[]};
-      if(!p.exists)await saveProfile();}catch(e){}
+      if(!p.exists)await saveProfile();
+      // Fichas de tiendas: se mezclan (gana lo más reciente) y se sube lo que solo estaba en este dispositivo.
+      shopsMerge(profile.shops);const up={};for(const [k,r] of Object.entries(shops)){const c=(profile.shops||{})[k];if(!c||(r.updatedAt||0)>(c.updatedAt||0))up[k]=r;}
+      if(Object.keys(up).length)await fs.collection('profiles').doc(me.uid).set({shops:up},{merge:true});
+      unsubs.push(fs.collection('profiles').doc(me.uid).onSnapshot(d=>{if(d.exists&&shopsMerge((d.data()||{}).shops))render();}));}catch(e){}
     drawContacts();listenMine();listenShared();listenMyResv();render();
   }
   async function onLogout(){
     unsubs.forEach(u=>{try{u();}catch(e){}});unsubs=[];for(const o of sharedOwners.values())o.unsub&&o.unsub();sharedOwners.clear();
-    me=null;window.__cloud=null;$('#tab-shared').hidden=true;
+    me=null;window.__cloud=null;$('#tab-shared').hidden=true;shops={};shopsSaveLocal();
     // Al salir se borra la copia de este dispositivo (sigue en la nube).
     for(const i of await getAll('items'))await delLocal('items',i.id);items=[];ls.set('cloudOwner','');
     try{indexedDB.deleteDatabase('comparador-img');}catch(e){}

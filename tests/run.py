@@ -426,6 +426,35 @@ async def p_seguridad_xss(a):
     comprobar(r == [0, 0, 0], f'se ha podido inyectar código: {r}')
 
 
+async def p_tiendas(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{items.push({id:'td1',product:'Luger',store:'iGUN Airsoft',price:200,status:'pending',images:[],category:'Pistolas'},
+      {id:'td2',product:'Vainas',store:'Igunairsoft',price:20,status:'pending',images:[],category:'Vainas'},
+      {id:'td3',product:'Propio',store:'iGUN Airsoft',price:30,shipping:3,status:'pending',images:[],category:'Vainas'});render();}""")
+    comprobar(await a.pg.evaluate("missingList(items.find(i=>i.id==='td2')).some(m=>m[0]==='envío')"), 'sin ficha debería faltar el envío')
+    await a.pg.click('[data-nav=explore]'); await a.pg.wait_for_timeout(200); await a.pg.click('#tab-shops'); await a.pg.wait_for_timeout(300)
+    await a.pg.click('[data-shopcard=igunairsoft]'); await a.pg.wait_for_timeout(200)
+    await a.pg.fill('#td_shipping', '5,95'); await a.pg.fill('#td_freeFrom', '150'); await a.pg.fill('#td_phone', '600 000 000')
+    await a.pg.select_option('#td_rating', '5'); await a.pg.fill('#td_people', 'Toni, el de las Luger')
+    await a.foto('tienda-ficha')
+    await a.pg.click('#tdSave'); await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("['td1','td2','td3'].map(id=>calc(items.find(i=>i.id===id)).total)")
+    comprobar(abs(r[0]-200) < 0.01 and abs(r[1]-25.95) < 0.01 and abs(r[2]-33) < 0.01, f'los portes de la tienda no se aplican bien (el del artículo manda; gratis desde 150): {r}')
+    comprobar(await a.pg.evaluate("!missingList(items.find(i=>i.id==='td2')).some(m=>m[0]==='envío')"), 'con ficha de tienda sigue faltando el envío')
+    comprobar(await a.pg.evaluate("JSON.parse(localStorage.getItem('shops')).igunairsoft.people") == 'Toni, el de las Luger', 'no se guarda la ficha')
+    await a.foto('tiendas')
+    # No envía, sin IVA y país de fuera de la UE desde la ficha
+    await a.pg.evaluate("shopSave('igunairsoft',{ships:'no',vat:'no'})")
+    r = await a.pg.evaluate("[canBuy(items.find(i=>i.id==='td2')), calc(items.find(i=>i.id==='td2')).vatAdd>0]")
+    comprobar(r == [False, True], f'«no envía» o «sin IVA» de la tienda no se aplican: {r}')
+    await a.pg.evaluate("shopSave('igunairsoft',{ships:'si',country:'TW'})")
+    r = await a.pg.evaluate("[canBuy(items.find(i=>i.id==='td2')), outsideEU(items.find(i=>i.id==='td2'))]")
+    comprobar(r == [True, True], f'país de la tienda o «sí envía» mal: {r}')
+    # Nueva tienda sin artículos sale en «Otras tiendas guardadas»
+    await a.pg.evaluate("()=>{shopSave('tiendanueva',{name:'Tienda Nueva',rating:'4'});render();}"); await a.pg.wait_for_timeout(200)
+    comprobar(await a.n('[data-shopcard=tiendanueva]') == 1, 'una tienda sin artículos no aparece en Tiendas')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

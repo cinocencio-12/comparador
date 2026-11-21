@@ -25,7 +25,7 @@
     const shops=new Map();P.forEach(i=>{const s=shopKey(i);if(!shops.has(s))shops.set(s,[]);shops.get(s).push(i);});
     const tips=[];
     shops.forEach(list=>{
-      const F=Math.max(...list.map(i=>num(i.freeFrom)));const C=Math.max(...list.map(i=>num(i.shipping)));if(!(F>0&&C>0))return;
+      const F=Math.max(...list.map(freeOf));const C=Math.max(...list.map(shipOf));if(!(F>0&&C>0))return;
       const basket=list.filter(i=>best.get(key(groupName(i)))===i);if(!basket.length)return;
       const sum=basket.reduce((s,i)=>s+calc(i).after,0);if(sum>=F)return;
       const falta=F-sum;

@@ -10,17 +10,19 @@
   function outsideEU(it){
     // Regla: si el precio o el envío están en una moneda que no es el euro, se considera fuera de la UE.
     if(it.orig&&((it.orig.currency&&it.orig.currency!=='EUR')||(it.orig.shipCurrency&&it.orig.shipCurrency!=='EUR')))return true;
+    // País de la ficha de la tienda: si es de fuera de la UE, manda.
+    {const s=typeof shopRec==='function'&&shopRec(it);const c=s&&clean(s.country).toUpperCase();if(c&&c!=='XX'&&!EU.has(c))return true;if(c&&c!=='XX'&&typeof it.outsideEU!=='boolean')return false;}
     if(typeof it.outsideEU==='boolean')return it.outsideEU;
     const c=clean(it.country).toUpperCase();if(c)return !EU.has(c);
     let h='';try{h=new URL(it.url).hostname;}catch(e){}
     return /\.(tw|jp|hk|cn|us|uk|ch|no|au|ca|kr|sg|com\.tw|co\.jp|co\.uk|com\.hk|com\.cn|com\.au)$/.test(h);
   }
-  function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=num(it.freeFrom);const ship=(free>0&&after>=free)?0:num(it.shipping);
+  function calc(it){const price=num(it.price),d=num(it.discount);const disc=it.discountType==='pct'?price*Math.min(d,100)/100:Math.min(d,price);const after=price-disc;const free=freeOf(it);const ship=(free>0&&after>=free)?0:shipOf(it);
     const base=after+ship;let imp=0,impVat=0,impFee=0,impBank=0;const out=outsideEU(it);
     if(out&&after>0){const c=impCfg();impVat=base*c.vat/100;impFee=c.fee;impBank=foreignCur(it)?base*c.bank/100:0;imp=impVat+impFee+impBank;}
     // Precio sin IVA en tienda de la UE: se paga el IVA de destino (España, el de Ajustes). Fuera de la UE ya lo suma la importación.
-    const vatAdd=it.vatExcl&&!out&&after>0?base*impCfg().vat/100:0;
-    return{price,disc,after,ship,shipWaived:free>0&&after>=free&&num(it.shipping)>0,base,imp,impVat,impFee,impBank,out,vatAdd,total:base+imp+vatAdd};}
+    const vatAdd=vatExclOf(it)&&!out&&after>0?base*impCfg().vat/100:0;
+    return{price,disc,after,ship,shipWaived:free>0&&after>=free&&shipOf(it)>0,base,imp,impVat,impFee,impBank,out,vatAdd,total:base+imp+vatAdd};}
   const impLine=(c)=>(c.vatAdd?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">Precio sin IVA · se suma el IVA (${fmtNum(impCfg().vat,0)} %): +${eur(c.vatAdd)} · ya incluido en el total</div>`:'')+(c.out&&c.imp?`<div class="miss" style="border-color:var(--tag);color:var(--fg)">⚠ Fuera de la UE · posible importación (estimado): +${eur(c.impVat)} IVA${c.impFee?` + ${eur(c.impFee)} aduana`:''}${c.impBank?` + ${eur(c.impBank)} banco`:''} = <b>${eur(c.imp)}</b> · ya incluido en el total</div>`:'');
   const fullName=it=>[clean(it.product),clean(it.variant)].filter(Boolean).join(' · ');
   const groupName=it=>clean(it.group)||fullName(it)||'Sin nombre';
@@ -54,7 +56,7 @@
   const allPeople=()=>{const m=new Map();items.forEach(i=>peopleList(i).forEach(p=>{const k=norm(p);if(!m.has(k))m.set(k,p);}));return [...m.values()].sort((a,b)=>a.localeCompare(b,'es'));};
   const isUnread=it=>/^Sin leer/.test(it.product||'')||!(num(it.price)>0);
   // «Esta tienda no envía»: basta con que un artículo de la tienda lo tenga marcado (así los nuevos de esa tienda también cuentan).
-  const shipBlocked=o=>{const s=shopKey(o);return !!s&&items.some(i=>i.noShip&&shopKey(i)===s);};
+  const shipBlocked=o=>{const s=shopKey(o);if(!s)return false;const r=typeof shopRecK==='function'&&shopRecK(s);if(r&&r.ships==='no')return true;if(r&&r.ships==='si')return false;return items.some(i=>i.noShip&&shopKey(i)===s);};
   const canBuy=o=>!isUnread(o)&&!shipBlocked(o);
   const byBuyable=(a,b)=>(shipBlocked(a)-shipBlocked(b))||calc(a).total-calc(b).total;
   const APPLY_DEF=['Todos','Pistola','Revólver','Escopeta','Rifle','Sniper','Subfusil','M4','AK','M870','Glock','USP','Hi-Capa','1911','Striker'];
@@ -69,7 +71,7 @@
   function stateOk(it){
     if(!flt.state)return true;
     if(flt.state==='nophoto')return !(it.images||[]).length||noPhoto.has(it.id);
-    if(flt.state==='missing')return isUnread(it)||!!it.incomplete||!(num(it.shipping)>0||num(it.freeFrom)>0);
+    if(flt.state==='missing')return isUnread(it)||!!it.incomplete||!hasShipInfo(it);
     if(flt.state==='nocat')return !clean(it.category)||/^otros$/i.test(clean(it.category));
     if(flt.state==='out')return /agotad|sin stock|no disponible/.test(norm(it.availability));
     if(flt.state==='rising')return trendInfo(it).rising;
@@ -178,7 +180,7 @@
       ${row('Producto',i=>`<b>${esc(i.product)}</b>${i.variant?`<br><span class="chip var">${esc(i.variant)}</span>`:''}`)}
       ${row('Tienda',i=>safeUrl(i.url)?`<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(shopOf(i))}</a>`:esc(shopOf(i)))}
       ${row('Precio',i=>`<span class="${calc(i).after<=minP+0.001?'win':''}">${eur(calc(i).after)}</span>`)}
-      ${row('Portes',i=>{const c=calc(i);return c.ship>0?eur(c.ship):(c.shipWaived||num(i.freeFrom)>0?'gratis':'sin dato');})}
+      ${row('Portes',i=>{const c=calc(i);return c.ship>0?eur(c.ship):(c.shipWaived||freeOf(i)>0||hasShipInfo(i)?'gratis':'sin dato');})}
       ${row('Total',i=>`<span class="${calc(i).total<=minT+0.001?'win':''}">${eur(calc(i).total)}</span>`)}
       ${row('Stock',i=>availChip(i)||'—')}
       ${row('Marca',i=>esc(i.brand||'—'))}

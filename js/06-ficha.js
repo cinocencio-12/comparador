@@ -8,7 +8,7 @@
   function closeProd(){prodKey=null;render();setTimeout(()=>window.scrollTo({top:prodPrev.y}),0);}
   function prodItems(){if(!prodKey)return [];let src=items;try{if(space!=='mine'&&sharedOwners.get(space))src=[...sharedOwners.get(space).items.values()];}catch(e){}
     return src.filter(i=>key(groupName(i))===prodKey);}
-  function costLbl(o){if(isUnread(o)||!(num(o.price)>0))return ['incompleto','est'];const noShip=!(num(o.shipping)>0)&&!(num(o.freeFrom)>0)&&!/gratis|free/i.test(o.notes||'');
+  function costLbl(o){if(isUnread(o)||!(num(o.price)>0))return ['incompleto','est'];const noShip=!hasShipInfo(o);
     if(noShip)return ['sin portes','est'];if(inh(o,'shipping')||inh(o,'freeFrom'))return ['portes supuestos','est'];if(outsideEU(o))return ['total estimado','est'];return ['coste total conocido',''];}
   function renderProd(){
     const all=prodItems();if(!all.length){prodKey=null;return renderCompare(groups('pending'));}
@@ -108,7 +108,7 @@
   // Datos que le faltan a un producto. Cada uno lleva el campo del formulario donde se rellena.
   function missingList(it){const m=[];
     if(!(num(it.price)>0))m.push(['precio','fPrice']);
-    if(!(num(it.shipping)>0)&&!(num(it.freeFrom)>0)&&!/gratis|free/i.test(it.notes||''))m.push(['envío','fShip']);
+    if(!hasShipInfo(it))m.push(['envío','fShip']);
     if(!clean(it.category)||/^otros$/i.test(clean(it.category)))m.push(['categoría','fCategory']);
     if(!(it.images||[]).length||(typeof noPhoto!=='undefined'&&noPhoto.has(it.id)))m.push(['fotos','imgEdit']);
     if(!clean(it.store))m.push(['tienda','fStore']);
@@ -173,7 +173,7 @@
       ${selMode?`<label class="selbox"><input type="checkbox" data-sel="${it.id}" ${sel.has(it.id)?'checked':''}> Seleccionar</label>`:''}
       <div class="store">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${store}</a>`:`<span class="n">${store}</span>`}
         ${flags.single?'<span class="chip plat">Solo esta tienda</span>':''}${flags.lowPrice?'<span class="chip">Más barato sin portes</span>':''}${flags.lowTotal?'<span class="chip lowtot">Mejor total</span>':''}${availChip(it)}${it.variant?`<span class="chip var">${esc(it.variant)}</span>`:''}${it.code?`<span class="chip code">${esc(it.code)}</span>`:''}${isUnread(it)?'<span class="chip err">Sin datos · pulsa Editar</span>':it.incomplete?'<span class="chip warn">Revisar</span>':''}</div>
-      <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||num(it.shipping)===0&&num(it.freeFrom)>0?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
+      <div><div class="total">${eur(c.total)}</div><div class="diff">${c.ship>0?'con portes':c.shipWaived||shipOf(it)===0&&hasShipInfo(it)?'portes gratis':'portes: sin dato'}</div>${!flags.single&&!flags.lowTotal?`<div class="diff">+${eur(c.total-bestTotal)}</div>`:''}</div>
       ${showName?`<div class="pname">${esc(it.product)}</div>`:''}
       ${missBox(it)}
       ${refsLine(it)}
@@ -220,13 +220,13 @@
   // Pendientes agrupados por tienda: lo que pedirías en cada web, con un solo envío por pedido.
   function renderShops(){
     const pend=items.filter(i=>(i.status||'pending')==='pending'&&matches(i));
-    if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>`;
+    if(!pend.length)return `<div class="empty">${(flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?'Nada coincide con la búsqueda o los filtros.':'No tienes nada pendiente.'}</div>${shopsOthers(new Set())}`;
     // ¿Es esta la oferta más barata de su producto?
     const best=new Map(),cnt=new Map();items.filter(i=>(i.status||'pending')==='pending'&&canBuy(i)).forEach(i=>{const k=key(groupName(i)),t=calc(i).after;cnt.set(k,(cnt.get(k)||0)+1);if(!best.has(k)||t<best.get(k))best.set(k,t);});
-    const map=new Map();pend.forEach(i=>{const k=shopKey(i);if(!map.has(k))map.set(k,{name:shopOf(i),list:[]});map.get(k).list.push(i);});
+    const map=new Map();pend.forEach(i=>{const k=shopKey(i);if(!map.has(k))map.set(k,{k,name:(shopRecK(k)||{}).name||shopOf(i),list:[]});map.get(k).list.push(i);});
     const shops=[...map.values()].map(sh=>{
       const sub=sh.list.reduce((a,i)=>a+calc(i).after,0);
-      const ship=Math.max(0,...sh.list.map(i=>num(i.shipping)));const free=Math.max(0,...sh.list.map(i=>num(i.freeFrom)));
+      const ship=Math.max(0,...sh.list.map(shipOf));const free=Math.max(0,...sh.list.map(freeOf));
       const shipNow=free>0&&sub>=free?0:ship;
       const out=sh.list.some(outsideEU);let imp=0,impTxt='';
       if(out){const c=impCfg();const base=sub+shipNow;const fx=sh.list.some(foreignCur);
@@ -237,9 +237,9 @@
       const url=sh.list.map(i=>safeUrl(i.url)).find(Boolean);
       let shipTxt=sh.shipNow===0?(sh.ship>0||sh.free>0?'Envío gratis':'Envío: sin dato'):`Envío ${eur(sh.shipNow)}`;
       const left=sh.free>0&&sh.sub<sh.free?`<div class="notes">Te faltan <b>${eur(sh.free-sh.sub)}</b> para el envío gratis (desde ${eur(sh.free)}).</div>`:'';
-      const srcS=shopSource(sh.list);const missN=srcS?sh.list.filter(i=>i!==srcS&&INH_KEYS.some(k=>lacks(i,k))).length:0;
+      const rS=shopRecK(sh.k);const srcS=rS&&(num(rS.shipping)>0||num(rS.freeFrom)>0||rS.freeAlways==='1')?null:shopSource(sh.list);const missN=srcS?sh.list.filter(i=>i!==srcS&&INH_KEYS.some(k=>lacks(i,k))).length:0;
       const fillBtn=missN?`<div class="notes" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${missN} sin portes o cupón.<button class="btn small" type="button" data-shopfill="${srcS.id}">Copiar de ${esc(fullName(srcS)).slice(0,30)}</button></div>`:'';
-      return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span></header>${fillBtn}
+      return `<article class="product"><header><h3>${esc(sh.name)}</h3><span class="hint">${sh.list.length} ${sh.list.length===1?'producto':'productos'}</span><button class="btn small" type="button" data-shopcard="${esc(sh.k)}">Ficha de la tienda</button></header><div style="padding:0 14px 10px">${shopChips(sh.k)}</div>${fillBtn}
         ${sh.list.sort((a,b)=>catOf(a).localeCompare(catOf(b),'es')).map(i=>{const isBest=calc(i).after<=best.get(key(groupName(i)))+0.001;const u=safeUrl(i.url);
           return `<div class="buyrow" style="border:0;border-top:1px solid var(--line);border-radius:0"><div class="who">${thumb(i)}<div style="min-width:0"><div class="name">${u?`<a href="${esc(u)}" target="_blank" rel="noopener" style="color:inherit">${esc(fullName(i))}</a>`:esc(fullName(i))}</div>
             ${missingList(i).length?`<div class="meta" style="color:var(--danger);font-weight:700">Falta: ${missingList(i).map(x=>x[0]).join(', ')}</div>`:''}
@@ -247,7 +247,7 @@
             <div class="row-actions"><button class="btn small" data-act="edit" data-id="${i.id}">Editar</button><button class="btn small" data-act="bought" data-id="${i.id}">Comprado</button><button class="btn small" data-act="discard" data-id="${i.id}">Descartar</button><button class="btn small danger" data-act="del" data-id="${i.id}">Borrar</button></div></div>`;}).join('')}
         <div class="grand" style="border-width:0;border-top:2px solid var(--accent);border-radius:0"><span>Subtotal ${eur(sh.sub)} · ${shipTxt}${sh.imp?` · importación ${eur(sh.imp)}`:''}${url?`<br><a class="btn small primary" style="margin-top:6px" href="${esc(url)}" target="_blank" rel="noopener">Abrir tienda</a>`:''}</span><b>${eur(sh.total)}</b></div>
         ${sh.impTxt?`<div style="padding:0 14px 12px"><div class="notes" style="color:var(--fg)"><b>${esc(sh.impTxt)}</b> · incluido en el total.</div></div>`:''}
-        ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>`;
+        ${left?`<div style="padding:0 14px 12px">${left}</div>`:''}</article>`;}).join('')}</div>${shopsOthers(new Set(shops.map(s=>s.k)))}`;
   }
   function renderBuy(gs){
     if(!gs.length)return (flt.q||flt.cat||flt.plat||flt.shop||flt.tag)?`<div class="empty">Nada coincide con la búsqueda o los filtros.</div>`:`<div class="empty">Aquí verás la opción más barata de cada producto, lista para pagar.</div>`;

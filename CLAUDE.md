@@ -49,3 +49,9 @@
 - Prueba `seguridad_xss`: datos maliciosos en todos los campos (web leída, lista compartida) no ejecutan código; enlaces solo http(s) (`safeUrl`), texto siempre con `esc`. Mantenerla en verde: un XSS permitiría robar la clave de Anthropic del dispositivo.
 - La clave de Anthropic solo va a api.anthropic.com; no se sube a Firestore ni entra en la copia de seguridad. Firebase en plan Spark (sin facturación).
 - No poner correos reales en el repositorio (es público).
+
+## Tiendas (21 nov 2026)
+- `js/17-tiendas.js`: ficha de cada tienda (clave `shopKey`): país, envía sí/no, precios con/sin IVA, portes, envío gratis desde, siempre gratis, pedido mínimo, cupón, plazo, recogida, formas de pago, valoración, dirección, teléfono, WhatsApp, correo, soporte, personas que atienden, notas.
+- Portes, envío gratis, IVA, país y «no envía» de la tienda valen para todos sus artículos que no tengan su propio dato (`shipOf`, `freeOf`, `hasShipInfo`, `vatExclOf`; el del artículo manda). Así deja de faltar «envío» en Revisión.
+- Se guarda en localStorage `shops` y, con sesión, en `profiles/{uid}.shops` (merge por tienda, gana `updatedAt`); sin cambiar reglas de Firestore. Ojo: el perfil lo leen las personas con las que se comparte.
+- Pestaña «Tiendas» (antes «Por tienda») en Explorar: chips con la ficha, botón «Ficha de la tienda», «+ Nueva tienda» y «Otras tiendas guardadas».

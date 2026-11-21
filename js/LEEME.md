@@ -20,7 +20,8 @@
 | `13-consejos.js` | ¿Buen momento para comprar? (90 días) y cesta óptima por tienda (envío gratis). |
 | `14-compatibles.js` | «Aplica a»: qué accesorio sirve para qué artículo, respetando modelo y calibre. |
 | `15-costes.js` | Gasto aproximado de Claude y espacio de fotos (Ajustes). |
-| `16-arranque.js` | Arranque de la app. Siempre el último. |
+| `17-tiendas.js` | Ficha de cada tienda (portes, IVA, país, envía, contacto…) que vale para todos sus artículos. |
+| `16-arranque.js` | Arranque de la app. Siempre el último (se carga después de 17). |
 
 Los archivos comparten variables globales (no son módulos ES): el orden importa. Un nombre nuevo no debe coincidir con
 uno del navegador (`tests/run.py paneles` lo comprueba).
