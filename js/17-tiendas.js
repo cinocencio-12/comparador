@@ -116,25 +116,29 @@
       const [val,n]=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0];
       if(f==='vat'&&n<list.length/2)continue;
       const cur=f==='shipping'||f==='freeFrom'?(num(r[f])>0?String(Math.round(num(r[f])*100)/100):''):clean(r[f]||'');
-      const missing=list.filter(i=>!get(i)&&!(f==='code'&&clean(i.code))).length,other=list.filter(i=>get(i)&&get(i)!==val).length;
+      // si la ficha ya tiene ese valor, los que no lo tienen ya están cubiertos
+      const missing=cur===val?0:list.filter(i=>!get(i)&&!(f==='code'&&clean(i.code))).length,other=list.filter(i=>get(i)&&get(i)!==val).length;
       if(cur===val&&!other)continue;if(!missing&&!other&&cur)continue;
       out.push({f,label,val,txt:show(val),n,total:list.length,missing,other,cur:cur?show(cur):'',alts:[...cnt.entries()].filter(e=>e[0]!==val).map(e=>`${show(e[0])} (${e[1]})`)});}
     return out;}
   function sugHtml(k){const s=shopSuggest(k);if(!s.length)return '';
     return `<div class="notes" style="margin:0 14px 10px;display:block"><b>Datos comunes de sus artículos</b>${s.map(x=>`<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px">
-      <span style="flex:1;min-width:180px">${esc(x.label)}: <b>${esc(x.txt)}</b> en ${x.n} de ${x.total}${x.alts.length?` · otros: ${esc(x.alts.join(', '))}`:''}${x.cur&&x.cur!==x.txt?` · la ficha dice ${esc(x.cur)}`:''}</span>
+      <span style="flex:1;min-width:180px">${esc(x.label)}: <b>${esc(x.txt)}</b> en ${x.n} de ${x.total}${x.cur===x.txt?' (ya en la ficha: vale para los que no lo tienen)':''}${x.alts.length?` · otros: ${esc(x.alts.join(', '))}`:''}${x.cur&&x.cur!==x.txt?` · la ficha dice ${esc(x.cur)}`:''}</span>
       ${x.missing||!x.cur?`<button class="btn small primary" type="button" data-sugfill="${esc(k)}|${x.f}">Aplicar a ${x.missing?`los ${x.missing} sin dato`:'la tienda'}</button>`:''}
       ${x.other?`<button class="btn small" type="button" data-sugall="${esc(k)}|${x.f}">Aplicar a todos (${x.total})</button>`:''}</div>`).join('')}</div>`;}
   async function sugApply(k,f,all){const x=shopSuggest(k).find(s=>s.f===f);if(!x)return;
-    const patch={[f]:f==='shipping'||f==='freeFrom'?numIn(+x.val):x.val};await shopSave(k,patch);let ch=0;
+    const patch={[f]:f==='shipping'||f==='freeFrom'?numIn(+x.val):x.val};if(!(shopRecK(k)||{}).name)patch.name=shopOf(items.find(i=>shopKey(i)===k)||{store:k});await shopSave(k,patch);let ch=0;
     if(all)for(const i of items.filter(i=>shopKey(i)===k&&i.status!=='discarded')){
       if(f==='vat'){if(!i.vatExcl){i.vatExcl=true;ch++;await put('items',i);}continue;}
       if(f==='country'){if(clean(i.country).toUpperCase()!==x.val){i.country=x.val;ch++;await put('items',i);}continue;}
       const nv=f==='code'?x.val:+x.val;const has=f==='code'?clean(i.code):num(i[f])>0;
       if(has&&String(f==='code'?clean(i[f]):Math.round(num(i[f])*100)/100)!==String(f==='code'?nv:Math.round(nv*100)/100)){i[f]=nv;if(i.orig&&f!=='code'){i.orig[f]=nv;if(f==='shipping'){i.orig.shipCurrency='EUR';i.orig.shipRate=1;}}if(i.inherited)delete i.inherited[f];ch++;await put('items',i);}}
-    render();setStatus(`${x.label}: ${x.txt} guardado en la ficha de ${(shopRecK(k)||{}).name||k}${all?` y cambiado en ${ch} ${ch===1?'artículo':'artículos'} que tenían otro valor`:`; vale para los ${x.missing} que no lo tenían`}.`);}
+    render();setStatus(`${x.label}: ${x.txt} guardado en la ficha de ${(shopRecK(k)||{}).name||shopOf(items.find(i=>shopKey(i)===k)||{store:k})}${all?` y cambiado en ${ch} ${ch===1?'artículo':'artículos'} que tenían otro valor`:`; vale para los ${x.missing} que no lo tenían`}.`);}
   document.addEventListener('click',async e=>{const b=e.target.closest('[data-sugfill],[data-sugall]');if(!b)return;const all=!!b.dataset.sugall;const [k,f]=(b.dataset.sugfill||b.dataset.sugall).split('|');
     if(all&&!b.classList.contains('armed')){b.classList.add('armed');const t=b.textContent;b.textContent='¿Cambiar también los que tienen otro? Pulsa otra vez';setTimeout(()=>{b.classList.remove('armed');b.textContent=t;},4000);return;}
     b.disabled=true;await sugApply(k,f,all);});
   // Cuántas tiendas tienen sugerencias (para el aviso de arriba de «Tiendas»).
   const sugCount=()=>[...new Set(items.filter(i=>i.status!=='discarded').map(shopKey))].filter(k=>k&&shopSuggest(k).some(x=>x.missing||!x.cur)).length;
+  // Listado de cada tienda plegado: se abre al tocar «Ver N productos» y se recuerda mientras la app está abierta.
+  const shopOpen=new Set();
+  document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('[data-shopdet]'))return;d.open?shopOpen.add(d.dataset.shopdet):shopOpen.delete(d.dataset.shopdet);},true);

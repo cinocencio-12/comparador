@@ -141,3 +141,9 @@ body.nav-home .hello{display:block}
 .rvrow .rvsel{margin-bottom:6px}
 
 #tdBody .spchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}#tdBody .lbl{font-size:.75rem;font-weight:600}
+/* Tiendas: listado plegable */
+.shopdet{border-top:1px solid var(--line)}
+.shopsum{cursor:pointer;padding:12px 14px;font-weight:700;color:var(--accent);list-style:none;display:flex;align-items:center;gap:8px}
+.shopsum::-webkit-details-marker{display:none}
+.shopsum::before{content:'▸';transition:transform .15s}
+.shopdet[open]>.shopsum::before{transform:rotate(90deg)}

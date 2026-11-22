@@ -468,6 +468,12 @@ async def p_tiendas_sugerencias(a):
     await a.pg.click('[data-sugfill="sugshop|shipping"]'); await a.pg.wait_for_timeout(300)
     r = await a.pg.evaluate("['sg3','sg4'].map(id=>calc(items.find(i=>i.id===id)).ship)")
     comprobar(r == [4.5, 6.9], f'«aplicar a los sin dato» mal (el que tiene otro valor no se toca): {r}')
+    comprobar(await a.n('[data-sugfill="sugshop|shipping"]') == 0, 'tras aplicar sigue proponiendo «aplicar a los sin dato»')
+    # Listado de la tienda plegado; se despliega al tocar
+    comprobar(await a.pg.evaluate("!document.querySelector('[data-shopdet=sugshop]').open"), 'el listado de la tienda no sale plegado')
+    await a.pg.click('[data-shopdet=sugshop] > summary'); await a.pg.wait_for_timeout(100); await a.pg.evaluate("render()"); await a.pg.wait_for_timeout(100)
+    comprobar(await a.pg.evaluate("document.querySelector('[data-shopdet=sugshop]').open"), 'el listado no se despliega o se vuelve a plegar al redibujar')
+    await a.foto('tiendas-plegado')
     await a.pg.click('[data-sugall="sugshop|shipping"]'); await a.pg.wait_for_timeout(100); await a.pg.click('[data-sugall="sugshop|shipping"]'); await a.pg.wait_for_timeout(300)
     comprobar(await a.pg.evaluate("items.find(i=>i.id==='sg3').shipping") == 6.9, '«aplicar a todos» no cambia el que tenía otro valor')
 
