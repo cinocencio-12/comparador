@@ -148,7 +148,7 @@
     if(act==='bought'){openBuy(it);return;}
     await put('items',it);render();
   });
-  ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
+  ['compare','shops','trends','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).addEventListener('click',()=>{tab=t;render();}));
 
   // ---------- visor de fotos ----------
   let lbIt=null,lbI=0;

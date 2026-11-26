@@ -57,3 +57,6 @@
 - Pestaña «Tiendas» (antes «Por tienda») en Explorar: chips con la ficha, botón «Ficha de la tienda», «+ Nueva tienda» y «Otras tiendas guardadas».
 - Sugerencias en «Tiendas» (`shopSuggest`): para portes, envío gratis, cupón, país e IVA cuenta los valores de sus artículos (no los copiados) y propone el mayoritario («6,90 € en 2 de 5 · otros: 4,50 € (1)»). «Aplicar a los N sin dato» lo guarda en la ficha de la tienda; «Aplicar a todos» (doble toque) además cambia los artículos que tenían otro valor. Si la ficha ya tiene el valor, ya no se propone «a los sin dato». Listado de cada tienda plegado (`<details>`, se recuerda en `shopOpen`).
 - Comprobar marcados: el botón muestra «Comprobando i/N…», nunca se queda colgado (try/finally) y siempre da mensaje final con los que no se pudieron leer. Segundo toque del icono ↻ sin nada marcado: avisa.
+
+## Tendencias (27 nov 2026)
+- `js/18-tendencias.js`, pestaña «Tendencias» en Explorar: periodo (7 días, mes, año, desde el principio), resumen (bajan, suben, bajada acumulada) y apartados Bajadas, Subidas, Mínimo histórico, Bajada engañosa y Todos. Variación = precio al inicio del periodo (último registro anterior, o el primero dentro) frente al actual. Respeta los filtros. Si el historial es más corto que el periodo, lo avisa.

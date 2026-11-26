@@ -88,11 +88,11 @@
     $('#sTotal').textContent=eur(pend.reduce((s,g)=>{const v=g.offers.filter(canBuy);return s+(v.length?Math.min(...v.map(o=>calc(o).total)):0);},0));
     renderFilters();
     $('#groupList').innerHTML=[...new Set(items.map(groupName))].map(p=>`<option value="${esc(p)}">`).join('');
-    ['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
+    ['compare','shops','trends','buy','done','discarded','gifts','shared'].forEach(t=>$('#tab-'+t).setAttribute('aria-selected',t===tab));
     document.body.classList.toggle('nav-home',navTab==='home');
     {const q=$('#qn-rev'),rc=revCount();if(q)q.textContent=rc;const nb=$('#navRevN');const nn=revNew();if(nb){nb.hidden=!nn;nb.textContent=huevo(nn);nb.title=`${nn} nuevas desde tu última visita · ${rc} en total`;}}
     document.querySelectorAll('#bnav [data-nav]').forEach(b=>{if(b.dataset.nav===navTab)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
-    if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
+    if(navTab!=='home'){const vis=NAVTABS[navTab]||NAVTABS.explore;['compare','shops','trends','buy','done','discarded','gifts','shared'].forEach(t=>{const b=$('#tab-'+t);b.hidden=!vis.includes(t)||(t==='shared'&&!owners().length);});}
     const v=$('#view');
     drawSelBar();
     document.body.classList.toggle('nav-prod',!!prodKey||revOpen||(navTab==='lists'&&listHome&&space==='mine'));
@@ -100,7 +100,7 @@
     if(revOpen){v.innerHTML=renderReview();return;}
     if(navTab==='lists'&&listHome&&space==='mine'){v.innerHTML=renderListsHome();return;}
     if(navTab==='home'){let nm='';try{nm=me&&(me.displayName||me.email)||'';}catch(e){}nm=clean(nm).split(/\s|@/)[0];$('#hello h2').textContent=nm?`Hola, ${nm}`:'Hola';v.innerHTML=renderHome();return;}
-    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():tab==='shared'?renderShared():renderDiscarded());
+    v.innerHTML=(cmpOpen&&sel.size>1?`<div class="actions" style="margin-bottom:8px"><b>Comparando ${sel.size}</b><button class="btn small" type="button" id="cmpClose">Cerrar comparación</button></div>${compareTable()}<div style="height:14px"></div>`:'')+(tab==='compare'?renderCompare(pend):tab==='shops'?renderShops():tab==='trends'?renderTrends():tab==='buy'?renderBuy(pend):tab==='done'?renderDone():tab==='gifts'?renderGifts():tab==='shared'?renderShared():renderDiscarded());
     const cc=$('#cmpClose');if(cc)cc.onclick=()=>{cmpOpen=false;render();};
   }
   const thumb=it=>(it.images||[]).length?imgTag(it.images[0],`class="pic" data-lb="${it.id}" data-i="0"`):'';

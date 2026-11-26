@@ -60,7 +60,7 @@
   $('#modList').addEventListener('click',e=>{const u=e.target.closest('[data-mup]'),d=e.target.closest('[data-mdn]');if(!u&&!d)return;const a=mods();const i=+(u?u.dataset.mup:d.dataset.mdn),j=u?i-1:i+1;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];saveMods(a);});
   $('#modReset').addEventListener('click',()=>{['theme','navpos','view','text'].forEach(k=>{try{localStorage.removeItem('pref_'+k);}catch(e){}});applyPrefs();saveMods(MODS_DEF.slice());setStatus('Apariencia e Inicio restablecidos.');});
   // Secciones
-  const NAVTABS={explore:['compare','shops'],lists:['gifts','buy','shared'],buys:['done','discarded']};
+  const NAVTABS={explore:['compare','shops','trends'],lists:['gifts','buy','shared'],buys:['done','discarded']};
   function setNav(n){if(n==='add'){openAdd();return;}if(n==='review'){navTab='review';prodKey=null;openReview();return;}prodKey=null;revOpen=false;revKind=null;navTab=n;selMode=false;sel.clear();cmpOpen=false;
     if(n==='home'){flt.cat='';flt.sub='';flt.fac='';allMode=false;space='mine';}
     if(n==='explore'&&!NAVTABS.explore.includes(tab))tab=space==='mine'?'compare':'shared';

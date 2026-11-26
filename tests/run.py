@@ -493,6 +493,25 @@ async def p_comprobar_seleccion(a):
     await a.pg.evaluate("()=>{checkItem=window.__ck;localStorage.removeItem('apiKey');}")
 
 
+async def p_tendencias(a):
+    await a.abrir(extra=EXTRA)
+    d = lambda n: f"new Date(Date.now()-{n}*864e5).toISOString()"
+    await a.pg.evaluate(f"""()=>{{const b={{status:'pending',images:[],store:'T'}};items.push(
+      {{...b,id:'tn1',product:'Baja mes',price:80,history:[{{at:{d(40)},price:120}},{{at:{d(20)},price:100}},{{at:{d(0)},price:80}}]}},
+      {{...b,id:'tn2',product:'Sube',price:60,history:[{{at:{d(10)},price:50}},{{at:{d(0)},price:60}}]}},
+      {{...b,id:'tn3',product:'Engaño',price:90,history:[{{at:{d(25)},price:70}},{{at:{d(5)},price:110}},{{at:{d(0)},price:90}}]}});render();}}""")
+    r = await a.pg.evaluate("[trendOf(items.find(i=>i.id==='tn1'),'30').pct, trendOf(items.find(i=>i.id==='tn1'),'all').pct, trendOf(items.find(i=>i.id==='tn1'),'7').pct, trendOf(items.find(i=>i.id==='tn1'),'all').atLow]")
+    comprobar(abs(r[0]+33.33) < 0.1 and abs(r[1]+33.33) < 0.1 and abs(r[2]+20) < 0.01 and r[3] is True, f'variación por periodo mal: {r}')
+    await a.pg.click('[data-nav=explore]'); await a.pg.wait_for_timeout(200); await a.pg.click('#tab-trends'); await a.pg.wait_for_timeout(300)
+    comprobar(await a.n('.trrow') >= 2, 'la pestaña Tendencias no muestra las bajadas')
+    await a.foto('tendencias')
+    await a.pg.click('[data-trord=fake]'); await a.pg.wait_for_timeout(200)
+    t = await a.pg.inner_text('#view')
+    comprobar('Engaño' in t and 'Baja mes' not in t, 'el apartado «bajada engañosa» no filtra bien')
+    await a.pg.click('[data-trper=all]'); await a.pg.click('[data-trord=up]'); await a.pg.wait_for_timeout(200)
+    comprobar('Sube' in await a.pg.inner_text('#view'), 'subidas no aparecen')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

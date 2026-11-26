@@ -147,3 +147,12 @@ body.nav-home .hello{display:block}
 .shopsum::-webkit-details-marker{display:none}
 .shopsum::before{content:'▸';transition:transform .15s}
 .shopdet[open]>.shopsum::before{transform:rotate(90deg)}
+
+/* Tendencias */
+.trstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.trstat{background:var(--card,rgba(255,255,255,.04));border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column}
+.trstat b{font-size:1.25rem}.trstat span{font-size:.8rem;opacity:.75}
+.trhead .toolbar{display:flex!important;flex-direction:row!important;flex-wrap:wrap;gap:6px}
+.trhead .toolbar .btn{width:auto!important;flex:0 0 auto!important;margin:0!important}
+.trrow .tname{background:none;border:0;padding:0;color:inherit;font:inherit;font-weight:700;text-align:left;text-decoration:underline;cursor:pointer}
+.trrow .pic{width:56px;height:56px;object-fit:contain;border-radius:10px;background:#fff;flex:none}

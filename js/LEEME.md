@@ -29,3 +29,4 @@ uno del navegador (`tests/run.py paneles` lo comprueba).
 ## Antes de publicar
 1. `python3 tests/run.py` → todo en verde.
 2. `python3 tools/bump.py` → sube la versión en `APP_V`, `version.json` y los `?v=` de css/js.
+| `18-tendencias.js` | Pestaña Tendencias: bajadas/subidas por periodo, mínimo histórico, bajada engañosa. |
