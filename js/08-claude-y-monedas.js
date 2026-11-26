@@ -40,6 +40,9 @@ Usa punto decimal. Si un dato no aparece, no lo inventes. Devuelve SIEMPRE el JS
   const MULTI=`Puede ser la ficha de UN producto o un LISTADO con varios productos. Devuelve un objeto por cada producto distinto que tenga precio (máximo 12), en el orden en que aparecen.
 Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son distintos. En "variant" pon lo que los diferencia (lo que diga el nombre o, si no, lo que se ve en SU PROPIA foto: p. ej. "cañón corto, madera" frente a "cañón largo, negro"). Antes de escribir cada producto, mira su foto, su nombre y su precio, que estén en la misma tarjeta o columna, y no mezcles datos de tarjetas distintas.\n`;
   const SHOT_PROMPT=`Estas imágenes son capturas de pantalla del móvil de una tienda online (normalmente España, euros). Extrae los datos de compra. En "images" pon [] (las capturas ya se guardan). `+MULTI+FIELDS;
+  // Comprobación rápida (precio, portes y stock): mismas reglas que FIELDS pero solo esas claves; menos texto que leer y escribir.
+  const CHECK_KEYS=['product','variant','currency','shippingCurrency','price','discount','discountType','code','shipping','freeFrom','availability','vatExcl'];
+  const CHECK_PROMPT=u=>`Abre con web_fetch esta ficha de producto de una tienda: ${u}\nSi tiene varias versiones, usa la que corresponde a esta URL. Responde SOLO con un objeto JSON, sin texto alrededor: {"products":[{...}]} con UN producto y solo estas claves:\n`+FIELDS.split('\n').filter(l=>CHECK_KEYS.some(k=>l.trim().startsWith('"'+k+'"'))).join('\n');
   const URL_PROMPT=u=>`Abre con web_fetch esta página de una tienda y extrae los datos de compra: ${u}\nSi es la ficha de un producto con varias versiones, usa la que corresponde a esta URL. Si es un listado, pon en "url" el enlace propio de cada producto y en "images" su foto. `+MULTI+FIELDS;
 
   function toB64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(',')[1]);r.onerror=rej;r.readAsDataURL(blob);});}
@@ -68,19 +71,25 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
   const PAGE_PROMPT=p=>`Este es el contenido de una página de una tienda online que el usuario tiene abierta en su navegador y ha decidido guardar (URL: ${p.u}; título: ${p.t}). Extrae los datos de compra. `+MULTI+
     `Fotos que hay en la página (elige para "images" solo las del producto, en buena resolución):\n${(p.i||[]).join('\n')}\n\nTEXTO DE LA PÁGINA:\n${p.x}\n\n`+FIELDS;
-  async function askClaude({images,url,page}){
+  async function askClaude({images,url,page,quick}){
     if(!cfg.key)throw new Error('falta la clave de API (ponla en Ajustes)');
     const content=[];
     for(const b of images||[])content.push({type:'image',source:{type:'base64',media_type:b.type||'image/jpeg',data:await toB64(b)}});
     const body={model:(images||[]).length?cfg.shotModel:cfg.model,max_tokens:8000,messages:[{role:'user',content}]};
     const headers={'content-type':'application/json','x-api-key':cfg.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
     if(page){content.push({type:'text',text:PAGE_PROMPT(page)});}
+    else if(url&&!(images||[]).length&&quick){
+      // comprobación: una sola lectura, página recortada y respuesta corta
+      content.push({type:'text',text:CHECK_PROMPT(url)});body.max_tokens=1500;
+      body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:1,max_content_tokens:30000}];
+      headers['anthropic-beta']='web-fetch-2025-09-10';
+    }
     else if(url&&!(images||[]).length){
       content.push({type:'text',text:URL_PROMPT(url)});
       body.tools=[{type:'web_fetch_20250910',name:'web_fetch',max_uses:2}];
       headers['anthropic-beta']='web-fetch-2025-09-10';
     } else content.push({type:'text',text:SHOT_PROMPT+(url?`\nLa URL de la página es: ${url}`:'')});
-    content[content.length-1].text+=catHint();
+    if(!quick)content[content.length-1].text+=catHint();
     const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers,body:JSON.stringify(body)});
     const j=await r.json().catch(()=>({}));
     if(!r.ok){const m=(j.error&&j.error.message)||('error '+r.status);throw new Error(r.status===401?'la clave de API no es válida':m);}

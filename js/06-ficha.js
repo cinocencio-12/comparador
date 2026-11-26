@@ -70,7 +70,10 @@
     if(e.target.closest('[data-rmbad]')){let n=0;for(const o of prodItems()){const im=(o.images||[]).filter(v=>!isBad(v));if(im.length!==(o.images||[]).length){n+=(o.images||[]).length-im.length;o.images=im;await put('items',o);}}await scanPhotos();render();setStatus(`${n} ${n===1?'foto rota quitada':'fotos rotas quitadas'}. Puedes buscar otra en Revisión → Sin fotografías.`);return;}
     if(e.target.closest('#pfBack')){closeProd();return;}
     const b=e.target.closest('#pfCheck,#pfStockChk');if(!b)return;const mode=b.dataset.mode;if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
-    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));document.querySelectorAll('#pfCheck,#pfStockChk').forEach(x=>x.disabled=true);b.classList.add('working');
+    const list=prodItems().filter(o=>(o.status||'pending')==='pending'&&safeUrl(o.url));
+    {const h=Math.min(...list.map(hoursAgo));if(h<CHECK_FRESH_H&&!b.classList.contains('armed')){b.classList.add('armed');setTimeout(()=>b.classList.remove('armed'),6000);
+      setStatus(`Ya se comprobó hace ${h<1?'menos de 1 h':Math.round(h)+' h'}. Pulsa otra vez para comprobar igualmente.`);return;}b.classList.remove('armed');}
+    document.querySelectorAll('#pfCheck,#pfStockChk').forEach(x=>x.disabled=true);b.classList.add('working');
     const msgs=[];let fail=0;
     for(let i=0;i<list.length;i++){const sh=shopOf(list[i]),t0=Date.now(),n=list.length>1?` (${i+1} de ${list.length})`:'';
       const tick=()=>{const s=Math.round((Date.now()-t0)/1000);const paso=s<4?'Abriendo la web de':s<20?(mode==='stock'?'Mirando el stock en':'Leyendo precio y portes en'):'Sigue leyendo (algunas webs tardan)';

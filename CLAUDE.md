@@ -60,3 +60,4 @@
 
 ## Tendencias (27 nov 2026)
 - `js/18-tendencias.js`, pestaña «Tendencias» en Explorar: periodo (7 días, mes, año, desde el principio), resumen (bajan, suben, bajada acumulada) y apartados Bajadas, Subidas, Mínimo histórico, Bajada engañosa y Todos. Variación = precio al inicio del periodo (último registro anterior, o el primero dentro) frente al actual. Respeta los filtros. Si el historial es más corto que el periodo, lo avisa.
+- Comprobación optimizada (27 nov 2026): `askClaude({url,quick:true})` usa `CHECK_PROMPT` (solo precio, portes, cupón, moneda, stock e IVA; mismas reglas que FIELDS), una sola lectura web recortada (`max_content_tokens` 30000) y `max_tokens` 1500. Las masivas (marcados y «Comprobar todos») saltan lo comprobado hace <24 h y las tiendas que bloquean (`bulkSplit`), van de 3 en 3 (`runPool`) y lo dicen en el mensaje final. En la ficha, si se comprobó hace <24 h avisa y hay que pulsar otra vez.

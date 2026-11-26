@@ -10,7 +10,7 @@
     const before=calc(it).total;const wasOut=/agotad|sin stock|no disponible|out of stock/.test(norm(it.availability));
     if(!(it.history||[]).length&&num(it.price)>0)it.history=[{at:it.createdAt||new Date().toISOString(),price:calc(it).after,total:calc(it).total,avail:it.availability||''}];
     try{
-      const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
+      const found=await askClaude({url:it.url,quick:true});const d=fromClaude(found[0],it.url);
       if(num(d.price)>0){it.price=d.price;it.discount=d.discount;it.discountType=d.discountType;it.orig=d.orig||null;it.curChecked=true;if(d.code)it.code=d.code;}
       if(d.shipping>0)it.shipping=d.shipping;if(d.freeFrom>0)it.freeFrom=d.freeFrom;webPrevails(it,d);
       it.availability=d.availability||it.availability||'';if(d.vatExcl)it.vatExcl=true;
@@ -28,7 +28,7 @@
     if(!safeUrl(it.url))return{ok:false,msg:`${fullName(it)}: no tiene enlace.`};
     const isOut=a=>/agotad|sin stock|no disponible|out of stock/.test(norm(a));const prev=it.availability||'';const wasOut=isOut(prev);
     try{
-      const found=await askClaude({url:it.url});const d=fromClaude(found[0],it.url);
+      const found=await askClaude({url:it.url,quick:true});const d=fromClaude(found[0],it.url);
       it.availability=d.availability||'';it.checkedAt=new Date().toISOString();it.stockAt=it.checkedAt;
       evalAlerts(it,wasOut);await put('items',it);
       const now=it.availability,back=wasOut&&now&&!isOut(now),gone=!wasOut&&isOut(now);
@@ -42,11 +42,14 @@
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     const list=items.filter(i=>(tab==='done'?i.status==='bought':(i.status||'pending')==='pending')&&matches(i)&&safeUrl(i.url));
     if(!list.length){setStatus('No hay productos con enlace en esta vista.','err');return;}
-    const b=$('#checkAllBtn');b.disabled=true;let ok=0,fail=0,ups=0,downs=0,out=0;
-    for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');
-      const before=calc(list[i]).total;const r=await checkItem(list[i]);if(r.ok){ok++;const d=calc(list[i]).total-before;if(d>0.005)ups++;if(d<-0.005)downs++;if(/agotad/.test(norm(list[i].availability)))out++;}else fail++;render();}
-    b.disabled=false;render();
-    setStatus(`Comprobados ${ok} de ${list.length}: ${downs} bajan, ${ups} suben, ${out} agotados.${fail?` ${fail} no se pudieron leer (tiendas que bloquean la lectura o sin conexión).`:''}`,fail&&!ok?'err':'');
+    const {todo,recent,blocked}=bulkSplit(list);const skip=skipTxt(recent,blocked);
+    if(!todo.length){setStatus(`Nada que comprobar: ${skip}.`,'err');return;}
+    const b=$('#checkAllBtn');b.disabled=true;let ok=0,fail=0,ups=0,downs=0,out=0,done=0;
+    try{await runPool(todo,async it=>{const before=calc(it).total;let r;try{r=await checkItem(it);}catch(e){r={ok:false};}done++;
+        if(r.ok){ok++;const d=calc(it).total-before;if(d>0.005)ups++;if(d<-0.005)downs++;if(/agotad/.test(norm(it.availability)))out++;}else fail++;
+        setStatus(`Comprobados ${done} de ${todo.length}…${skip?` (salto ${skip})`:''}`,'busy');});}
+    finally{b.disabled=false;render();
+      setStatus(`Terminado: ${ok} de ${todo.length} comprobados · ${downs} bajan, ${ups} suben, ${out} agotados.${fail?` ${fail} no se pudieron leer (míralos en Revisión).`:''}${skip?` Saltados: ${skip}.`:''}`,fail&&!ok?'err':'');}
   });
   // Agrupa con Claude las ofertas que son el mismo producto aunque cada tienda lo llame distinto.
   // ---------- comprar: qué hacer con lo relacionado ----------
@@ -331,3 +334,11 @@ Productos: ${JSON.stringify(list)}`;
     setStatus(`Listo: fotos añadidas a ${ok} de ${list.length} productos.${ok<list.length?' A los que faltan puedes añadirles fotos desde Editar.':''}`,ok?'':'err');
   });
 
+
+  // ---------- comprobación masiva: sin repetir lo reciente ni las tiendas que bloquean, y de 3 en 3 ----------
+  const CHECK_FRESH_H=24;
+  const hoursAgo=it=>it.checkedAt?(Date.now()-new Date(it.checkedAt).getTime())/36e5:Infinity;
+  function bulkSplit(list){const todo=[],recent=[],blocked=[];
+    for(const i of list){if(i.checkErr==='blocked')blocked.push(i);else if(hoursAgo(i)<CHECK_FRESH_H)recent.push(i);else todo.push(i);}return{todo,recent,blocked};}
+  const skipTxt=(recent,blocked)=>[recent.length?`${recent.length} ya comprobados hace menos de ${CHECK_FRESH_H} h`:'',blocked.length?`${blocked.length} de tiendas que bloquean la lectura (en Revisión)`:''].filter(Boolean).join(' · ');
+  async function runPool(list,fn,n=3){let next=0;const work=async()=>{while(next<list.length){const i=next++;await fn(list[i],i);}};await Promise.all(Array.from({length:Math.min(n,list.length)},work));}

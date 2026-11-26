@@ -277,6 +277,8 @@ async def p_comprobar(a):
     # Botón aparte de stock: solo toca la disponibilidad, no el precio ni el histórico
     comprobar(await a.n('#pfStockChk') == 1, 'falta el botón «Comprobar stock» en la ficha')
     antes = await a.pg.evaluate("(()=>{const it=items.find(i=>/Carl/.test(i.product)&&i.url);it.availability='Agotado';it.price=777;return (it.history||[]).length})()")
+    await a.pg.click('#pfStockChk'); await a.pg.wait_for_timeout(150)
+    comprobar('Ya se comprobó hace' in await a.pg.inner_text('#statusTxt'), 'no avisa de que se comprobó hace menos de 24 h')
     await a.pg.click('#pfStockChk'); await a.pg.wait_for_timeout(3200)
     st = await a.pg.inner_text('#statusTxt')
     r = await a.pg.evaluate("(()=>{const it=items.find(i=>/Carl/.test(i.product)&&i.url);return [it.price,(it.history||[]).length,it.availability]})()")
@@ -510,6 +512,28 @@ async def p_tendencias(a):
     comprobar('Engaño' in t and 'Baja mes' not in t, 'el apartado «bajada engañosa» no filtra bien')
     await a.pg.click('[data-trper=all]'); await a.pg.click('[data-trord=up]'); await a.pg.wait_for_timeout(200)
     comprobar('Sube' in await a.pg.inner_text('#view'), 'subidas no aparecen')
+
+
+async def p_comprobar_masiva(a):
+    await a.abrir(extra=EXTRA)
+    # La masiva salta lo comprobado hace <24 h y las tiendas que bloquean, y va de 3 en 3
+    await a.pg.evaluate("""()=>{localStorage.setItem('apiKey','clave-de-prueba');window.__ck=checkItem;window.__vivos=0;window.__max=0;window.__hechos=[];
+      checkItem=async it=>{__vivos++;__max=Math.max(__max,__vivos);await new Promise(r=>setTimeout(r,150));__vivos--;__hechos.push(it.id);it.checkedAt=new Date().toISOString();return{ok:true}};
+      const b={status:'pending',images:[],store:'T',price:5};const h=new Date(Date.now()-2*36e5).toISOString(),v=new Date(Date.now()-48*36e5).toISOString();
+      items.push({...b,id:'mz1',product:'Reciente',url:'https://e.com/1',checkedAt:h},{...b,id:'mz2',product:'Bloqueada',url:'https://e.com/2',checkErr:'blocked',checkedAt:v});
+      for(let i=3;i<10;i++)items.push({...b,id:'mz'+i,product:'Viejo '+i,url:'https://e.com/'+i,checkedAt:v});
+      selMode=true;sel.clear();for(let i=1;i<10;i++)sel.add('mz'+i);render();}""")
+    await a.pg.click('#selCheck'); await a.pg.wait_for_timeout(1500)
+    r = await a.pg.evaluate("[__hechos.slice().sort(),__max]")
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar('mz1' not in r[0] and 'mz2' not in r[0] and len(r[0]) == 7, f'la masiva no salta recientes o bloqueadas: {r}')
+    comprobar(r[1] == 3, f'no comprueba de 3 en 3: {r[1]}')
+    comprobar('Saltados' in st and 'menos de 24 h' in st and 'bloquean' in st, f'el mensaje final no dice lo saltado: {st}')
+    await a.pg.evaluate("()=>{checkItem=window.__ck;localStorage.removeItem('apiKey');}")
+    # La comprobación usa la lectura rápida (página recortada, respuesta corta)
+    body = await a.pg.evaluate("""async()=>{localStorage.setItem('apiKey','clave-de-prueba');let b=null;const f=window.fetch;window.fetch=async(u,o)=>{b=JSON.parse(o.body);throw new Error('x')};
+      try{await askClaude({url:'https://e.com/z',quick:true});}catch(e){}window.fetch=f;localStorage.removeItem('apiKey');return b}""")
+    comprobar(body and body['max_tokens'] == 1500 and body['tools'][0].get('max_content_tokens') == 30000 and body['tools'][0]['max_uses'] == 1, f'la comprobación no usa la lectura rápida: {body and body.get("tools")}')
 
 
 async def p_importes(a):
