@@ -197,9 +197,11 @@
 
   $('#selCheck').addEventListener('click',async()=>{if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(i=>i&&safeUrl(i.url));if(!list.length){setStatus('Los seleccionados no tienen enlace.','err');return;}
-    const b=$('#selCheck');b.disabled=true;let ok=0,dn=0,up=0;
-    for(let i=0;i<list.length;i++){setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');const t0=calc(list[i]).total;const r=await checkItem(list[i]);if(r.ok){ok++;const d=calc(list[i]).total-t0;if(d<-0.005)dn++;if(d>0.005)up++;}}
-    selMode=false;sel.clear();render();setStatus(`Comprobados ${ok} de ${list.length}: ${dn} bajan, ${up} suben.`);});
+    const b=$('#selCheck');b.disabled=true;b.classList.add('working');let ok=0,dn=0,up=0,fail=0;
+    try{for(let i=0;i<list.length;i++){b.textContent=`Comprobando ${i+1}/${list.length}…`;setStatus(`Comprobando ${i+1} de ${list.length}: ${fullName(list[i])}…`,'busy');const t0=calc(list[i]).total;
+      let r;try{r=await checkItem(list[i]);}catch(e){r={ok:false};}if(r.ok){ok++;const d=calc(list[i]).total-t0;if(d<-0.005)dn++;if(d>0.005)up++;}else fail++;}}
+    finally{b.classList.remove('working');b.disabled=false;selMode=false;sel.clear();render();
+      setStatus(`Terminado: ${ok} de ${list.length} comprobados · ${dn} bajan, ${up} suben.${fail?` ${fail} no se pudieron leer (la tienda bloquea o sin conexión): míralos en Revisión.`:''}`,fail&&!ok?'err':'');}});
   $('#selJoin').addEventListener('click',async()=>{
     const list=[...sel].map(id=>items.find(i=>i.id===id)).filter(Boolean);if(list.length<2)return;
     // Nombre del grupo: el que ya tenga más ofertas, o el del primero.

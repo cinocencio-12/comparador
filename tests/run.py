@@ -478,6 +478,21 @@ async def p_tiendas_sugerencias(a):
     comprobar(await a.pg.evaluate("items.find(i=>i.id==='sg3').shipping") == 6.9, '«aplicar a todos» no cambia el que tenía otro valor')
 
 
+async def p_comprobar_seleccion(a):
+    await a.abrir(extra=EXTRA)
+    # Sin nada marcado, el segundo toque avisa; con marcados, mensaje final aunque falle la lectura
+    await a.pg.click('[data-nav=explore]'); await a.pg.wait_for_timeout(200)
+    await a.pg.click('#checkTop'); await a.pg.wait_for_timeout(150); await a.pg.click('#checkTop'); await a.pg.wait_for_timeout(150)
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar('No has marcado nada' in st, f'segundo toque sin selección no avisa: {st}')
+    await a.pg.evaluate("""()=>{localStorage.setItem('apiKey','clave-de-prueba');window.__ck=checkItem;checkItem=async()=>{throw new Error('red caída')};
+      items.push({id:'cs1',product:'Prueba',store:'T',url:'https://ejemplo.com/a',price:5,status:'pending',images:[]});sel.add('cs1');render();}""")
+    await a.pg.click('#selCheck'); await a.pg.wait_for_timeout(400)
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar('Terminado' in st and 'no se pudieron leer' in st, f'sin mensaje final al comprobar marcados: {st}')
+    await a.pg.evaluate("()=>{checkItem=window.__ck;localStorage.removeItem('apiKey');}")
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

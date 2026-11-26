@@ -36,7 +36,8 @@
     }catch(e){it.checkedAt=new Date().toISOString();it.checkErr=/bloquea/.test(e.message||'')?'blocked':'error';await put('items',it);return{ok:false,msg:`${fullName(it)} (${shopOf(it)}): ${e.message||e}.`};}
   }
   $('#checkTop').addEventListener('click',()=>{if(!selMode){if(navTab==='home'||navTab==='lists'){navTab='explore';tab='compare';}prodKey=null;if(navTab!=='review')revOpen=false;$('#selModeBtn').click();setStatus('Marca los productos y elige abajo: comparar, comprobar, editar a la vez o vincular.');return;}
-    $('#selCheck').click();});
+    // Segundo toque: con algo marcado comprueba lo marcado; sin nada marcado, avisa en vez de no hacer nada.
+    if(sel.size)$('#selCheck').click();else setStatus('No has marcado nada: marca los productos (o mantén pulsado uno) y pulsa «Comprobar» abajo. Para todos los de la vista: Filtros y herramientas → Comprobar todos.','err');});
   $('#checkAllBtn').addEventListener('click',async()=>{
     if(!cfg.key){setStatus('Falta la clave de API en Ajustes.','err');return;}
     const list=items.filter(i=>(tab==='done'?i.status==='bought':(i.status||'pending')==='pending')&&matches(i)&&safeUrl(i.url));
