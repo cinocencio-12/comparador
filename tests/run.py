@@ -548,6 +548,24 @@ async def p_inicio_seguimiento(a):
     comprobar(await a.pg.evaluate("[navTab,tab,trOrd]") == ['explore', 'trends', 'down'], 'pulsar «bajadas» en Inicio no lleva a Tendencias')
 
 
+async def p_portes_peso(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{const b={status:'pending',images:[],store:'Peso Shop',country:'TW',outsideEU:true};
+      items.push({...b,id:'pw1',product:'Réplica grande',price:200,shipping:75.66},{...b,id:'pw2',product:'Cargador KP03',price:16.23,shipping:75.66,inherited:{shipping:'pw1'}},{...b,id:'pw3',product:'Otro cargador',price:16.23});
+      shopSave('pesoshop',{name:'Peso Shop',shipping:'75,66'});}""")
+    r = await a.pg.evaluate("['pw2','pw3'].map(id=>calc(items.find(i=>i.id===id)).ship)")
+    comprobar(r == [75.66, 75.66], f'antes del cambio deberían aplicarse los portes de la tienda: {r}')
+    await a.pg.evaluate("shopSave('pesoshop',{shipMode:'weight'})")
+    r = await a.pg.evaluate("['pw1','pw2','pw3'].map(id=>calc(items.find(i=>i.id===id)).ship)")
+    comprobar(r == [75.66, 0, 0], f'con «según peso» no se deben aplicar portes de la tienda ni copiados: {r}')
+    comprobar(await a.pg.evaluate("missingList(items.find(i=>i.id==='pw3')).some(m=>m[0]==='envío')"), 'con «según peso» debería faltar el envío')
+    # Desglose en la ficha
+    await a.pg.evaluate("()=>{openProd(key(groupName(items.find(i=>i.id==='pw1'))));}"); await a.pg.wait_for_timeout(300)
+    t = await a.pg.inner_text('.costbreak')
+    comprobar('portes 75,66' in t and 'del artículo' in t and 'importación' in t, f'desglose del coste mal: {t}')
+    await a.foto('desglose')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

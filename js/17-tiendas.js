@@ -6,15 +6,21 @@
   const shopRecK=k=>{const r=shops[k];return r&&!r.deleted?r:null;};
   const shopRec=it=>shopRecK(shopKey(it));
   // Portes y envío gratis efectivos: los del artículo; si no tiene, los de su tienda.
-  const shipOf=it=>{const v=num(it.shipping);if(v>0)return v;if(/gratis|free/i.test(it.notes||''))return 0;const s=shopRec(it);return s&&s.freeAlways!=='1'?num(s.shipping):0;};
+  // «Portes según peso o pedido»: no se aplican los de la ficha ni los copiados de otro artículo (serían inventados).
+  const shipByWeight=it=>{const s=shopRec(it);return !!s&&s.shipMode==='weight';};
+  const shipGuessed=it=>shipByWeight(it)&&typeof inh==='function'&&inh(it,'shipping');
+  const shipOf=it=>{const v=num(it.shipping);if(v>0&&!shipGuessed(it))return v;if(/gratis|free/i.test(it.notes||''))return 0;const s=shopRec(it);return s&&s.freeAlways!=='1'&&s.shipMode!=='weight'?num(s.shipping):0;};
+  // De dónde salen los portes de una oferta (para el desglose).
+  function shipSrc(it){if(num(it.shipping)>0&&!shipGuessed(it))return inh(it,'shipping')?'copiados de otro artículo':'del artículo';if(/gratis|free/i.test(it.notes||''))return 'gratis';
+    const s=shopRec(it);if(s&&s.freeAlways==='1')return 'gratis (ficha de la tienda)';if(s&&s.shipMode!=='weight'&&num(s.shipping)>0)return 'de la ficha de la tienda';return s&&s.shipMode==='weight'?'sin dato: la tienda cobra según peso':'sin dato';}
   const freeOf=it=>{const v=num(it.freeFrom);if(v>0)return v;const s=shopRec(it);return s?num(s.freeFrom):0;};
-  const hasShipInfo=it=>num(it.shipping)>0||num(it.freeFrom)>0||/gratis|free/i.test(it.notes||'')||(()=>{const s=shopRec(it);return !!s&&(num(s.shipping)>0||num(s.freeFrom)>0||s.freeAlways==='1');})();
+  const hasShipInfo=it=>(num(it.shipping)>0&&!shipGuessed(it))||num(it.freeFrom)>0||/gratis|free/i.test(it.notes||'')||(()=>{const s=shopRec(it);return !!s&&((s.shipMode!=='weight'&&num(s.shipping)>0)||num(s.freeFrom)>0||s.freeAlways==='1');})();
   const vatExclOf=it=>!!it.vatExcl||(()=>{const s=shopRec(it);return !!s&&s.vat==='no';})();
 
   const SHOP_COUNTRIES=[['ES','España'],['PT','Portugal'],['FR','Francia'],['DE','Alemania'],['IT','Italia'],['NL','Países Bajos'],['BE','Bélgica'],['AT','Austria'],['PL','Polonia'],['CZ','Chequia'],['IE','Irlanda'],
     ['GB','Reino Unido'],['CH','Suiza'],['US','Estados Unidos'],['CA','Canadá'],['TW','Taiwán'],['HK','Hong Kong'],['CN','China'],['JP','Japón'],['KR','Corea del Sur'],['SG','Singapur'],['AU','Australia']];
   const PAYS=['Tarjeta','PayPal','Bizum','Transferencia','Contra reembolso','Financiación','Google Pay / Apple Pay'];
-  const SHOP_FIELDS=['name','url','country','ships','vat','shipping','freeFrom','freeAlways','minOrder','code','days','pickup','payment','rating','address','phone','email','whatsapp','support','people','notes'];
+  const SHOP_FIELDS=['name','url','country','ships','vat','shipMode','shipping','freeFrom','freeAlways','minOrder','code','days','pickup','payment','rating','address','phone','email','whatsapp','support','people','notes'];
 
   function shopsSaveLocal(){try{localStorage.setItem('shops',JSON.stringify(shops));}catch(e){}}
   async function shopSave(k,patch){if(!k)return;const rec={...(shops[k]||{}),...patch,updatedAt:Date.now()};delete rec.deleted;shops[k]=rec;shopsSaveLocal();
@@ -52,6 +58,7 @@
       <div class="f c2"><label for="td_country">País de origen</label>${tdSel('td_country',[['','—'],...SHOP_COUNTRIES,['XX','Otro']],v('country'))}</div>
       <div class="f c2"><label for="td_ships">¿Envía a España?</label>${tdSel('td_ships',[['','—'],['si','Sí'],['no','No envía']],v('ships'))}</div>
       <div class="f c2"><label for="td_vat">Precios</label>${tdSel('td_vat',[['','—'],['si','Con IVA'],['no','Sin IVA (se suma)']],v('vat'))}</div>
+      <div class="f c2"><label for="td_shipMode">Cómo cobra los portes</label>${tdSel('td_shipMode',[['','Importe fijo'],['weight','Según peso o pedido']],v('shipMode'))}</div>
       <div class="f c2"><label for="td_shipping">Portes (€)</label><input id="td_shipping" inputmode="decimal" value="${esc(v('shipping'))}"></div>
       <div class="f c2"><label for="td_freeFrom">Envío gratis desde (€)</label><input id="td_freeFrom" inputmode="decimal" value="${esc(v('freeFrom'))}"></div>
       <div class="f c2"><label for="td_minOrder">Pedido mínimo (€)</label><input id="td_minOrder" inputmode="decimal" value="${esc(v('minOrder'))}"></div>
@@ -92,7 +99,8 @@
     if(r.ships==='no')c.push('<span class="chip err">No envía</span>');
     if(r.country){const n=(SHOP_COUNTRIES.find(x=>x[0]===r.country)||[0,r.country==='XX'?'Otro país':r.country])[1];c.push(`<span class="chip">${esc(n)}${r.country!=='XX'&&!EU.has(r.country)?' · fuera de la UE':''}</span>`);}
     if(r.vat==='no')c.push('<span class="chip">Sin IVA</span>');
-    if(r.freeAlways==='1')c.push('<span class="chip">Envío gratis</span>');else{if(num(r.shipping))c.push(`<span class="chip">Portes ${eur(num(r.shipping))}</span>`);if(num(r.freeFrom))c.push(`<span class="chip">Gratis desde ${eur(num(r.freeFrom))}</span>`);}
+    if(r.shipMode==='weight')c.push('<span class="chip">Portes según peso</span>');
+    if(r.freeAlways==='1')c.push('<span class="chip">Envío gratis</span>');else{if(num(r.shipping)&&r.shipMode!=='weight')c.push(`<span class="chip">Portes ${eur(num(r.shipping))}</span>`);if(num(r.freeFrom))c.push(`<span class="chip">Gratis desde ${eur(num(r.freeFrom))}</span>`);}
     if(num(r.minOrder))c.push(`<span class="chip">Mínimo ${eur(num(r.minOrder))}</span>`);
     if(r.code)c.push(`<span class="chip">Cupón ${esc(r.code)}</span>`);if(r.days)c.push(`<span class="chip">${esc(r.days)}</span>`);
     const con=[];if(r.phone)con.push(`<a href="tel:${esc(r.phone.replace(/[^\d+]/g,''))}">📞 ${esc(r.phone)}</a>`);if(r.whatsapp)con.push(`<a href="https://wa.me/${esc(r.whatsapp.replace(/[^\d]/g,''))}" target="_blank" rel="noopener">WhatsApp</a>`);
@@ -112,7 +120,7 @@
     ['country','País',i=>clean(i.country).toUpperCase(),v=>(SHOP_COUNTRIES.find(x=>x[0]===v)||[0,v])[1]],
     ['vat','Precios',i=>i.vatExcl?'no':'',v=>v==='no'?'sin IVA':'con IVA']];
   function shopSuggest(k){const list=items.filter(i=>shopKey(i)===k&&i.status!=='discarded'&&!isUnread(i));if(list.length<2)return [];const r=shopRecK(k)||{};const out=[];
-    for(const [f,label,get,show] of SUG_F){const cnt=new Map();list.forEach(i=>{const v=get(i);if(v)cnt.set(v,(cnt.get(v)||0)+1);});if(!cnt.size)continue;
+    for(const [f,label,get,show] of SUG_F){if(f==='shipping'&&r.shipMode==='weight')continue;const cnt=new Map();list.forEach(i=>{const v=get(i);if(v)cnt.set(v,(cnt.get(v)||0)+1);});if(!cnt.size)continue;
       const [val,n]=[...cnt.entries()].sort((a,b)=>b[1]-a[1])[0];
       if(f==='vat'&&n<list.length/2)continue;
       const cur=f==='shipping'||f==='freeFrom'?(num(r[f])>0?String(Math.round(num(r[f])*100)/100):''):clean(r[f]||'');
@@ -142,3 +150,10 @@
   // Listado de cada tienda plegado: se abre al tocar «Ver N productos» y se recuerda mientras la app está abierta.
   const shopOpen=new Set();
   document.addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('[data-shopdet]'))return;d.open?shopOpen.add(d.dataset.shopdet):shopOpen.delete(d.dataset.shopdet);},true);
+
+  // Desglose del coste total de una oferta: precio + portes (y de dónde salen) + importación o IVA.
+  function costBreak(it){const c=calc(it);const p=[`Precio ${eur(c.after)}`];
+    p.push(c.shipWaived?'portes gratis (supera el mínimo)':c.ship>0?`portes ${eur(c.ship)} (${shipSrc(it)})`:`portes ${shipSrc(it)==='del artículo'?'0':shipSrc(it)}`);
+    if(c.imp>0.005)p.push(`importación ${eur(c.imp)} (IVA ${eur(c.impVat)}${c.impFee?` + gestión ${eur(c.impFee)}`:''}${c.impBank>0.005?` + banco ${eur(c.impBank)}`:''})`);
+    if(c.vatAdd>0.005)p.push(`IVA ${eur(c.vatAdd)}`);
+    return `<div class="pmeta costbreak">${p.join(' · ')} = <b>${eur(c.total)}</b></div>`;}
