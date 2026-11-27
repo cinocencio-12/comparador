@@ -169,11 +169,13 @@ Si dos productos tienen el nombre igual o cortado ("…"), NO los juntes: son di
   }
 
   function fromClaude(d,fallbackUrl){const o=fromClaude0(d,fallbackUrl);convertItem(o,o.currency,normCur(d.shippingCurrency||d.currency||'EUR'));delete o.currency;return o;}
+  // Descuento fantasma: la rebaja ya aplicada (precio tachado, «Black Friday -35 %») NO es descuento. Solo cuenta si hay un código de cupón.
+  function discOk(d){const v=num(d.discount);if(!(v>0))return 0;if(!clean(d.code))return 0;return v;}
   function fromClaude0(d,fallbackUrl){
     const url=safeUrl(fixUrl(d.url))||safeUrl(fallbackUrl||'');
     const miss=[];if(!(num(d.price)>0))miss.push('precio');if(d.shipping===null||d.shipping===undefined)miss.push('envío');
     return{product:clean(d.product)||'Producto sin nombre',variant:clean(d.variant),brand:clean(d.brand),sku:clean(d.sku),mpn:clean(d.mpn),ean:clean(d.ean).replace(/\s/g,''),
-      store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:num(d.discount),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
+      store:clean(d.store)||hostOf(url),url,price:num(d.price),discount:discOk(d),discountType:d.discountType==='pct'?'pct':'eur',code:clean(d.code),
       shipping:num(d.shipping),freeFrom:num(d.freeFrom),description:clean(d.description),
       notes:[clean(d.notes),miss.length?`No visto: ${miss.join(', ')}.`:''].filter(Boolean).join(' '),incomplete:miss.length>0,imageUrls:Array.isArray(d.images)?d.images:[],
       shot:Number.isInteger(d.shot)?d.shot:0,box:d.box,

@@ -591,6 +591,17 @@ async def p_accesorios_y_compra(a):
     comprobar(await a.pg.evaluate("items.find(i=>i.id==='ac2').status") == 'pending' and 'accesorio' in st, f'comprar la base ha tocado sus accesorios o no avisa: {st}')
 
 
+async def p_descuento_fantasma(a):
+    await a.abrir(extra=EXTRA)
+    r = await a.pg.evaluate("""()=>[fromClaude0({product:'Volcano',price:154.98,discount:84,discountType:'eur',code:''},'https://e.com/v').discount,
+      fromClaude0({product:'X',price:100,discount:10,discountType:'pct',code:'HOLA10'},'https://e.com/x').discount]""")
+    comprobar(r == [0, 10], f'la rebaja ya aplicada se cuenta como descuento: {r}')
+    await a.pg.evaluate("""async()=>{localStorage.removeItem('fixDisc1');items.push({id:'df1',product:'Volcano',store:'AirsoftPro',price:154.98,discount:84,discountType:'eur',status:'pending',images:[],
+      history:[{at:'2026-11-01T00:00:00Z',price:154.98},{at:'2026-11-26T00:00:00Z',price:70.98}]});await fixPhantomDiscounts();}""")
+    r = await a.pg.evaluate("(()=>{const i=items.find(x=>x.id==='df1');return [calc(i).after,i.history.map(h=>h.price)]})()")
+    comprobar(r == [154.98, [154.98, 154.98]], f'no corrige el precio ni el histórico: {r}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)

@@ -347,3 +347,11 @@ Productos: ${JSON.stringify(list)}`;
     for(const i of list){if(i.checkErr==='blocked')blocked.push(i);else if(hoursAgo(i)<CHECK_FRESH_H)recent.push(i);else todo.push(i);}return{todo,recent,blocked};}
   const skipTxt=(recent,blocked)=>[recent.length?`${recent.length} ya comprobados hace menos de ${CHECK_FRESH_H} h`:'',blocked.length?`${blocked.length} de tiendas que bloquean la lectura (en Revisión)`:''].filter(Boolean).join(' · ');
   async function runPool(list,fn,n=3){let next=0;const work=async()=>{while(next<list.length){const i=next++;await fn(list[i],i);}};await Promise.all(Array.from({length:Math.min(n,list.length)},work));}
+
+  // Arreglo único (27 nov 2026): ofertas con «descuento» sin cupón = rebaja ya aplicada que se restaba dos veces.
+  // Se quita el descuento y se corrigen los puntos del histórico que guardaron el precio restado dos veces.
+  async function fixPhantomDiscounts(){try{if(localStorage.getItem('fixDisc1'))return 0;}catch(e){return 0;}let n=0;
+    for(const it of items){if(!(num(it.discount)>0)||clean(it.code))continue;const bad=calc(it).after;it.discount=0;const good=calc(it);
+      (it.history||[]).forEach(h=>{if(Math.abs(num(h.price)-bad)<0.01){h.price=good.after;h.total=good.total;}});await put('items',it);n++;}
+    try{localStorage.setItem('fixDisc1','1');}catch(e){}
+    if(n){render();setStatus(`Corregidos ${n} precios que restaban dos veces la rebaja de la tienda (salía «con dto.» sin cupón).`);}return n;}

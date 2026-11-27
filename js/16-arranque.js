@@ -3,7 +3,7 @@
   // ---------- arranque ----------
   (async()=>{
     // Versión nueva: al arrancar se actualiza sola; si estás usando la app, aviso con botón «Actualizar».
-    const APP_V='2026-11-27f';
+    const APP_V='2026-11-27g';
     async function hardUpdate(v){try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.update().catch(()=>{});}catch(e){}
       try{if(window.caches){for(const k of await caches.keys())await caches.delete(k);}}catch(e){}
       location.replace(location.pathname+'?v='+encodeURIComponent(v||Date.now()));}
@@ -27,6 +27,6 @@
     await drainInbox();
     await importFromHash();
     await scanPhotos();render();
-    autoRegroup().finally(()=>autoWatch());
+    fixPhantomDiscounts().catch(()=>{}).finally(()=>autoRegroup().finally(()=>autoWatch()));
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)drainInbox();});
   })();
