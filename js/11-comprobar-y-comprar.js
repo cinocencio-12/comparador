@@ -56,6 +56,9 @@
   const famToks=it=>new Set(norm([it.brand,it.product].join(' ')).replace(/[^a-z0-9.\s-]/g,' ').split(/[\s-]+/).filter(t=>t&&!STOP.has(t)));
   function relation(it,o){
     if(key(groupName(o))===key(groupName(it)))return 'same';
+    // Una base y su accesorio (o dos cosas de categoría distinta) nunca son alternativas: el cargador de la M401 no es «otra versión» de la M401.
+    if(catOf(it)!==catOf(o))return '';
+    if(compatOf(o).some(e=>fits(e,it))||compatOf(it).some(e=>fits(e,o)))return '';
     const A=famToks(it),B=famToks(o);let inter=0;A.forEach(t=>{if(B.has(t))inter++;});
     const jac=A.size&&B.size?inter/(A.size+B.size-inter):0,cover=A.size&&B.size?inter/Math.min(A.size,B.size):0;
     if(jac>=0.5||(cover>=0.8&&inter>=2))return 'version';
@@ -67,7 +70,7 @@
   function openBuy(it){
     buyItem=it;buyCands=items.filter(o=>o!==it&&(o.status||'pending')==='pending').map(o=>({o,rel:relation(it,o)})).filter(x=>x.rel)
       .sort((a,b)=>['same','version','similar'].indexOf(a.rel)-['same','version','similar'].indexOf(b.rel));
-    buySel=new Set(buyCands.filter(x=>x.rel!=='similar').map(x=>x.o.id));
+    buySel=new Set(buyCands.filter(x=>x.rel==='same').map(x=>x.o.id));
     if(!buyCands.length){finishBuy([]);return;}
     $('#buyTitle').textContent=`Comprado: ${fullName(it)} en ${shopOf(it)} (${eur(calc(it).total)}). ¿Qué hago con lo relacionado?`;
     drawBuy();$('#buyDlg').hidden=false;$('#buyDlg').scrollIntoView({behavior:'smooth',block:'start'});
@@ -84,7 +87,9 @@
     for(const id of altIds){const o=items.find(x=>x.id===id);if(!o)continue;o.status='alt';o.altOf=it.id;o.altAt=now;await put('items',o);}
     it.status='bought';it.boughtAt=now;it.paid=calc(it).total;await put('items',it);
     $('#buyDlg').hidden=true;buyItem=null;render();
-    setStatus(`Comprado: ${fullName(it)} en ${shopOf(it)}.${altIds.length?` ${altIds.length} ${altIds.length===1?'alternativa guardada':'alternativas guardadas'} con la compra (en «Comprados»).`:''}`);
+    // Comprar la base no toca sus accesorios: solo recuerda cuántos tienes pendientes
+    const accs=isBase(it)?accessoriesFor(it).filter(a=>(a.status||'pending')==='pending'):[];
+    setStatus(`Comprado: ${fullName(it)} en ${shopOf(it)}.${altIds.length?` ${altIds.length} ${altIds.length===1?'alternativa guardada':'alternativas guardadas'} con la compra (en «Comprados»).`:''}${accs.length?` Tiene ${accs.length} ${accs.length===1?'accesorio compatible pendiente':'accesorios compatibles pendientes'}: siguen en tu lista, míralos en su ficha.`:''}`);
   }
   $('#buyAlt').addEventListener('click',()=>finishBuy([...buySel]));
   $('#buyOnly').addEventListener('click',()=>finishBuy([]));

@@ -13,10 +13,10 @@
 <meta name="referrer" content="no-referrer">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&display=swap">
-<link rel="stylesheet" href="css/01-base.css?v=2026-11-27e">
-<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-27e">
-<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-27e">
-<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-27e">
+<link rel="stylesheet" href="css/01-base.css?v=2026-11-27f">
+<link rel="stylesheet" href="css/02-interfaz.css?v=2026-11-27f">
+<link rel="stylesheet" href="css/03-comparador2.css?v=2026-11-27f">
+<link rel="stylesheet" href="css/04-identidad.css?v=2026-11-27f">
 </head>
 <body>
 <div class="wrap">
@@ -54,11 +54,11 @@
 
   <div class="picker" id="buyDlg" hidden>
     <h2 id="buyTitle"></h2>
-    <p class="hint" style="margin:0">Marca lo que ya no necesitas mirar: sale de pendientes y queda guardado como alternativa de esta compra, en «Comprados».</p>
+    <p class="hint" style="margin:0">Aquí solo salen otras ofertas o versiones <b>del mismo producto</b>. Marca las que ya no necesitas mirar: salen de pendientes y quedan como alternativa de esta compra, en «Comprados». Los accesorios no se tocan.</p>
     <div class="list" id="buyList"></div>
     <div class="actions">
-      <button class="btn primary" type="button" id="buyAlt">Guardar como alternativas</button>
-      <button class="btn" type="button" id="buyOnly">Solo marcar comprado</button>
+      <button class="btn primary" type="button" id="buyOnly">Solo marcar comprado</button>
+      <button class="btn" type="button" id="buyAlt">Guardar como alternativas</button>
       <button class="btn" type="button" id="buyCancel">Cancelar</button>
     </div>
   </div>
@@ -245,7 +245,7 @@
       <option value="rising">Precio subiendo (ojo con falsos descuentos)</option>
       <option value="lowest">En su precio más bajo</option>
     </select>
-    <div class="full" style="grid-column:1/-1"><div class="toolbar"><button class="btn small" id="selModeBtn" type="button">Seleccionar para comparar o vincular</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div></div>
+    <div class="full" style="grid-column:1/-1"><div class="toolbar"><button class="btn small" id="selModeBtn" type="button">Seleccionar para comparar o vincular</button><button class="btn small" id="regroupBtn" type="button">Agrupar productos iguales</button><button class="btn small" id="compatBtn" type="button">Detectar accesorios y para qué sirven</button><button class="btn small" id="checkAllBtn" type="button">Comprobar precios y stock</button></div></div>
     </div></details>
     <button class="btn small primary clr" id="classifyBtn" type="button" hidden></button>
     <button class="btn small primary clr" id="retryBtn" type="button" hidden></button>
@@ -290,6 +290,14 @@
   <button type="button" data-nav="review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l2 2 4-4"/><path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6z"/></svg><span>Revisión</span><i class="badge" id="navRevN" hidden></i></button>
   <button type="button" data-nav="buys"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1.2 13H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg><span>Compras</span></button>
 </nav>
+<div class="sheet-bg" id="cmBg" hidden></div>
+<section class="sheet" id="cmSheet" role="dialog" aria-modal="true" aria-labelledby="cmTitle" hidden>
+  <div class="grab"></div>
+  <h2 id="cmTitle">Accesorios: para qué sirven</h2>
+  <p class="hint">Accesorios sin «Aplica a» cuyo nombre cita el modelo de una base que tienes en la lista. Marca los que estén bien y se rellenará su «Aplica a».</p>
+  <div class="list" id="cmList"></div>
+  <div class="shfoot"><button class="btn" type="button" id="cmCancel">Cancelar</button><button class="btn primary" type="button" id="cmApply">Aplicar</button></div>
+</section>
 <div class="sheet-bg" id="tdBg" hidden></div>
 <section class="sheet" id="tdSheet" role="dialog" aria-modal="true" aria-labelledby="tdTitle" hidden>
   <div class="grab"></div>
@@ -362,23 +370,23 @@
   <div class="bar lbacts"><button id="lbFirst" type="button">★ Poner como principal</button><button id="lbCat" type="button">Portada de la categoría</button><button id="lbDel" type="button">Quitar foto</button></div>
 </div>
 
-<script src="js/01-base.js?v=2026-11-27e"></script>
-<script src="js/02-datos.js?v=2026-11-27e"></script>
-<script src="js/03-vistas.js?v=2026-11-27e"></script>
-<script src="js/04-inicio-y-navegacion.js?v=2026-11-27e"></script>
-<script src="js/05-avisos-listas-revision.js?v=2026-11-27e"></script>
-<script src="js/06-ficha.js?v=2026-11-27e"></script>
-<script src="js/07-ajustes-categorias.js?v=2026-11-27e"></script>
-<script src="js/08-claude-y-monedas.js?v=2026-11-27e"></script>
-<script src="js/09-editor.js?v=2026-11-27e"></script>
-<script src="js/10-fotos-y-acciones.js?v=2026-11-27e"></script>
-<script src="js/11-comprobar-y-comprar.js?v=2026-11-27e"></script>
-<script src="js/12-nube.js?v=2026-11-27e"></script>
-<script src="js/13-consejos.js?v=2026-11-27e"></script>
-<script src="js/14-compatibles.js?v=2026-11-27e"></script>
-<script src="js/15-costes.js?v=2026-11-27e"></script>
-<script src="js/17-tiendas.js?v=2026-11-27e"></script>
-<script src="js/18-tendencias.js?v=2026-11-27e"></script>
-<script src="js/16-arranque.js?v=2026-11-27e"></script>
+<script src="js/01-base.js?v=2026-11-27f"></script>
+<script src="js/02-datos.js?v=2026-11-27f"></script>
+<script src="js/03-vistas.js?v=2026-11-27f"></script>
+<script src="js/04-inicio-y-navegacion.js?v=2026-11-27f"></script>
+<script src="js/05-avisos-listas-revision.js?v=2026-11-27f"></script>
+<script src="js/06-ficha.js?v=2026-11-27f"></script>
+<script src="js/07-ajustes-categorias.js?v=2026-11-27f"></script>
+<script src="js/08-claude-y-monedas.js?v=2026-11-27f"></script>
+<script src="js/09-editor.js?v=2026-11-27f"></script>
+<script src="js/10-fotos-y-acciones.js?v=2026-11-27f"></script>
+<script src="js/11-comprobar-y-comprar.js?v=2026-11-27f"></script>
+<script src="js/12-nube.js?v=2026-11-27f"></script>
+<script src="js/13-consejos.js?v=2026-11-27f"></script>
+<script src="js/14-compatibles.js?v=2026-11-27f"></script>
+<script src="js/15-costes.js?v=2026-11-27f"></script>
+<script src="js/17-tiendas.js?v=2026-11-27f"></script>
+<script src="js/18-tendencias.js?v=2026-11-27f"></script>
+<script src="js/16-arranque.js?v=2026-11-27f"></script>
 </body>
 </html>

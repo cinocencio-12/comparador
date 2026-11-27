@@ -566,6 +566,31 @@ async def p_portes_peso(a):
     await a.foto('desglose')
 
 
+async def p_accesorios_y_compra(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{const b={status:'pending',images:[],store:'Taiwangun'};
+      items.push({...b,id:'ac1',product:'Double Eagle M401',variant:'Negro',brand:'Double Eagle',category:'Escopetas',price:42},
+        {...b,id:'ac2',product:'Magazine for shotgun M401',brand:'Double Eagle',category:'Cargadores',price:25},
+        {...b,id:'ac3',product:'Double Eagle M401',variant:'Tan',brand:'Double Eagle',category:'Escopetas',price:44},
+        {...b,id:'ac4',product:'Linterna táctica',category:'Accesorios',price:20,compat:'todas'});}""")
+    # Comprar el cargador no propone la escopeta como alternativa
+    r = await a.pg.evaluate("relation(items.find(i=>i.id==='ac2'),items.find(i=>i.id==='ac1'))")
+    comprobar(r == '', f'el cargador y su escopeta salen como alternativas: {r!r}')
+    comprobar(await a.pg.evaluate("relation(items.find(i=>i.id==='ac1'),items.find(i=>i.id==='ac3'))") == 'version', 'dos colores de la misma escopeta deberían ser versiones')
+    # Detectar «Aplica a» por el modelo citado en el nombre
+    p = await a.pg.evaluate("inferCompat().filter(x=>x.a.id==='ac2').map(x=>x.models)")
+    comprobar(p and 'm401' in p[0], f'no detecta que el cargador es de la M401: {p}')
+    await a.pg.evaluate("()=>{items.find(i=>i.id==='ac2').compat='M401';}")
+    k = await a.pg.evaluate("[accKind(items.find(i=>i.id==='ac2')).k, accKind(items.find(i=>i.id==='ac4')).k, accessoriesFor(items.find(i=>i.id==='ac1')).map(x=>x.id)]")
+    comprobar(k[0] == 'exclusive' and k[1] == 'general' and 'ac2' in k[2], f'clasificación de accesorios mal: {k}')
+    # Comprar la escopeta: por defecto no mueve nada y avisa de sus accesorios pendientes
+    await a.pg.evaluate("openBuy(items.find(i=>i.id==='ac1'))"); await a.pg.wait_for_timeout(200)
+    comprobar(await a.pg.evaluate("buySel.size") == 0, 'al comprar, las versiones no deben venir marcadas')
+    await a.pg.click('#buyOnly'); await a.pg.wait_for_timeout(300)
+    st = await a.pg.inner_text('#statusTxt')
+    comprobar(await a.pg.evaluate("items.find(i=>i.id==='ac2').status") == 'pending' and 'accesorio' in st, f'comprar la base ha tocado sus accesorios o no avisa: {st}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
