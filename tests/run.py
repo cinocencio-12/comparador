@@ -536,6 +536,18 @@ async def p_comprobar_masiva(a):
     comprobar(body and body['max_tokens'] == 1500 and body['tools'][0].get('max_content_tokens') == 30000 and body['tools'][0]['max_uses'] == 1, f'la comprobación no usa la lectura rápida: {body and body.get("tools")}')
 
 
+async def p_inicio_seguimiento(a):
+    await a.abrir(extra=EXTRA)
+    d = lambda n: f"new Date(Date.now()-{n}*864e5).toISOString()"
+    await a.pg.evaluate(f"""()=>{{items.push({{id:'hs1',product:'Bajó en inicio',store:'T',price:80,status:'pending',images:[],history:[{{at:{d(5)},price:100}},{{at:{d(0)},price:80}}]}});setNav('home');render();}}""")
+    await a.pg.wait_for_timeout(200)
+    await a.pg.evaluate("[...document.querySelectorAll('.track li[data-open]')].find(x=>/Bajó en inicio/.test(x.textContent)).click()"); await a.pg.wait_for_timeout(300)
+    comprobar(await a.pg.evaluate("!!prodKey"), 'pulsar una bajada en Inicio no abre el producto')
+    await a.pg.evaluate("()=>{prodKey=null;setNav('home');render();}"); await a.pg.wait_for_timeout(200)
+    await a.pg.click('[data-trgo=down]'); await a.pg.wait_for_timeout(300)
+    comprobar(await a.pg.evaluate("[navTab,tab,trOrd]") == ['explore', 'trends', 'down'], 'pulsar «bajadas» en Inicio no lleva a Tendencias')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
