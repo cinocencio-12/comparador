@@ -69,3 +69,4 @@
 - «Detectar accesorios y para qué sirven» (Filtros y herramientas, `inferCompat`): propone «Aplica a» para accesorios sin él cuyo nombre cita el modelo de una base (M401, KAR98K…); se aplican los marcados.
 - Comprar: alternativas solo del mismo producto (`relation` descarta categoría distinta y base↔accesorio); por defecto solo viene marcado el mismo producto en otra tienda; botón principal «Solo marcar comprado». Comprar una base no toca sus accesorios; avisa de cuántos hay pendientes.
 - Descuento fantasma (27 nov 2026): de lo leído por Claude solo cuenta `discount` si hay código de cupón (`discOk`); la rebaja ya aplicada (tachado, «Black Friday -35 %») se restaba dos veces. Arreglo único al abrir (`fixPhantomDiscounts`, marca `fixDisc1`): quita esos descuentos y corrige el histórico.
+- Vincular (28 nov 2026): el selector incluye también lo comprado y las alternativas (marcados «ya comprado»); vincular no cambia su estado.

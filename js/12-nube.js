@@ -177,13 +177,13 @@
   function lkScore(a,b){const A=lkToks([groupName(a),a.product,a.brand,a.sku,a.mpn,a.ean].join(' ')),B=lkToks([groupName(b),b.product,b.brand,b.sku,b.mpn,b.ean].join(' '));
     let n=0;A.forEach(t=>{if(B.has(t))n+=/\d/.test(t)?2:1;});let sc=n/Math.max(1,Math.min(A.size,B.size));
     if(a.ean&&a.ean===b.ean)sc+=3;if(a.mpn&&norm(a.mpn)===norm(b.mpn))sc+=2;if(catOf(a)===catOf(b))sc+=.25;return sc;}
-  function lkGroups(){const m=new Map();items.filter(i=>(i.status||'pending')==='pending').forEach(i=>{const k=key(groupName(i));if(!m.has(k))m.set(k,[]);m.get(k).push(i);});return m;}
+  function lkGroups(){const m=new Map();items.filter(i=>['pending','bought','alt'].includes(i.status||'pending')).forEach(i=>{const k=key(groupName(i));if(!m.has(k))m.set(k,[]);m.get(k).push(i);});return m;}
   function drawLink(){const qs=norm($('#lkQ').value).split(' ').filter(Boolean);const baseK=lkIt?key(groupName(lkIt)):'';
     const rows=[...lkGroups().entries()].filter(([k])=>k!==baseK).map(([k,v])=>({k,v,f:v[0],sc:lkIt?lkScore(lkIt,v[0]):0}));
     const hay=r=>norm([groupName(r.f),...r.v.map(o=>[o.product,o.variant,o.brand,o.sku,o.mpn,o.ean,shopOf(o),catOf(o),o.platform].join(' '))].join(' '));
     const vis=rows.filter(r=>lkSel.has(r.k)||!qs.length||qs.every(t=>hay(r).includes(t)));
     vis.sort((a,b)=>(lkSel.has(b.k)-lkSel.has(a.k))||b.sc-a.sc||groupName(a.f).localeCompare(groupName(b.f),'es'));
-    const row=(r,base)=>{const img=(r.v.find(i=>(i.images||[])[0])||{}).images;return `<label class="${base?'base':lkSel.has(r.k)?'on':''}">${base?'':`<input type="checkbox" data-lk="${esc(r.k)}" ${lkSel.has(r.k)?'checked':''}>`}${img&&img[0]?`<img src="${esc(img[0])}" alt="">`:'<span class="ph"></span>'}<span class="t"><b>${esc(groupName(r.f))}</b><small>${esc([...new Set(r.v.map(shopOf))].join(', '))} · ${eur(Math.min(...r.v.map(o=>calc(o).total)))}</small></span>${base?'<span class="sg">Este</span>':r.sc>=.6&&lkIt?'<span class="sg">Parecido</span>':''}</label>`;};
+    const row=(r,base)=>{const img=(r.v.find(i=>(i.images||[])[0])||{}).images;return `<label class="${base?'base':lkSel.has(r.k)?'on':''}">${base?'':`<input type="checkbox" data-lk="${esc(r.k)}" ${lkSel.has(r.k)?'checked':''}>`}${img&&img[0]?`<img src="${esc(img[0])}" alt="">`:'<span class="ph"></span>'}<span class="t"><b>${esc(groupName(r.f))}</b><small>${esc([...new Set(r.v.map(shopOf))].join(', '))} · ${eur(Math.min(...r.v.map(o=>calc(o).total)))}${r.v.some(o=>o.status==='bought')?' · <b>ya comprado</b>':''}</small></span>${base?'<span class="sg">Este</span>':r.sc>=.6&&lkIt?'<span class="sg">Parecido</span>':''}</label>`;};
     let html='';
     if(lkIt){const bv=items.filter(i=>key(groupName(i))===baseK);html+=row({k:baseK,v:bv.length?bv:[lkIt],f:lkIt},true);}
     html+=vis.map(r=>row(r)).join('')||'<span class="hint">Nada con esas palabras.</span>';

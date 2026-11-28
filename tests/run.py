@@ -602,6 +602,18 @@ async def p_descuento_fantasma(a):
     comprobar(r == [154.98, [154.98, 154.98]], f'no corrige el precio ni el histórico: {r}')
 
 
+async def p_vincular_comprado(a):
+    await a.abrir(extra=EXTRA)
+    await a.pg.evaluate("""()=>{items.push({id:'vc1',product:'Chiappa Rhino Gold',store:'Action Army24',price:200,status:'bought',boughtAt:new Date().toISOString(),images:[]},
+      {id:'vc2',product:'Chiappa Rhino 60DS Gold',store:'Zulu Tactical',price:190,status:'pending',images:[]});openLink(items.find(i=>i.id==='vc2'));}""")
+    await a.pg.wait_for_timeout(200); await a.pg.fill('#lkQ', 'rhino gold'); await a.pg.wait_for_timeout(150)
+    t = await a.pg.inner_text('#lkList')
+    comprobar('Action Army24' in t and 'ya comprado' in t, f'al vincular no salen los ya comprados: {t[:200]}')
+    await a.pg.evaluate("document.querySelector('#lkList [data-lk]').click()"); await a.pg.click('#lkGo'); await a.pg.wait_for_timeout(300)
+    r = await a.pg.evaluate("(()=>{const a=items.find(i=>i.id==='vc1'),b=items.find(i=>i.id==='vc2');return [key(groupName(a))===key(groupName(b)),a.status]})()")
+    comprobar(r == [True, 'bought'], f'no vincula con el comprado o le cambia el estado: {r}')
+
+
 async def p_importes(a):
     await a.abrir(extra=EXTRA)
     await a.pg.click('[data-nav=add]'); await a.pg.wait_for_timeout(200); await a.pg.click('#addLink'); await a.pg.wait_for_timeout(300)
